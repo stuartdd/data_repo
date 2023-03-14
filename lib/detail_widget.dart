@@ -1,18 +1,15 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:async';
+
 import 'data_load.dart';
+import 'detail_buttons.dart';
 
-const _styleLarge = TextStyle(fontFamily: 'Code128', fontSize: 30.0);
-const _styleLargeEdit = TextStyle(fontFamily: 'Code128', fontSize: 25.0);
-const _styleSmall = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.black);
-const _styleSmallDisabled = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.grey);
-const _buttonBorderStyle = BorderSide(color: Colors.black, width: 2);
-const _buttonBorderStyleDisabled = BorderSide(color: Colors.grey, width: 2);
+const _styleLarge = TextStyle(fontFamily: 'Code128', fontSize: 35.0);
+const _styleLargeEdit = TextStyle(fontFamily: 'Code128', fontSize: 28.0);
+const _styleSmall = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.black);
+const _styleSubTitle = TextStyle(fontFamily: 'Code128', fontSize: 17.0, color: Colors.black);
 
-enum ActionType { none, editStart, editSubmit, addStart, addSubmit, link, clip }
+enum ActionType { none, editStart, editCancel, editSubmit, addStart, addCancel, addSubmit, link, clip }
 
 class DetailAction {
   final ActionType action;
@@ -29,7 +26,7 @@ class DetailAction {
   String getLastPathElement() {
     final l = path.split('.');
     if (l.isNotEmpty) {
-      return l[l.length-1];
+      return l[l.length - 1];
     }
     return "";
   }
@@ -50,9 +47,17 @@ class DetailAction {
         {
           return "EDIT-SUBMIT: $s";
         }
+      case ActionType.editCancel:
+        {
+          return "EDIT-CANCEL: $s";
+        }
       case ActionType.addStart:
         {
           return "ADD-START: $s";
+        }
+      case ActionType.addCancel:
+        {
+          return "ADD-CANCEL: $s";
         }
       case ActionType.addSubmit:
         {
@@ -67,7 +72,6 @@ class DetailAction {
           return "CLIP: $s";
         }
     }
-    return "";
   }
 }
 
@@ -81,7 +85,6 @@ class DetailWidget extends StatefulWidget {
 }
 
 class _DetailWidgetState extends State<DetailWidget> {
-  bool clipped = false;
   bool edit = false;
   late TextEditingController _controller;
 
@@ -113,10 +116,10 @@ class _DetailWidgetState extends State<DetailWidget> {
             ListTile(
               leading: const Icon(Icons.album),
               title: Text(
-                "Title:${widget.dataValueRow.name}",
+                widget.dataValueRow.name,
                 style: _styleSmall,
               ),
-              subtitle: Text("Owned By:${widget.dataValueRow.path}"),
+              subtitle: Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: _styleSubTitle),
             ),
             SizedBox(
               width: double.infinity,
@@ -143,48 +146,53 @@ class _DetailWidgetState extends State<DetailWidget> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: <Widget>[
-                widget.dataValueRow.isLink()
-                    ? OutlinedButton(
-                        style: OutlinedButton.styleFrom(side: _buttonBorderStyle),
-                        child: const Text('Link', style: _styleSmall),
-                        onPressed: () {
-                          widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.getFullPath(), widget.dataValueRow.value, ""));
-                        },
-                      )
-                    : const SizedBox(),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(side: clipped ? _buttonBorderStyleDisabled : _buttonBorderStyle),
-                  child: Text('Copy', style: clipped ? _styleSmallDisabled : _styleSmall),
-                  onPressed: () async {
-                    if (clipped) {
-                      return;
-                    }
-                    await Clipboard.setData(ClipboardData(text: widget.dataValueRow.value));
-                    widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.getFullPath(), widget.dataValueRow.value, ""));
-                    setState(() {
-                      clipped = true;
-                    });
-                    Timer(const Duration(seconds: 1), () {
-                      setState(() {
-                        clipped = false;
-                      });
-                    });
-                  },
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(side: edit ? _buttonBorderStyleDisabled : _buttonBorderStyle),
-                  child: Text('Edit', style: edit ? _styleSmallDisabled : _styleSmall),
+                DetailButton(
+                  show: !edit,
+                  text: 'Edit',
                   onPressed: () {
-                    if (edit) {
-                      return;
-                    }
                     setState(() {
                       edit = true;
                       _controller.text = widget.dataValueRow.value;
                     });
                     widget.dataAction(DetailAction(ActionType.editStart, true, widget.dataValueRow.getFullPath(), widget.dataValueRow.value, ""));
+                  },
+                ),
+                DetailButton(
+                  show: edit,
+                  text: 'Done',
+                  onPressed: () {
+                    if (widget.dataAction(DetailAction(ActionType.editSubmit, true, widget.dataValueRow.getFullPath(), widget.dataValueRow.value, _controller.text))) {
+                      setState(() {
+                        edit = false;
+                      });
+                    }
+                  },
+                ),
+                DetailButton(
+                  show: edit,
+                  text: 'Cancel',
+                  onPressed: () {
+                    setState(() {
+                      edit = false;
+                    });
+                    widget.dataAction(DetailAction(ActionType.editCancel, true, widget.dataValueRow.getFullPath(), widget.dataValueRow.value, ""));
+                  },
+                ),
+                DetailButton(
+                  show: !edit,
+                  timerMs: 500,
+                  text: 'Copy',
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: widget.dataValueRow.value));
+                    widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.getFullPath(), widget.dataValueRow.value, ""));
+                  },
+                ),
+                DetailButton(
+                  show: widget.dataValueRow.isLink() && !edit,
+                  timerMs: 500,
+                  text: 'Link',
+                  onPressed: () {
+                    widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.getFullPath(), widget.dataValueRow.value, ""));
                   },
                 ),
               ],
@@ -201,27 +209,24 @@ class _DetailWidgetState extends State<DetailWidget> {
             ListTile(
               leading: const Icon(Icons.album),
               title: Text(
-                "Title:${widget.dataValueRow.name} has ${widget.dataValueRow.mapSize} sub elements",
+                widget.dataValueRow.name,
                 style: _styleSmall,
               ),
-              subtitle: Text("Owned By:${widget.dataValueRow.path}"),
+              subtitle: Text("Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: _styleSubTitle),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: <Widget>[
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(side: _buttonBorderStyle),
-                  child: const Text('Add', style: _styleSmall),
+                DetailButton(
+                  text: 'Add',
                   onPressed: () {
                     widget.dataAction(DetailAction(ActionType.addStart, false, widget.dataValueRow.getFullPath(), widget.dataValueRow.name, ""));
                   },
                 ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(side: _buttonBorderStyle),
-                  child: const Text('Edit', style: _styleSmall),
+                DetailButton(
+                  text: "Re-Name",
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.editStart, false, widget.dataValueRow.getFullPath(), widget.dataValueRow.name, ""));
+                    widget.dataAction(DetailAction(ActionType.editStart, false, widget.dataValueRow.getFullPath(), widget.dataValueRow.value, ""));
                   },
                 ),
               ],

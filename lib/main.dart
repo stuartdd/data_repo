@@ -176,12 +176,12 @@ class _MyHomePageState extends State<MyHomePage> {
     if (detailActionData.isValueDifferent()) {
       final node = DataLoad.findNodeForPath(_loadedData!, detailActionData.path);
       if (node == null) {
-        _showMyDialog("Path was not found",  detailActionData.path);
+        _showMyDialog("Path was not found", detailActionData.path);
         return true;
       }
       final key = detailActionData.getLastPathElement();
       if (key == "") {
-        _showMyDialog("Last element of Path was not found",  detailActionData.path);
+        _showMyDialog("Last element of Path was not found", detailActionData.path);
         return true;
       }
       setState(() {
@@ -234,8 +234,8 @@ class _MyHomePageState extends State<MyHomePage> {
       },
     );
 
-    final inputField = TextBoxAppBar((str,dat) {
-      _handleInputField(str);
+    final inputField = TextBoxAppBar((event) {
+      _handleInputField(event);
     }, _isPasswordInput, _search);
 
     final Widget icon;
@@ -378,7 +378,6 @@ class _MyHomePageState extends State<MyHomePage> {
       },
     );
   }
-
 }
 
 class TextBoxAppBar extends StatelessWidget {
