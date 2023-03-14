@@ -1,0 +1,42 @@
+{
+  "Stuart": {
+    "Data1": {
+      "App1": {
+        "path1": "/home/stuart/Documents",
+        "sep": "/",
+        "pre": "mydb-",
+        "mask": "%d-%h%m",
+        "post": ".data",
+        "max": 10
+      },
+      "App2": {
+        "path2": "/home/stuart/Documents",
+        "sep": "/",
+        "pre": "mydb-",
+        "mask": "%d-%h%m",
+        "post": ".data",
+        "max": 10
+      }
+    }
+  },
+  "Roger": {
+    "Data2": {
+      "App3": {
+        "path3": "/home/stuart/Documents",
+        "sep": "/",
+        "pre": "mydb-",
+        "mask": "%d-%h%m",
+        "post": ".data",
+        "max": 10
+      },
+      "App4": {
+        "path4": "/home/stuart/Documents",
+        "sep": "/",
+        "pre": "mydb-",
+        "mask": "%d-%h%m",
+        "post": ".data",
+        "max": 10
+      }
+    }
+  }
+}

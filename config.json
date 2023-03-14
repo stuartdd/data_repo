@@ -1,0 +1,27 @@
+
+    {
+        "application" : {
+            "title": "Data Repository",
+            "colour": "blue"
+        },
+        "user" : {
+            "name" : "Stuart (me)",
+            "id" : "Stuart",
+            "appStatePath": "test",
+            "appStateFile": "appState.json"
+        },
+        "file": {
+            "backupfile": {
+                "path": "test",
+                "sep": "/",
+                "pre": "mydb-",
+                "mask": "%d-%h%m",
+                "post": ".data",
+                "max": 10
+            },
+            "postDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
+            "getDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
+            "datafile": "data03.json",
+            "datafilePath": "test/data"
+        }
+    }

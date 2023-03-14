@@ -1,0 +1,74 @@
+
+    {
+        "screen": {
+            "height": 1362,
+            "fullScreen": false,
+            "split": 0.24574,
+            "width": 1152
+        },
+        "test-data": {
+            "colourBad": "x2196f3",
+            "colourHex": "2196ff"
+        },
+        "application" : {
+            "title": "Data Repository",
+            "colour": "green"
+        },
+        "user" : {
+            "name" : "Stuart (me)",
+            "id" : "Stuart",
+            "appStatePath": "test/data",
+            "appStateFile": "appState.json.tmp"
+        },
+        "search": {
+            "lastGoodList": [
+                "FolderSync",
+                "EE",
+                "John",
+                "ever",
+                "flip",
+                "google",
+                "ee",
+                "yoyo",
+                "samsung",
+                "lloyds"
+            ],
+            "case": false
+        },
+        "clipboard": {
+            "email BT": "stuart.d.davies@btinternet.com",
+            "email Google": "sdd.davies@gmail.com"
+        },
+        "dialog": {
+            "linkTimeOutMS": 1500,
+            "saveTimeOutMS": 1500,
+            "copyTimeOutMS": 500
+        },
+        "log": {
+            "fileName": "enctest.log",
+            "prefix": "INFO",
+            "active": true
+        },
+        "theme": "dark",
+        "data": {
+            "pwHints": "Hint",
+            "assets": "Assets",
+            "transactions": "Transaction"
+        },
+        "file": {
+            "backupfile": {
+                "path": "test",
+                "sep": "/",
+                "pre": "mydb-",
+                "mask": "%d-%h%m",
+                "post": ".data",
+                "max": 10
+            },
+            "appStatePath": "test",
+            "appStateFile": "appState.json",
+            "postDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
+            "getDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
+            "datafile": "mydb.data",
+            "datafilePath": "test"
+        }
+    }
