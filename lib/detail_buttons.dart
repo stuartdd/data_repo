@@ -6,6 +6,55 @@ const _buttonBorderStyleGrey = BorderSide(color: Colors.grey, width: 2);
 const _styleSmall = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.black);
 const _styleSmallDisabled = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.grey);
 
+class DetailIconButton extends StatefulWidget {
+  final bool show;
+  final Function() onPressed;
+  final int timerMs;
+  final Icon icon;
+  final String tooltip;
+  final MaterialColor materialColor;
+  const DetailIconButton({super.key, this.show = true, required this.onPressed, this.timerMs = 100, required this.icon, this.tooltip = "", required this.materialColor});
+  @override
+  State<DetailIconButton> createState() => _DetailIconButton();
+}
+
+class _DetailIconButton extends State<DetailIconButton> {
+  bool grey = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.show) {
+      return Row(
+        children: [
+          IconButton(
+            color: grey ? widget.materialColor.shade900: widget.materialColor.shade50,
+            icon: widget.icon,
+            tooltip: widget.tooltip,
+            onPressed: () {
+              if (grey) {
+                return;
+              }
+              setState(() {
+                grey = true;
+              });
+              Timer(const Duration(milliseconds: 5), () {
+                widget.onPressed();
+                Timer(Duration(milliseconds: 15 + widget.timerMs), () {
+                  setState(() {
+                    grey = false;
+                  });
+                });
+              });
+            },
+          )
+        ],
+      );
+    } else {
+      return const SizedBox(width: 0);
+    }
+  }
+}
+
 class DetailButton extends StatefulWidget {
   const DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = 100, this.show = true});
   final bool show;
@@ -50,5 +99,35 @@ class _DetailButtonState extends State<DetailButton> {
     } else {
       return const SizedBox(width: 0);
     }
+  }
+}
+
+class SearchTextOnAppBar extends StatelessWidget {
+  SearchTextOnAppBar(this._callMe, this._isPasswordField, this._initial, {super.key});
+  final void Function(String event)? _callMe;
+  final String _initial;
+  final bool _isPasswordField;
+  final TextEditingController _tec = TextEditingController(text: "");
+
+  @override
+  Widget build(BuildContext context) {
+    _tec.text = _initial;
+    return Container(
+      alignment: Alignment.centerLeft,
+      child: TextField(
+        autofocus: true,
+        onSubmitted: (value) {
+          _callMe!(value);
+        },
+        obscureText: _isPasswordField,
+        controller: _tec,
+        cursorColor: const Color(0xff000000),
+        decoration: InputDecoration(border: const OutlineInputBorder(), hintText: _isPasswordField ? 'Password' : 'Search'),
+      ),
+    );
+  }
+
+  String getResp() {
+    return _tec.value.text;
   }
 }

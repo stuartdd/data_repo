@@ -5,7 +5,7 @@
             "colour": "blue"
         },
         "user" : {
-            "name" : "Stuart (me)",
+            "name" : "Stuart",
             "id" : "Stuart",
             "appStatePath": "test",
             "appStateFile": "appState.json"

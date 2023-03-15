@@ -8,6 +8,7 @@ import 'detail_widget.dart';
 import 'encrypt.dart';
 import 'config.dart';
 import 'main_view.dart';
+import 'detail_buttons.dart';
 
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
@@ -110,6 +111,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   String _password = "123";
   String _status = "";
+  String _expand = _configData.getUserName();
   String _search = "";
   String _selected = "";
   bool _isPasswordInput = true;
@@ -142,46 +144,49 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _handleTreeSelect(String path) {
+    final List<String> list = path.split('.');
     setState(() {
+      if (list.isNotEmpty) {
+        _expand = list[0];
+      }
       _selected = path;
       print(DataLoad.findNodeForPath(_loadedData!, _selected));
     });
-    print("SELECT:$path");
-  }
+   }
 
-  void _handleInputField(String s) {
-    if (s.isEmpty) {
+  void _handleSearchField(String searchFor) {
+    if (searchFor.isEmpty) {
       return;
     }
     setState(() {
       if (_isPasswordInput) {
         _loadedData = _loadData(
-          s,
+          searchFor,
         );
         if (_loadedData == null) {
           _isPasswordInput = true;
           _selected = "";
-          _showMyDialog("File '${_configData.getDataFileName()}' could not be loaded", _status);
+          _showModalDialog("File '${_configData.getDataFileName()}' could not be loaded", _status);
         } else {
           _isPasswordInput = false;
           _selected = _loadedData!.isEmpty ? "" : _loadedData!.keys.first;
         }
       } else {
-        _search = s;
+        _search = searchFor;
       }
     });
   }
 
-  bool doEditSubmit(DetailAction detailActionData) {
+  bool _handleEditSubmit(DetailAction detailActionData) {
     if (detailActionData.isValueDifferent()) {
       final node = DataLoad.findNodeForPath(_loadedData!, detailActionData.path);
       if (node == null) {
-        _showMyDialog("Path was not found", detailActionData.path);
+        _showModalDialog("Path was not found", detailActionData.path);
         return true;
       }
       final key = detailActionData.getLastPathElement();
       if (key == "") {
-        _showMyDialog("Last element of Path was not found", detailActionData.path);
+        _showModalDialog("Last element of Path was not found", detailActionData.path);
         return true;
       }
       setState(() {
@@ -195,27 +200,28 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final Widget currentView = createSplitView(
+    final DisplayData displayData = createSplitView(
       _loadedData,
       _configData.getUserId(),
       _search,
+      _expand,
       _selected,
       _applicationState.isDesktop(),
       _applicationState.screen.hDiv,
       _configData.getMaterialColor(),
       _handleTreeSelect,
-      (divPos) {
+      (divPos) { //
         if (_applicationState.updateDividerPos(divPos)) {
           _applicationState.writeToFile(false);
         }
       },
-      (searchCount) {
+      (searchCount) { // On Search complete
         if (searchCount > 0) {
           _applicationState.addLastFind(_search, 5);
           _applicationState.writeToFile(false);
         }
       },
-      (detailActionData) {
+      (detailActionData) { // On action
         print(detailActionData);
         switch (detailActionData.action) {
           case ActionType.none:
@@ -224,7 +230,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.editSubmit:
             {
-              return doEditSubmit(detailActionData);
+              return _handleEditSubmit(detailActionData);
             }
           default:
             {
@@ -234,46 +240,10 @@ class _MyHomePageState extends State<MyHomePage> {
       },
     );
 
-    final inputField = TextBoxAppBar((event) {
-      _handleInputField(event);
+    final searchText = SearchTextOnAppBar((event) {
+      _handleSearchField(event);
     }, _isPasswordInput, _search);
 
-    final Widget icon;
-    if (_isPasswordInput) {
-      icon = IconButton(
-        icon: const Icon(Icons.done),
-        tooltip: 'Done',
-        onPressed: () {
-          _handleInputField("123${inputField.getResp()}");
-        },
-      );
-    } else {
-      icon = Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_drop_down_circle_outlined),
-            tooltip: 'Previous Searches',
-            onPressed: () async {
-              await _showSearchDialog(_applicationState.getLastFindList());
-              if (_searchExpression.isNotEmpty) {
-                setState(() {
-                  _search = _searchExpression;
-                });
-              }
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.arrow_left_outlined),
-            tooltip: 'Clear Search',
-            onPressed: () {
-              setState(() {
-                _search = "";
-              });
-            },
-          )
-        ],
-      );
-    }
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -281,6 +251,9 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
 
+    if (displayData.treeViewController != null) {
+
+    }
     return Scaffold(
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
@@ -293,32 +266,59 @@ class _MyHomePageState extends State<MyHomePage> {
           },
         ),
 
-        title: inputField,
+        title: searchText,
 
         centerTitle: true,
         actions: <Widget>[
-          Padding(
-            padding: const EdgeInsets.only(right: 20.0),
-            child: icon,
+          DetailIconButton(
+            show: _isPasswordInput,
+            materialColor: _configData.getMaterialColor(),
+            icon: const Icon(Icons.done),
+            tooltip: 'Done',
+            onPressed: () {
+              _handleSearchField("123${searchText.getResp()}");
+            },
           ),
-          Padding(
-              padding: const EdgeInsets.only(right: 20.0),
-              child: GestureDetector(
-                onTap: () {},
-                child: const Icon(Icons.more_vert),
-              )),
+          DetailIconButton(
+            show: !_isPasswordInput,
+            materialColor: _configData.getMaterialColor(),
+            icon: const Icon(Icons.access_alarm),
+            tooltip: 'Previous Searches',
+            onPressed: () async {
+              await _showSearchDialog(_applicationState.getLastFindList());
+              if (_searchExpression.isNotEmpty) {
+                setState(() {
+                  _search = _searchExpression;
+                });
+              }
+            },
+          ),
+          DetailIconButton(
+            show: !_isPasswordInput,
+            materialColor: _configData.getMaterialColor(),
+            icon: const Icon(Icons.arrow_left_outlined),
+            tooltip: 'Clear Search',
+            onPressed: () {
+              setState(() {
+                _search = "";
+              });
+            },
+          ),
+          DetailIconButton(
+            show: !_isPasswordInput,
+            materialColor: _configData.getMaterialColor(),
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'More...',
+            onPressed: () {},
+          ),
+          const SizedBox(width: 40)
         ],
       ),
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
-        child: currentView,
+        child: displayData.splitView,
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () {},
-      //   tooltip: 'Increment',
-      //   child: const Icon(Icons.add),
-      // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
@@ -351,7 +351,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Future<void> _showMyDialog(final String m1, final String m2) async {
+  Future<void> _showModalDialog(final String m1, final String m2) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
@@ -377,35 +377,5 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       },
     );
-  }
-}
-
-class TextBoxAppBar extends StatelessWidget {
-  TextBoxAppBar(this._callme, this._isPasswordField, this._initial, {super.key});
-  final void Function(String event)? _callme;
-  final String _initial;
-  final bool _isPasswordField;
-  final TextEditingController _tec = TextEditingController(text: "");
-
-  @override
-  Widget build(BuildContext context) {
-    _tec.text = _initial;
-    return Container(
-      alignment: Alignment.centerLeft,
-      child: TextField(
-        autofocus: true,
-        onSubmitted: (value) {
-          _callme!(value);
-        },
-        obscureText: _isPasswordField,
-        controller: _tec,
-        cursorColor: const Color(0xff000000),
-        decoration: InputDecoration(border: const OutlineInputBorder(), hintText: _isPasswordField ? 'Password' : 'Search'),
-      ),
-    );
-  }
-
-  String getResp() {
-    return _tec.value.text;
   }
 }
