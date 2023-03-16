@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:split_view/split_view.dart';
 import 'package:flutter_treeview/flutter_treeview.dart';
 import 'data_load.dart';
+import "path.dart";
 import 'detail_widget.dart';
 
 const double splitMinTree = 0.2;
@@ -24,54 +25,6 @@ class DisplayData {
   }
 }
 
-class Path {
-  List<String> pathList = List.filled(9, "", growable: false);
-  int index = 0;
-
-  bool isInMap(Map<String, dynamic> map) {
-    var m = map;
-    for (int i = 0; i < index; i++) {
-      var x = m[pathList[i]];
-      if (x == null) {
-        return false;
-      }
-      m = x;
-    }
-    return true;
-  }
-
-  String getRoot() {
-    if (index > 0) {
-      return pathList[0];
-    }
-    return "";
-  }
-
-  void push(String p) {
-    pathList[index] = p;
-    index++;
-  }
-
-  String pop() {
-    index--;
-    if (index >= 0) {
-      return pathList[index];
-    }
-    return "";
-  }
-
-  @override
-  String toString() {
-    StringBuffer sb = StringBuffer();
-    for (int i = 0; i < index; i++) {
-      sb.write(pathList[i]);
-      if (i < (index - 1)) {
-        sb.write(".");
-      }
-    }
-    return sb.toString();
-  }
-}
 
 List<Widget> createTextWidgetFromList(List<String> inlist, Function(String) onselect) {
   List<Widget> l = List.empty(growable: true);
@@ -184,7 +137,7 @@ TreeViewController _buildTreeViewController(Map<String, dynamic> data, final Str
   });
 
   _buildMapFromPathList(map, list);
-  final c = _mapToNodeList(data, Path(), map, expand, filter);
+  final c = _mapToNodeList(data, Path.empty(), map, expand, filter);
   onSearchComplete(c.length);
 
   if (c.isEmpty) {

@@ -27,7 +27,7 @@ void main() async {
     WidgetsFlutterBinding.ensureInitialized();
     if (_applicationState.isDesktop()) {
       setWindowTitle("${_configData.getTitle()}: ${_configData.getUserName()}");
-      WindowOptions windowOptions = const WindowOptions(
+      const WindowOptions(
         minimumSize: Size(200, 200),
         titleBarStyle: TitleBarStyle.normal,
       );
@@ -152,7 +152,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _selected = path;
       print(DataLoad.findNodeForPath(_loadedData!, _selected));
     });
-   }
+  }
 
   void _handleSearchField(String searchFor) {
     if (searchFor.isEmpty) {
@@ -210,18 +210,21 @@ class _MyHomePageState extends State<MyHomePage> {
       _applicationState.screen.hDiv,
       _configData.getMaterialColor(),
       _handleTreeSelect,
-      (divPos) { //
+      (divPos) {
+        //
         if (_applicationState.updateDividerPos(divPos)) {
           _applicationState.writeToFile(false);
         }
       },
-      (searchCount) { // On Search complete
+      (searchCount) {
+        // On Search complete
         if (searchCount > 0) {
           _applicationState.addLastFind(_search, 5);
           _applicationState.writeToFile(false);
         }
       },
-      (detailActionData) { // On action
+      (detailActionData) {
+        // On action
         print(detailActionData);
         switch (detailActionData.action) {
           case ActionType.none:
@@ -251,19 +254,21 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
 
-    if (displayData.treeViewController != null) {
-
-    }
+    if (displayData.treeViewController != null) {}
     return Scaffold(
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
-        leading: IconButton(
-          icon: const Icon(Icons.close_outlined),
-          tooltip: 'Exit application',
-          onPressed: () {
-            closer(0);
-          },
+        leading: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.close_outlined),
+              tooltip: 'Exit application',
+              onPressed: () {
+                closer(0);
+              },
+            ),
+          ],
         ),
 
         title: searchText,
@@ -277,6 +282,15 @@ class _MyHomePageState extends State<MyHomePage> {
             tooltip: 'Done',
             onPressed: () {
               _handleSearchField("123${searchText.getResp()}");
+            },
+          ),
+          DetailIconButton(
+            show: !_isPasswordInput,
+            materialColor: _configData.getMaterialColor(),
+            icon: const Icon(Icons.search),
+            tooltip: 'Search',
+            onPressed: () {
+              _handleSearchField(searchText.getResp());
             },
           ),
           DetailIconButton(
@@ -303,6 +317,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 _search = "";
               });
             },
+          ),
+          DetailIconButton(
+            show: (dataWasUpdated && !_isPasswordInput),
+            materialColor: _configData.getMaterialColor(),
+            icon: const Icon(Icons.save_sharp),
+            tooltip: 'Save',
+            onPressed: () {},
           ),
           DetailIconButton(
             show: !_isPasswordInput,

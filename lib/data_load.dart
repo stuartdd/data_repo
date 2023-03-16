@@ -47,6 +47,7 @@ class DataValueRow {
     }
     return false;
   }
+
   @override
   String toString() {
     if (_isValue) {
