@@ -1,12 +1,12 @@
 import 'package:data_repo/data_load.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'test_tools.dart';
+import 'package:data_repo/path.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:io';
 
 void main() {
-
   // test('Test Get From Server', () async {
   //   try {
   //     var s = await DataLoad.fromHttpGet("http://192.168.1.243:8080/files/user/stuart/loc/mydb/named/mydb.data");
@@ -41,14 +41,14 @@ void main() {
   test('Test Find Node in Json', () async {
     try {
       var s = DataLoad.jsonFromFile("test/data/config.json");
-      assertContainsAll(["height: 1362"], DataLoad.findNodeForPath(s, "screen").toString());
-      assertContainsAll(["backupfile:"], DataLoad.findNodeForPath(s, "file").toString());
-      assertContainsAll(["path: test","pre: mydb-"], DataLoad.findNodeForPath(s, "file.backupfile").toString());
-      assertContainsAll(["null"], DataLoad.findNodeForPath(s, "fiole.backupfile").toString());
-      assertContainsAll(["null"], DataLoad.findNodeForPath(s, "file.backup").toString());
-      assertContainsAll(["backupfile:"], DataLoad.findNodeForPath(s, "file.").toString());
-      assertContainsNone(["backupfile:"], DataLoad.findNodeForPath(s, "file.backupfile").toString());
-     }  catch (e) {
+      assertContainsAll(["height: 1362"], DataLoad.findLastMapNodeForPath(s, Path.fromDotPath("screen")).toString());
+      assertContainsAll(["backupfile:"], DataLoad.findLastMapNodeForPath(s, Path.fromDotPath("file")).toString());
+      assertContainsAll(["path: test", "pre: mydb-"], DataLoad.findLastMapNodeForPath(s, Path.fromDotPath("file.backupfile")).toString());
+      assertContainsAll(["null"], DataLoad.findLastMapNodeForPath(s, Path.fromDotPath("fiole.backupfile")).toString());
+      assertContainsAll(["null"], DataLoad.findLastMapNodeForPath(s, Path.fromDotPath("file.backup")).toString());
+      assertContainsAll(["backupfile:"], DataLoad.findLastMapNodeForPath(s, Path.fromDotPath("file.")).toString());
+      assertContainsNone(["backupfile:"], DataLoad.findLastMapNodeForPath(s, Path.fromDotPath("file.backupfile")).toString());
+    } catch (e) {
       fail("threw an exception. Got $e ${e.runtimeType.toString()}");
     }
   });
@@ -56,12 +56,12 @@ void main() {
   test('Test Get JSON Colour', () async {
     try {
       var s = DataLoad.jsonFromFile("test/data/config.json");
-      expect(DataLoad.stringFromJson(s, ["application", "colour"]), "green");
-      expect(DataLoad.colorFromHexJson(s, ["test-data", "colourHex"]).value.toRadixString(16), "ff2196ff");
-      expect(DataLoad.colorFromHexJson(s, ["test-data", "colourBad"]), 0);
+      expect(DataLoad.stringFromJson(s, Path.fromList(["application", "colour"])), "green");
+      expect(DataLoad.colorFromHexJson(s, Path.fromList(["test-data", "colourHex"])).value.toRadixString(16), "ff2196ff");
+      expect(DataLoad.colorFromHexJson(s, Path.fromList(["test-data", "colourBad"])), 0);
       fail("Did not throw any Exception");
     } on JsonException catch (e) {
-      assertContainsAll(["[x2196f3] was NOT a Hex Colour","Json:[test-data, colourBad]"], e.toString());
+      assertContainsAll(["[x2196f3] was NOT a Hex Colour", "Json:test-data.colourBad"], e.toString());
     } on TestFailure catch (e) {
       fail("$e");
     } catch (e) {
@@ -72,11 +72,11 @@ void main() {
   test('Test Get JSON bool', () async {
     try {
       var s = DataLoad.jsonFromFile("test/data/config.json");
-      expect(DataLoad.boolFromJson(s, ["log", "active"]), true);
-      expect(DataLoad.numFromJson(s, ["log", "active"]), 0);
+      expect(DataLoad.boolFromJson(s, Path.fromList(["log", "active"])), true);
+      expect(DataLoad.numFromJson(s, Path.fromList(["log", "active"])), 0);
       fail("Did not throw any Exception");
     } on JsonException catch (e) {
-      assertContainsAll(["NOT a Number node: Json:[log, active]"], e.toString());
+      assertContainsAll(["NOT a Number node: Json:log.active"], e.toString());
     } on TestFailure catch (e) {
       fail("$e");
     } catch (e) {
@@ -87,12 +87,12 @@ void main() {
   test('Test Get JSON Int', () async {
     try {
       var s = DataLoad.jsonFromFile("test/data/config.json");
-      expect(DataLoad.numFromJson(s, ["screen", "height"]), 1362);
-      expect(DataLoad.numFromJson(s, ["file", "backupfile","max"]), 10);
-      expect(DataLoad.stringFromJson(s, ["file", "backupfile","max"]), 10);
+      expect(DataLoad.numFromJson(s, Path.fromList(["screen", "height"])), 1362);
+      expect(DataLoad.numFromJson(s, Path.fromList(["file", "backupfile", "max"])), 10);
+      expect(DataLoad.stringFromJson(s, Path.fromList(["file", "backupfile", "max"])), 10);
       fail("Did not throw any Exception");
     } on JsonException catch (e) {
-      assertContainsAll(["NOT a String node: Json:[file, backupfile, max]"], e.toString());
+      assertContainsAll(["NOT a String node: Json:file.backupfile.max"], e.toString());
     } on TestFailure catch (e) {
       fail("$e");
     } catch (e) {
@@ -103,11 +103,11 @@ void main() {
   test('Test Get JSON List', () async {
     try {
       var s = DataLoad.jsonFromFile("test/data/config.json");
-      assertContainsAll(["FolderSync","EE","lloyds"], DataLoad.listFromJson(s, ["search", "lastGoodList"]).toString());
-      expect(DataLoad.mapFromJson(s, ["search", "lastGoodList"]), "mydb-");
+      assertContainsAll(["FolderSync", "EE", "lloyds"], DataLoad.listFromJson(s, Path.fromList(["search", "lastGoodList"])).toString());
+      expect(DataLoad.mapFromJson(s, Path.fromList(["search", "lastGoodList"])), "mydb-");
       fail("Did not throw any Exception");
     } on JsonException catch (e) {
-      assertContainsAll(["NOT a Map node: Json:[search, lastGoodList]"], e.toString());
+      assertContainsAll(["NOT a Map node: Json:search.lastGoodList"], e.toString());
     } on TestFailure catch (e) {
       fail("$e");
     } catch (e) {
@@ -118,11 +118,11 @@ void main() {
   test('Test Get JSON Map', () async {
     try {
       var s = DataLoad.jsonFromFile("test/data/config.json");
-      assertContainsAll(["max: 10"], DataLoad.mapFromJson(s, ["file", "backupfile"]).toString());
-      expect(DataLoad.stringFromJson(s, ["file", "backupfile"]), "mydb-");
+      assertContainsAll(["max: 10"], DataLoad.mapFromJson(s, Path.fromList(["file", "backupfile"])).toString());
+      expect(DataLoad.stringFromJson(s, Path.fromList(["file", "backupfile"])), "mydb-");
       fail("Did not throw any Exception");
     } on JsonException catch (e) {
-      assertContainsAll(["NOT a String node: Json:[file, backupfile]"], e.toString());
+      assertContainsAll(["NOT a String node: Json:file.backupfile"], e.toString());
     } on TestFailure catch (e) {
       fail("$e");
     } catch (e) {
@@ -133,10 +133,10 @@ void main() {
   test('Test Get JSON Config', () async {
     try {
       var s = DataLoad.jsonFromFile("test/data/config.json");
-      expect(DataLoad.stringFromJson(s, ["file"]), "?");
+      expect(DataLoad.stringFromJson(s, Path.fromList(["file"])), "?");
       fail("Did not throw any Exception");
     } on JsonException catch (e) {
-      assertContainsAll(["Node found was NOT a String node: Json:[file]"], e.toString());
+      assertContainsAll(["Node found was NOT a String node: Json:file"], e.toString());
     } on TestFailure catch (e) {
       fail("$e");
     } catch (e) {
@@ -144,11 +144,11 @@ void main() {
     }
     try {
       var s = DataLoad.jsonFromFile("test/data/config.json");
-      expect(DataLoad.stringFromJson(s, ["file", "backupfile", "pre"]), "mydb-");
-      expect(DataLoad.stringFromJson(s, ["file", "backupfile"]), "?");
+      expect(DataLoad.stringFromJson(s, Path.fromList(["file", "backupfile", "pre"])), "mydb-");
+      expect(DataLoad.stringFromJson(s, Path.fromList(["file", "backupfile"])), "?");
       fail("Did not throw any Exception");
     } on JsonException catch (e) {
-      assertContainsAll(["Node found was NOT a String node: Json:[file, backupfile]"], e.toString());
+      assertContainsAll(["Node found was NOT a String node: Json:file.backupfile"], e.toString());
     } on TestFailure catch (e) {
       fail("$e");
     } catch (e) {
@@ -159,12 +159,12 @@ void main() {
   test('Test Get JSON simple ', () async {
     try {
       var s = DataLoad.jsonFromFile("test/data/json_test_data_simple.json");
-      expect(DataLoad.stringFromJson(s, ["name"]), "Pizza da Mario");
-      expect(DataLoad.stringFromJson(s, ["cuisine"]), "This is valid");
-      expect(DataLoad.stringFromJson(s, ["nome"]), "Pizza da Mario");
+      expect(DataLoad.stringFromJson(s, Path.fromList(["name"])), "Pizza da Mario");
+      expect(DataLoad.stringFromJson(s, Path.fromList(["cuisine"])), "This is valid");
+      expect(DataLoad.stringFromJson(s, Path.fromList(["nome"])), "Pizza da Mario");
       fail("Did not throw any Exception");
     } on JsonException catch (e) {
-      assertContainsAll(["String Node was NOT found: Json:[nome]"], e.toString());
+      assertContainsAll(["String Node was NOT found: Json:nome"], e.toString());
     } on TestFailure catch (e) {
       fail("$e");
     } catch (e) {
@@ -200,5 +200,3 @@ void main() {
     expect(v.length, 2);
   });
 }
-
-

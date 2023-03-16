@@ -45,7 +45,7 @@ DisplayData createSplitView(
     final String user, // The user (The root node name)
     final String filter, // The search text
     final String expand,
-    final String selectedNode, // The first node in the root
+    final Path selectedNode, // The first node in the root
     final bool horizontal, // Display horizontal or vertical split pane
     double initPos, // The split pane divider position
     MaterialColor materialColor, // The colour scheme
@@ -89,7 +89,7 @@ DisplayData createSplitView(
 
   /// Create the detail.
   final Container detailContainer;
-  final node = DataLoad.findNodeForPath(originalData, selectedNode);
+  final node = DataLoad.findLastMapNodeForPath(originalData, selectedNode);
   if (node != null) {
     detailContainer = _createDetailContainer(node, selectedNode, materialColor, onDataAction);
   } else {
@@ -117,7 +117,7 @@ DisplayData createSplitView(
   return DisplayData(splitView, treeViewController);
 }
 
-TreeViewController _buildTreeViewController(Map<String, dynamic> data, final String selectedNode, final String filter, final String expand, final Function(int) onSearchComplete) {
+TreeViewController _buildTreeViewController(Map<String, dynamic> data, final Path selectedNode, final String filter, final String expand, final Function(int) onSearchComplete) {
   if (data.isEmpty) {
     return TreeViewController(
       children: [const Node(key: 'root', label: 'Empty Tree')],
@@ -149,11 +149,11 @@ TreeViewController _buildTreeViewController(Map<String, dynamic> data, final Str
 
   return TreeViewController(
     children: c,
-    selectedKey: selectedNode,
+    selectedKey: selectedNode.toString(),
   );
 }
 
-Container _createDetailContainer(final Map<String, dynamic> selectedNode, final String selectedPath, final MaterialColor materialColor, final bool Function(DetailAction) dataAction) {
+Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final MaterialColor materialColor, final bool Function(DetailAction) dataAction) {
   List<DataValueRow> properties = DataLoad.dataValueListFromJson(selectedNode, selectedPath);
   return Container(
     color: materialColor.shade500,

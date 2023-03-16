@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'data_load.dart';
+import 'path.dart';
 import 'dart:io';
 
 class ApplicationScreen {
@@ -22,7 +23,7 @@ class ApplicationScreen {
     try {
       return ApplicationScreen(map['x'] as double, map['y'] as double, map['w'] as double, map['h'] as double, map['hDiv'] as double);
     } catch (e) {
-      throw JsonException("Cannot create ApplicationScreen from Json", map.toString());
+      throw JsonException("Cannot create ApplicationScreen from Json", Path.empty());
     }
   }
 }
@@ -127,6 +128,7 @@ class ApplicationState {
     return _lastFind;
   }
 
+  @override
   String toString() {
     return '{"screen":$screen,"lastFind":${jsonEncode(_lastFind)}}';
   }
@@ -134,7 +136,7 @@ class ApplicationState {
   factory ApplicationState.fromJson(dynamic map, String fileName) {
     dynamic lf = map["lastFind"];
     if (lf == null) {
-      throw JsonException("Cannot locate 'lastFind' list in Json", map.toString());
+      throw JsonException("Cannot locate 'lastFind' list in Json", Path.fromList(["lastFind"]));
     }
     List<String> ls = [];
     lf.forEach((v) {
@@ -143,7 +145,7 @@ class ApplicationState {
 
     dynamic ms = map['screen'];
     if (ms == null) {
-      throw JsonException("Cannot locate 'screen' Map in Json", map.toString());
+      throw JsonException("Cannot locate 'screen' Map in Json", Path.fromList(["screen"]));
     }
     final as = ApplicationScreen.fromJson(ms);
 
@@ -190,15 +192,15 @@ class ConfigData {
   ConfigData(this._fileName) {
     final s = DataLoad.fromFile(_fileName);
     final json = DataLoad.jsonFromString(s);
-    _getDataFileUrl = DataLoad.stringFromJson(json, ["file", "getDataUrl"]);
-    _dataFileName = DataLoad.stringFromJson(json, ["file", "datafile"]);
-    _dataFilePath = DataLoad.stringFromJson(json, ["file", "datafilePath"]);
-    _appStatePath = DataLoad.stringFromJson(json, ["user", "appStatePath"]);
-    _appStateFileName = DataLoad.stringFromJson(json, ["user", "appStateFile"]);
-    _userName = DataLoad.stringFromJson(json, ["user", "name"]);
-    _userId = DataLoad.stringFromJson(json, ["user", "id"]);
-    _title = DataLoad.stringFromJson(json, ["application", "title"]);
-    final col = DataLoad.stringFromJson(json, ["application", "colour"]);
+    _getDataFileUrl = DataLoad.stringFromJson(json, Path.fromList(["file", "getDataUrl"]));
+    _dataFileName = DataLoad.stringFromJson(json, Path.fromList(["file", "datafile"]));
+    _dataFilePath = DataLoad.stringFromJson(json, Path.fromList(["file", "datafilePath"]));
+    _appStatePath = DataLoad.stringFromJson(json, Path.fromList(["user", "appStatePath"]));
+    _appStateFileName = DataLoad.stringFromJson(json, Path.fromList(["user", "appStateFile"]));
+    _userName = DataLoad.stringFromJson(json, Path.fromList(["user", "name"]));
+    _userId = DataLoad.stringFromJson(json, Path.fromList(["user", "id"]));
+    _title = DataLoad.stringFromJson(json, Path.fromList(["application", "title"]));
+    final col = DataLoad.stringFromJson(json, Path.fromList(["application", "colour"]));
     var mc = _colourNames["red"];
     var notFound = true;
     for (var k in _colourNames.keys) {
@@ -215,7 +217,7 @@ class ConfigData {
         sb.write(k);
         sb.write(", ");
       }
-      throw JsonException("ConfigData: MaterialColor values must be one of [$sb]", ["application", "colour"].toString());
+      throw JsonException("ConfigData: MaterialColor values must be one of [$sb]", Path.fromList(["application", "colour"]));
     }
   }
 

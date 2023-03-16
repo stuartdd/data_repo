@@ -2,24 +2,32 @@ class Path {
   List<String> pathList = List.filled(9, "", growable: false);
   int count = 0;
 
-  Path(String dotPath, String sep) {
-    if (dotPath == "") {
-      count = 0;
-      return;
+  Path(List<String> list) {
+    for (int i = 0; i < list.length; i++) {
+      pathList[i] = list[i];
     }
-    final l = dotPath.split(sep);
-    for (int i = 0; i < l.length; i++) {
-      pathList[i] = l[i];
+    count = list.length;
+  }
+
+  Path cloneAppend(List<String> app) {
+    final List<String> l = List.empty(growable: true);
+    for (int i = 0; i<count; i++) {
+      l.add(pathList[i]);
     }
-    count = l.length;
+    l.addAll(app);
+    return Path(l);
   }
 
   factory Path.empty() {
-    return Path("","");
+    return Path([]);
   }
 
   factory Path.fromDotPath(String dotPath) {
-    return Path(dotPath,'.');
+    return Path(dotPath.split('.'));
+  }
+
+  factory Path.fromList(List<String> list) {
+    return Path(list);
   }
 
   bool isInMap(Map<String, dynamic> map) {
@@ -49,11 +57,25 @@ class Path {
     return (count > 0);
   }
 
+  String peek(int i) {
+    if (i >= 0 && i < count) {
+      return pathList[i];
+    }
+    return "";
+  }
+
   String getRoot() {
     if (isEmpty()) {
       return "";
     }
     return pathList[0];
+  }
+
+  String getLast() {
+    if (isEmpty()) {
+      return "";
+    }
+    return pathList[count - 1];
   }
 
   void push(String p) {

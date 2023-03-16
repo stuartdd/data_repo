@@ -11,7 +11,8 @@ assertContainsAll(List<String> list, String s) {
 assertContainsNone(List<String> list, String s) {
   for (var i = 0; i < list.length; i++) {
     if (s.contains(list[i])) {
-      fail("Message Text [$s] should not contain '${list[i]}'");;
+      fail("Message Text [$s] should not contain '${list[i]}'");
+      ;
     }
   }
 }

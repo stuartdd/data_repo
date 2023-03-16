@@ -6,6 +6,7 @@ import 'package:window_size/window_size.dart';
 import 'package:window_manager/window_manager.dart';
 import 'detail_widget.dart';
 import 'encrypt.dart';
+import 'path.dart';
 import 'config.dart';
 import 'main_view.dart';
 import 'detail_buttons.dart';
@@ -113,7 +114,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _status = "";
   String _expand = _configData.getUserName();
   String _search = "";
-  String _selected = "";
+  Path _selected = Path.empty();
   bool _isPasswordInput = true;
 
   Map<String, dynamic>? _loadData(String pw) {
@@ -143,14 +144,14 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _handleTreeSelect(String path) {
-    final List<String> list = path.split('.');
+  void _handleTreeSelect(String dotPath) {
+    final path = Path.fromDotPath(dotPath);
     setState(() {
-      if (list.isNotEmpty) {
-        _expand = list[0];
+      if (path.isNotEmpty()) {
+        _expand = path.getRoot();
       }
       _selected = path;
-      print(DataLoad.findNodeForPath(_loadedData!, _selected));
+      print(_selected);
     });
   }
 
@@ -165,11 +166,11 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         if (_loadedData == null) {
           _isPasswordInput = true;
-          _selected = "";
+          _selected = Path.empty();
           _showModalDialog("File '${_configData.getDataFileName()}' could not be loaded", _status);
         } else {
           _isPasswordInput = false;
-          _selected = _loadedData!.isEmpty ? "" : _loadedData!.keys.first;
+          _selected = Path.fromDotPath(_loadedData!.isEmpty ? "" : _loadedData!.keys.first);
         }
       } else {
         _search = searchFor;
@@ -179,19 +180,19 @@ class _MyHomePageState extends State<MyHomePage> {
 
   bool _handleEditSubmit(DetailAction detailActionData) {
     if (detailActionData.isValueDifferent()) {
-      final node = DataLoad.findNodeForPath(_loadedData!, detailActionData.path);
+      final node = DataLoad.findLastMapNodeForPath(_loadedData!, detailActionData.path);
       if (node == null) {
-        _showModalDialog("Path was not found", detailActionData.path);
+        _showModalDialog("Path was not found", detailActionData.path.toString());
         return true;
       }
       final key = detailActionData.getLastPathElement();
       if (key == "") {
-        _showModalDialog("Last element of Path was not found", detailActionData.path);
+        _showModalDialog("Last element of Path was not found", detailActionData.path.toString());
         return true;
       }
       setState(() {
         dataWasUpdated = true;
-        node[detailActionData.getLastPathElement()] = detailActionData.v2;
+        node[key] = detailActionData.v2;
       });
       return true;
     }

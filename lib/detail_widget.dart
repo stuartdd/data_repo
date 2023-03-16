@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'data_load.dart';
+import 'path.dart';
 import 'detail_buttons.dart';
 
 const _styleLarge = TextStyle(fontFamily: 'Code128', fontSize: 35.0);
@@ -14,7 +15,7 @@ enum ActionType { none, editStart, editCancel, editSubmit, addStart, addCancel, 
 class DetailAction {
   final ActionType action;
   final bool value;
-  final String path;
+  final Path path;
   final String v1;
   final String v2;
   const DetailAction(this.action, this.value, this.path, this.v1, this.v2);
@@ -24,11 +25,7 @@ class DetailAction {
   }
 
   String getLastPathElement() {
-    final l = path.split('.');
-    if (l.isNotEmpty) {
-      return l[l.length - 1];
-    }
-    return "";
+    return path.getLast();
   }
 
   @override

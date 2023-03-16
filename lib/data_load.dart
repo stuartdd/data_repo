@@ -1,5 +1,5 @@
 import 'dart:ui';
-
+import "path.dart";
 import 'package:http/http.dart' as http;
 import 'package:http_status_code/http_status_code.dart';
 import 'dart:io';
@@ -7,12 +7,15 @@ import 'dart:convert';
 
 class JsonException implements Exception {
   final dynamic message;
-  final String path;
+  final Path path;
   JsonException(this.message, this.path);
   @override
   String toString() {
     Object? message = this.message;
     if (message == null) return "JsonException";
+    if (path.isEmpty()) {
+      return "Exception: $message";
+    }
     return "Exception: $message: Json:$path";
   }
 }
@@ -20,20 +23,20 @@ class JsonException implements Exception {
 class DataValueRow {
   final String _name;
   final String _value;
-  final String _path;
+  final Path _path;
   final String _type;
   final bool _isValue;
   final int _mapSize;
 
   DataValueRow(this._name, this._value, this._path, this._type, this._isValue, this._mapSize);
 
-  String getFullPath() {
-    return "$_path.$_name";
+  Path getFullPath() {
+    return _path.cloneAppend([_name]);
   }
 
   String get name => _name;
   String get value => _value;
-  String get path => _path;
+  Path get path => _path;
   String get type => _type;
   bool get isValue => _isValue;
   int get mapSize => _mapSize;
@@ -105,37 +108,37 @@ class DataLoad {
     return jsonFromString(json);
   }
 
-  static dynamic _nodeFromJson(Map<String, dynamic> json, List<String> path, String type) {
-    if (path.isEmpty) {
-      throw JsonException("_nodeFromJson: Empty Path", path.toString());
+  static dynamic _nodeFromJson(Map<String, dynamic> json, Path path, String type) {
+    if (path.isEmpty()) {
+      throw JsonException("_nodeFromJson: Empty Path", path);
     }
     dynamic node = json;
-    for (var i = 0; i < path.length; i++) {
-      node = node[path[i]];
-      if (node != null && i == (path.length - 1)) {
+    for (var i = 0; i < path.length(); i++) {
+      node = node[path.peek(i)];
+      if (node != null && i == (path.length() - 1)) {
         return node;
       }
     }
-    throw JsonException("_nodeFromJson: $type Node was NOT found", path.toString());
+    throw JsonException("_nodeFromJson: $type Node was NOT found", path);
   }
 
-  static String stringFromJson(Map<String, dynamic> json, List<String> path) {
+  static String stringFromJson(Map<String, dynamic> json, Path path) {
     final node = _nodeFromJson(json, path, "String");
     if (node is String) {
       return node;
     }
-    throw JsonException("stringFromJson: Node found was NOT a String node", path.toString());
+    throw JsonException("stringFromJson: Node found was NOT a String node", path);
   }
 
-  static num numFromJson(Map<String, dynamic> json, List<String> path) {
+  static num numFromJson(Map<String, dynamic> json, Path path) {
     final node = _nodeFromJson(json, path, "number");
     if (node is num) {
       return node;
     }
-    throw JsonException("intFromJson: Node found [$node] was NOT a Number node", path.toString());
+    throw JsonException("intFromJson: Node found [$node] was NOT a Number node", path);
   }
 
-  static Color colorFromHexJson(Map<String, dynamic> json, List<String> path) {
+  static Color colorFromHexJson(Map<String, dynamic> json, Path path) {
     final node = _nodeFromJson(json, path, "Hex:Color");
     if (node is String) {
       var hexColor = node.replaceAll("#", "");
@@ -146,48 +149,48 @@ class DataLoad {
         try {
           return Color(int.parse("0x$hexColor"));
         } catch (e) {
-          throw JsonException("colorFromJson: Node found [$node] could not be parsed", path.toString());
+          throw JsonException("colorFromJson: Node found [$node] could not be parsed", path);
         }
       }
     }
-    throw JsonException("colorFromJson: Node found [$node] was NOT a Hex Colour (6 or 8 chars)", path.toString());
+    throw JsonException("colorFromJson: Node found [$node] was NOT a Hex Colour (6 or 8 chars)", path);
   }
 
-  static bool boolFromJson(Map<String, dynamic> json, List<String> path) {
+  static bool boolFromJson(Map<String, dynamic> json, Path path) {
     final node = _nodeFromJson(json, path, "bool");
     if (node is bool) {
       return node;
     }
-    throw JsonException("intFromJson: Node found [$node] was NOT a bool node", path.toString());
+    throw JsonException("intFromJson: Node found [$node] was NOT a bool node", path);
   }
 
-  static Map<String, dynamic> mapFromJson(Map<String, dynamic> json, List<String> path) {
+  static Map<String, dynamic> mapFromJson(Map<String, dynamic> json, Path path) {
     final node = _nodeFromJson(json, path, "Map");
     if (node is Map<String, dynamic>) {
       return node;
     }
-    throw JsonException("mapFromJson: Node found was NOT a Map node", path.toString());
+    throw JsonException("mapFromJson: Node found was NOT a Map node", path);
   }
 
-  static Map<String, dynamic>? findNodeForPath(final Map<String, dynamic> json, String dotPath) {
-    if (json.isEmpty || dotPath.isEmpty) {
-      return null;
-    }
-    List<String> l = dotPath.trim().split('.');
-    if (l.isEmpty) {
+  /// Finds the map at the path.
+  ///   If the last FOUND node is not a map and not a list it returns the parent node of the FOUND node.
+  ///   If the last FOUND node is a map or a list it returns the FOUND node.
+  ///   
+  static Map<String, dynamic>? findLastMapNodeForPath(final Map<String, dynamic> json, Path path) {
+    if (json.isEmpty || path.isEmpty()) {
       return null;
     }
     var j = json;
     String key;
     dynamic f;
-    for (int i = 0; i < l.length; i++) {
-      key = l[i];
+    for (int i = 0; i < path.length(); i++) {
+      key = path.peek(i);
       if (key.isNotEmpty) {
         f = j[key];
         if (f == null) {
           return null;
         }
-        if (f is! Map<String, dynamic>) {
+        if (f is! Map<String, dynamic> && f is! List<dynamic>) {
           return j;
         }
         j = f;
@@ -196,7 +199,7 @@ class DataLoad {
     return f;
   }
 
-  static List<DataValueRow> dataValueListFromJson(Map<String, dynamic> json, String path) {
+  static List<DataValueRow> dataValueListFromJson(Map<String, dynamic> json, Path path) {
     List<DataValueRow> lm = List.empty(growable: true);
     List<DataValueRow> lv = List.empty(growable: true);
     for (var element in json.entries) {
@@ -212,11 +215,11 @@ class DataLoad {
     return lm;
   }
 
-  static List<dynamic> listFromJson(Map<String, dynamic> json, List<String> path) {
+  static List<dynamic> listFromJson(Map<String, dynamic> json, Path path) {
     final node = _nodeFromJson(json, path, "List");
     if (node is List<dynamic>) {
       return node;
     }
-    throw JsonException("listFromJson: Node found was NOT a List node", path.toString());
+    throw JsonException("listFromJson: Node found was NOT a List node", path);
   }
 }

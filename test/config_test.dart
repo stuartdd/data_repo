@@ -4,7 +4,6 @@ import 'test_tools.dart';
 import 'package:data_repo/data_load.dart';
 
 void main() {
-
   test('Test Write Application State', () async {
     final sc1 = ApplicationState(ApplicationScreen(10, 20, 30, 40, 100), ["Last1", "Last2", "Last3"], "test/data/as.tmp");
     try {
@@ -99,7 +98,7 @@ void main() {
       ApplicationState.fromJson(map1, "test/data/as.tmp");
       fail("Did not throw any Exception");
     } on JsonException catch (e) {
-      assertContainsAll(["Cannot create ApplicationScreen", "xxx: 100"], e.toString());
+      assertContainsAll(["Cannot create ApplicationScreen"], e.toString());
     } on TestFailure catch (e) {
       fail("TestFailure $e : ${e.runtimeType.toString()}");
     } on TypeError catch (e) {
