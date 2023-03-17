@@ -6,17 +6,25 @@ import 'dart:io';
 import 'dart:convert';
 
 class JsonException implements Exception {
-  final dynamic message;
-  final Path path;
-  JsonException(this.message, this.path);
+  final String message;
+  final Path? path;
+  JsonException(this.path,{required this.message});
   @override
   String toString() {
     Object? message = this.message;
-    if (message == null) return "JsonException";
-    if (path.isEmpty()) {
-      return "Exception: $message";
+    if (path==null || path!.isEmpty()) {
+      return "JsonException: $message";
     }
-    return "Exception: $message: Json:$path";
+    return "JsonException: $message: Path:$path";
+  }
+}
+
+class DataLoadException implements Exception {
+  final dynamic message;
+  DataLoadException({required this.message});
+  @override
+  String toString() {
+     return "DataLoadException: $message";
   }
 }
 
@@ -94,7 +102,17 @@ class DataLoad {
     });
   }
 
-  static String fromFile(String fileName) {
+  static bool saveToFile(String fileName, Map<String, dynamic> contents) {
+    try {
+      print("[$contents]");
+      File(fileName).writeAsStringSync(jsonEncode(contents));
+    } catch(e) {
+      return false;
+    }
+    return true;
+  }
+
+  static String loadFromFile(String fileName) {
     return File(fileName).readAsStringSync();
   }
 
@@ -103,14 +121,14 @@ class DataLoad {
     return parsedJson;
   }
 
-  static Map<String, dynamic> jsonFromFile(String fileName) {
-    final json = DataLoad.fromFile(fileName);
+  static Map<String, dynamic> jsonLoadFromFile(String fileName) {
+    final json = DataLoad.loadFromFile(fileName);
     return jsonFromString(json);
   }
 
   static dynamic _nodeFromJson(Map<String, dynamic> json, Path path, String type) {
     if (path.isEmpty()) {
-      throw JsonException("_nodeFromJson: Empty Path", path);
+      throw JsonException(message: "_nodeFromJson: Empty Path", path);
     }
     dynamic node = json;
     for (var i = 0; i < path.length(); i++) {
@@ -119,7 +137,7 @@ class DataLoad {
         return node;
       }
     }
-    throw JsonException("_nodeFromJson: $type Node was NOT found", path);
+    throw JsonException(message: "_nodeFromJson: $type Node was NOT found", path);
   }
 
   static String stringFromJson(Map<String, dynamic> json, Path path) {
@@ -127,7 +145,7 @@ class DataLoad {
     if (node is String) {
       return node;
     }
-    throw JsonException("stringFromJson: Node found was NOT a String node", path);
+    throw JsonException(message: "stringFromJson: Node found was NOT a String node", path);
   }
 
   static num numFromJson(Map<String, dynamic> json, Path path) {
@@ -135,7 +153,7 @@ class DataLoad {
     if (node is num) {
       return node;
     }
-    throw JsonException("intFromJson: Node found [$node] was NOT a Number node", path);
+    throw JsonException(message: "intFromJson: Node found [$node] was NOT a Number node", path);
   }
 
   static Color colorFromHexJson(Map<String, dynamic> json, Path path) {
@@ -149,11 +167,11 @@ class DataLoad {
         try {
           return Color(int.parse("0x$hexColor"));
         } catch (e) {
-          throw JsonException("colorFromJson: Node found [$node] could not be parsed", path);
+          throw JsonException(message: "colorFromJson: Node found [$node] could not be parsed", path);
         }
       }
     }
-    throw JsonException("colorFromJson: Node found [$node] was NOT a Hex Colour (6 or 8 chars)", path);
+    throw JsonException(message: "colorFromJson: Node found [$node] was NOT a Hex Colour (6 or 8 chars)", path);
   }
 
   static bool boolFromJson(Map<String, dynamic> json, Path path) {
@@ -161,7 +179,7 @@ class DataLoad {
     if (node is bool) {
       return node;
     }
-    throw JsonException("intFromJson: Node found [$node] was NOT a bool node", path);
+    throw JsonException(message: "intFromJson: Node found [$node] was NOT a bool node", path);
   }
 
   static Map<String, dynamic> mapFromJson(Map<String, dynamic> json, Path path) {
@@ -169,7 +187,7 @@ class DataLoad {
     if (node is Map<String, dynamic>) {
       return node;
     }
-    throw JsonException("mapFromJson: Node found was NOT a Map node", path);
+    throw JsonException(message: "mapFromJson: Node found was NOT a Map node", path);
   }
 
   /// Finds the map at the path.
@@ -220,6 +238,6 @@ class DataLoad {
     if (node is List<dynamic>) {
       return node;
     }
-    throw JsonException("listFromJson: Node found was NOT a List node", path);
+    throw JsonException(message: "listFromJson: Node found was NOT a List node", path);
   }
 }

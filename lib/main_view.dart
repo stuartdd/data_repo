@@ -41,7 +41,7 @@ List<Widget> createTextWidgetFromList(List<String> inlist, Function(String) onse
 
 /// Creates both Left and Right panes.
 DisplayData createSplitView(
-    final Map<String, dynamic>? originalData, // The original data from the file
+    final Map<String, dynamic> originalData, // The original data from the file
     final String user, // The user (The root node name)
     final String filter, // The search text
     final String expand,
@@ -58,7 +58,7 @@ DisplayData createSplitView(
   final SplitViewMode splitViewMode = horizontal ? SplitViewMode.Horizontal : SplitViewMode.Vertical;
   final SplitViewController splitViewController = SplitViewController(weights: [initPos, 1 - initPos], limits: [WeightLimit(min: splitMinTree, max: 1.0), WeightLimit(min: splitMinDetail, max: 1.0)]);
 
-  if (originalData == null) {
+  if (originalData.isEmpty) {
     return DisplayData.error(Colors.red, ("No data has been loaded"));
   }
 

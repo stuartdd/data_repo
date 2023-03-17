@@ -27,7 +27,7 @@ class _DetailIconButton extends State<DetailIconButton> {
       return Row(
         children: [
           IconButton(
-            color: grey ? widget.materialColor.shade900: widget.materialColor.shade50,
+            color: grey ? widget.materialColor.shade900 : widget.materialColor.shade50,
             icon: widget.icon,
             tooltip: widget.tooltip,
             onPressed: () {
@@ -102,32 +102,3 @@ class _DetailButtonState extends State<DetailButton> {
   }
 }
 
-class SearchTextOnAppBar extends StatelessWidget {
-  SearchTextOnAppBar(this._callMe, this._isPasswordField, this._initial, {super.key});
-  final void Function(String event)? _callMe;
-  final String _initial;
-  final bool _isPasswordField;
-  final TextEditingController _tec = TextEditingController(text: "");
-
-  @override
-  Widget build(BuildContext context) {
-    _tec.text = _initial;
-    return Container(
-      alignment: Alignment.centerLeft,
-      child: TextField(
-        autofocus: true,
-        onSubmitted: (value) {
-          _callMe!(value);
-        },
-        obscureText: _isPasswordField,
-        controller: _tec,
-        cursorColor: const Color(0xff000000),
-        decoration: InputDecoration(border: const OutlineInputBorder(), hintText: _isPasswordField ? 'Password' : 'Search'),
-      ),
-    );
-  }
-
-  String getResp() {
-    return _tec.value.text;
-  }
-}

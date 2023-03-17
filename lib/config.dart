@@ -23,7 +23,7 @@ class ApplicationScreen {
     try {
       return ApplicationScreen(map['x'] as double, map['y'] as double, map['w'] as double, map['h'] as double, map['hDiv'] as double);
     } catch (e) {
-      throw JsonException("Cannot create ApplicationScreen from Json", Path.empty());
+      throw JsonException(message: "Cannot create ApplicationScreen from Json", null);
     }
   }
 }
@@ -136,7 +136,7 @@ class ApplicationState {
   factory ApplicationState.fromJson(dynamic map, String fileName) {
     dynamic lf = map["lastFind"];
     if (lf == null) {
-      throw JsonException("Cannot locate 'lastFind' list in Json", Path.fromList(["lastFind"]));
+      throw JsonException(message: "Cannot locate 'lastFind' list in Json", Path.fromList(["lastFind"]));
     }
     List<String> ls = [];
     lf.forEach((v) {
@@ -145,7 +145,7 @@ class ApplicationState {
 
     dynamic ms = map['screen'];
     if (ms == null) {
-      throw JsonException("Cannot locate 'screen' Map in Json", Path.fromList(["screen"]));
+      throw JsonException(message: "Cannot locate 'screen' Map in Json", Path.fromList(["screen"]));
     }
     final as = ApplicationScreen.fromJson(ms);
 
@@ -190,7 +190,7 @@ class ConfigData {
   late final MaterialColor _materialColor;
 
   ConfigData(this._fileName) {
-    final s = DataLoad.fromFile(_fileName);
+    final s = DataLoad.loadFromFile(_fileName);
     final json = DataLoad.jsonFromString(s);
     _getDataFileUrl = DataLoad.stringFromJson(json, Path.fromList(["file", "getDataUrl"]));
     _dataFileName = DataLoad.stringFromJson(json, Path.fromList(["file", "datafile"]));
@@ -217,7 +217,7 @@ class ConfigData {
         sb.write(k);
         sb.write(", ");
       }
-      throw JsonException("ConfigData: MaterialColor values must be one of [$sb]", Path.fromList(["application", "colour"]));
+      throw JsonException(message: "ConfigData: MaterialColor values must be one of [$sb]", Path.fromList(["application", "colour"]));
     }
   }
 

@@ -1,5 +1,5 @@
 class Path {
-  List<String> pathList = List.filled(9, "", growable: false);
+  final List<String> pathList = List.filled(9, "", growable: false);
   int count = 0;
 
   Path(List<String> list) {
@@ -18,7 +18,7 @@ class Path {
     return Path(l);
   }
 
-  factory Path.empty() {
+  factory  Path.empty() {
     return Path([]);
   }
 

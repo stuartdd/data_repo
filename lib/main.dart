@@ -13,8 +13,7 @@ import 'detail_buttons.dart';
 
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
-Map<String, dynamic>? _loadedData;
-bool dataWasUpdated = false;
+
 String _searchExpression = "";
 
 Future closer(int returnCode) async {
@@ -111,37 +110,52 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String _password = "123";
-  String _status = "";
   String _expand = _configData.getUserName();
   String _search = "";
   Path _selected = Path.empty();
   bool _isPasswordInput = true;
+  bool _dataWasUpdated = false;
+  Map<String, dynamic> _loadedData = {};
 
-  Map<String, dynamic>? _loadData(String pw) {
+  bool _saveData(String pw) {
+    print("Save; pw:$pw: file:${_configData.getDataFileLocal()}");
+    DataLoad.saveToFile(_configData.getDataFileLocal(), _loadedData);
+    setState(() {
+      _dataWasUpdated = false;
+    });
+    return false;
+  }
+
+  void _loadData(String pw) {
+    String str;
     try {
-      final str = DataLoad.fromFile(_configData.getDataFileLocal());
-      if (pw == "123") {
-        try {
-          // Decrypt here in  a try catch, then do json parse in nester try catch
-          final data = DataLoad.jsonFromString(str);
-          _password = pw;
-          _status = "File Loaded";
-          if (data[_configData.getUserId()] == null) {
-            _status = "Loaded file did not contain the users data";
-            return null;
-          }
-          return data;
-        } catch (r) {
-          _status = "Loaded file was corrupt or password is incorrect";
-          return null;
-        }
-      }
-      _status = "Invalid Password";
-      return null;
+      str = DataLoad.loadFromFile(_configData.getDataFileLocal());
     } catch (e) {
-      _status = e.toString();
-      return null;
+      throw DataLoadException(message: "Data file could not be loaded");
     }
+
+    Map<String, dynamic> data;
+    if (pw == "123") {
+      try {
+        // Decrypt here in  a try catch, then do json parse in nester try catch
+        data = DataLoad.jsonFromString(str);
+      } catch (r) {
+        throw DataLoadException(message: "Data file could not be parsed");
+      }
+      if (data.isEmpty) {
+        throw DataLoadException(message: "Loaded file does not contain any data");
+      }
+      if (data[_configData.getUserId()] == null) {
+        throw DataLoadException(message: "Loaded file does not contain the users data");
+      }
+      _password = pw;
+      _dataWasUpdated = false;
+      _isPasswordInput = false;
+      _loadedData = data;
+      _selected = Path.fromDotPath(_loadedData.keys.first);
+      return;
+    }
+    throw DataLoadException(message: "Password was not provided");
   }
 
   void _handleTreeSelect(String dotPath) {
@@ -161,16 +175,11 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     setState(() {
       if (_isPasswordInput) {
-        _loadedData = _loadData(
-          searchFor,
-        );
-        if (_loadedData == null) {
-          _isPasswordInput = true;
-          _selected = Path.empty();
-          _showModalDialog("File '${_configData.getDataFileName()}' could not be loaded", _status);
-        } else {
-          _isPasswordInput = false;
-          _selected = Path.fromDotPath(_loadedData!.isEmpty ? "" : _loadedData!.keys.first);
+        try {
+          _loadData(searchFor);
+        } catch(e) {
+          _showModalDialog(context, "File could not be loaded:", e.toString());
+          return;
         }
       } else {
         _search = searchFor;
@@ -180,19 +189,19 @@ class _MyHomePageState extends State<MyHomePage> {
 
   bool _handleEditSubmit(DetailAction detailActionData) {
     if (detailActionData.isValueDifferent()) {
-      final node = DataLoad.findLastMapNodeForPath(_loadedData!, detailActionData.path);
-      if (node == null) {
-        _showModalDialog("Path was not found", detailActionData.path.toString());
+      final mapNode = DataLoad.findLastMapNodeForPath(_loadedData!, detailActionData.path);
+      if (mapNode == null) {
+        _showModalDialog(context, "Path was not found", detailActionData.path.toString());
         return true;
       }
       final key = detailActionData.getLastPathElement();
       if (key == "") {
-        _showModalDialog("Last element of Path was not found", detailActionData.path.toString());
+        _showModalDialog(context, "Last element of Path was not found", detailActionData.path.toString());
         return true;
       }
       setState(() {
-        dataWasUpdated = true;
-        node[key] = detailActionData.v2;
+        _dataWasUpdated = true;
+        mapNode[key] = detailActionData.v2;
       });
       return true;
     }
@@ -244,9 +253,25 @@ class _MyHomePageState extends State<MyHomePage> {
       },
     );
 
-    final searchText = SearchTextOnAppBar((event) {
-      _handleSearchField(event);
-    }, _isPasswordInput, _search);
+    final searchText = SearchTextOnAppBar(
+      (event) {
+        _handleSearchField(event);
+      },
+      _isPasswordInput,
+      _dataWasUpdated,
+      _search,
+      _configData.getMaterialColor(),
+      () {
+        setState(() {
+          _saveData(_password);
+        });
+      },
+      () {
+        setState(() {
+          _loadData(_password);
+        });
+      },
+    );
 
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
@@ -260,16 +285,17 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
-        leading: Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.close_outlined),
-              tooltip: 'Exit application',
-              onPressed: () {
-                closer(0);
-              },
-            ),
-          ],
+        leading: DetailIconButton(
+          icon: const Icon(Icons.close_outlined),
+          tooltip: 'Exit application',
+          onPressed: () {
+            if (_dataWasUpdated) {
+              _showModalDialog(context, "Data has been updated", "Save first or reload");
+            } else {
+              closer(0);
+            }
+          },
+          materialColor: _configData.getMaterialColor(),
         ),
 
         title: searchText,
@@ -300,7 +326,7 @@ class _MyHomePageState extends State<MyHomePage> {
             icon: const Icon(Icons.access_alarm),
             tooltip: 'Previous Searches',
             onPressed: () async {
-              await _showSearchDialog(_applicationState.getLastFindList());
+              await _showSearchDialog(context, _applicationState.getLastFindList());
               if (_searchExpression.isNotEmpty) {
                 setState(() {
                   _search = _searchExpression;
@@ -320,13 +346,6 @@ class _MyHomePageState extends State<MyHomePage> {
             },
           ),
           DetailIconButton(
-            show: (dataWasUpdated && !_isPasswordInput),
-            materialColor: _configData.getMaterialColor(),
-            icon: const Icon(Icons.save_sharp),
-            tooltip: 'Save',
-            onPressed: () {},
-          ),
-          DetailIconButton(
             show: !_isPasswordInput,
             materialColor: _configData.getMaterialColor(),
             icon: const Icon(Icons.more_vert),
@@ -343,61 +362,122 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+}
 
-  Future<void> _showSearchDialog(final List<String> prevList) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false, // user must tap button!
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Previous Searches'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: createTextWidgetFromList(prevList, (selected) {
-                _searchExpression = selected;
-                Navigator.of(context).pop();
-              }),
-            ),
+Future<void> _showSearchDialog(final BuildContext context, final List<String> prevList) async {
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Previous Searches'),
+        content: SingleChildScrollView(
+          child: ListBody(
+            children: createTextWidgetFromList(prevList, (selected) {
+              _searchExpression = selected;
+              Navigator.of(context).pop();
+            }),
           ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                _searchExpression = "";
-                Navigator.of(context).pop();
-              },
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () {
+              _searchExpression = "";
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<void> _showModalDialog(final BuildContext context, final String m1, final String m2) async {
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Alert'),
+        content: SingleChildScrollView(
+          child: ListBody(
+            children: <Widget>[
+              Text(m1),
+              Text(m2),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: const Text('OK'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+class SearchTextOnAppBar extends StatelessWidget {
+  SearchTextOnAppBar(this._callMe, this._isPasswordField, this._fileIsUpdated, this._initial, this.materialColor, this._onSave, this._onReload, {super.key});
+  final void Function(String event)? _callMe;
+  final String _initial;
+  final bool _isPasswordField;
+  final bool _fileIsUpdated;
+  final Function() _onSave;
+  final Function() _onReload;
+  final MaterialColor materialColor;
+  final TextEditingController _tec = TextEditingController(text: "");
+
+  @override
+  Widget build(BuildContext context) {
+    _tec.text = _initial;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DetailIconButton(
+          show: _fileIsUpdated,
+          icon: const Icon(Icons.save),
+          tooltip: 'Save Data',
+          onPressed: () {
+            _onSave();
+          },
+          materialColor: materialColor,
+        ),
+        DetailIconButton(
+          show: _fileIsUpdated,
+          icon: const Icon(Icons.refresh),
+          tooltip: 'Reload Data',
+          onPressed: () {
+            _onReload();
+          },
+          materialColor: materialColor,
+        ),
+        SizedBox(
+          // <-- SEE HERE
+          width: 200,
+          child: TextField(
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              hintText: _isPasswordField ? 'Password' : 'Search',
             ),
-          ],
-        );
-      },
+            autofocus: true,
+            onSubmitted: (value) {
+              _callMe!(value);
+            },
+            obscureText: _isPasswordField,
+            controller: _tec,
+            cursorColor: const Color(0xff000000),
+          ),
+        ),
+      ],
     );
   }
 
-  Future<void> _showModalDialog(final String m1, final String m2) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false, // user must tap button!
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Alert'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                Text(m1),
-                Text(m2),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
+  String getResp() {
+    return _tec.value.text;
   }
 }

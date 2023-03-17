@@ -27,7 +27,6 @@ void main() {
     p4.push("five");
     p4.push("six");
     expect(p4.toString(), "root.one.two.three.four.five.six");
-
   });
 
 
