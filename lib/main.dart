@@ -15,12 +15,13 @@ import 'detail_buttons.dart';
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
 
-String _searchDialogResult = "";
 String _okCancelDialogResult = "";
 final TextEditingController textEditingController = TextEditingController(text: "");
 
 const appBarHeight = 50.0;
 const iconDataFileLoad = Icons.file_open;
+const dialogTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.black);
+const dialogButtonStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.blue);
 
 Future closer(int returnCode) async {
   exit(returnCode);
@@ -378,10 +379,15 @@ class _MyHomePageState extends State<MyHomePage> {
                       icon: const Icon(Icons.youtube_searched_for),
                       tooltip: 'Previous Searches',
                       onPressed: () async {
-                        await _showSearchDialog(context, _applicationState.getLastFindList());
-                        if (_searchDialogResult.isNotEmpty) {
-                          _setSearchExpressionState(_searchDialogResult);
-                        }
+                        await _showSearchDialog(
+                          context,
+                          _applicationState.getLastFindList(),
+                          (selected) {
+                            if (selected.isNotEmpty) {
+                              _setSearchExpressionState(selected);
+                            }
+                          },
+                        );
                       },
                     ),
                     DetailIconButton(
@@ -416,26 +422,46 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Future<void> _showSearchDialog(final BuildContext context, final List<String> prevList) async {
+List<Widget> createTextWidgetFromList(List<String> inlist, Function(String) onselect) {
+  List<Widget> l = List.empty(growable: true);
+  for (var value in inlist) {
+    l.add(TextButton(
+      child: Text("'$value'", style: dialogTextStyle),
+      onPressed: () {
+        onselect(value);
+      },
+    ));
+  }
+  return l;
+}
+
+Future<void> _showSearchDialog(final BuildContext context, final List<String> prevList, final Function(String) onSelect) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        title: const Text('Previous Searches'),
+        title: const Text('Previous Searches', style: dialogButtonStyle),
         content: SingleChildScrollView(
           child: ListBody(
-            children: createTextWidgetFromList(prevList, (selected) {
-              _searchDialogResult = selected;
-              Navigator.of(context).pop();
-            }),
+            children: [
+              for (int i = 0; i < prevList.length; i++) ...[
+                TextButton(
+                  child: Text(prevList[i], style: dialogTextStyle),
+                  onPressed: () {
+                    onSelect(prevList[i]);
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ]
+            ],
           ),
         ),
         actions: <Widget>[
           TextButton(
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: dialogButtonStyle),
             onPressed: () {
-              _searchDialogResult = "";
+              onSelect("");
               Navigator.of(context).pop();
             },
           ),
@@ -463,7 +489,7 @@ Future<void> _showModalDialog(final BuildContext context, final List<String> tex
         ),
         actions: <Widget>[
           TextButton(
-            child: const Text('OK'),
+            child: const Text('OK', style: dialogButtonStyle),
             onPressed: () {
               _okCancelDialogResult = "OK";
               Navigator.of(context).pop();
@@ -471,7 +497,7 @@ Future<void> _showModalDialog(final BuildContext context, final List<String> tex
           ),
           hasCancel
               ? TextButton(
-                  child: const Text('CANCEL'),
+                  child: const Text('CANCEL', style: dialogButtonStyle),
                   onPressed: () {
                     _okCancelDialogResult = "CANCEL";
                     Navigator.of(context).pop();

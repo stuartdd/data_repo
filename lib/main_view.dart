@@ -7,7 +7,6 @@ import 'detail_widget.dart';
 
 const double splitMinTree = 0.2;
 const double splitMinDetail = 0.4;
-const dialogTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.black);
 
 class DisplayData {
   DisplayData(this.splitView, this.treeViewController, {this.isOk = true});
@@ -26,18 +25,7 @@ class DisplayData {
   }
 }
 
-List<Widget> createTextWidgetFromList(List<String> inlist, Function(String) onselect) {
-  List<Widget> l = List.empty(growable: true);
-  for (var value in inlist) {
-    l.add(TextButton(
-      child: Text(value, style: dialogTextStyle),
-      onPressed: () {
-        onselect(value);
-      },
-    ));
-  }
-  return l;
-}
+
 
 /// Creates both Left and Right panes.
 DisplayData createSplitView(
