@@ -24,30 +24,26 @@ class _DetailIconButton extends State<DetailIconButton> {
   @override
   Widget build(BuildContext context) {
     if (widget.show) {
-      return Row(
-        children: [
-          IconButton(
-            color: grey ? widget.materialColor.shade900 : widget.materialColor.shade50,
-            icon: widget.icon,
-            tooltip: widget.tooltip,
-            onPressed: () {
-              if (grey) {
-                return;
-              }
+      return IconButton(
+        color: grey ? widget.materialColor.shade900 : widget.materialColor.shade900,
+        icon: widget.icon,
+        tooltip: widget.tooltip,
+        onPressed: () {
+          if (grey) {
+            return;
+          }
+          setState(() {
+            grey = true;
+          });
+          Timer(const Duration(milliseconds: 5), () {
+            widget.onPressed();
+            Timer(Duration(milliseconds: 15 + widget.timerMs), () {
               setState(() {
-                grey = true;
+                grey = false;
               });
-              Timer(const Duration(milliseconds: 5), () {
-                widget.onPressed();
-                Timer(Duration(milliseconds: 15 + widget.timerMs), () {
-                  setState(() {
-                    grey = false;
-                  });
-                });
-              });
-            },
-          )
-        ],
+            });
+          });
+        },
       );
     } else {
       return const SizedBox(width: 0);
@@ -101,4 +97,3 @@ class _DetailButtonState extends State<DetailButton> {
     }
   }
 }
-

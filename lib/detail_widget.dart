@@ -5,9 +5,9 @@ import 'data_load.dart';
 import 'path.dart';
 import 'detail_buttons.dart';
 
-const _styleLarge = TextStyle(fontFamily: 'Code128', fontSize: 35.0);
-const _styleLargeEdit = TextStyle(fontFamily: 'Code128', fontSize: 28.0);
-const _styleSmall = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.black);
+const _styleLarge = TextStyle(fontFamily: 'Code128',fontWeight: FontWeight.w500, fontSize: 30.0);
+const _styleLargeEdit = TextStyle(fontFamily: 'Code128', fontSize: 30.0);
+const _styleSmall = TextStyle(fontFamily: 'Code128',fontWeight: FontWeight.w500, fontSize: 20.0, color: Colors.black);
 const _styleSubTitle = TextStyle(fontFamily: 'Code128', fontSize: 17.0, color: Colors.black);
 
 enum ActionType { none, editStart, editCancel, editSubmit, addStart, addCancel, addSubmit, link, clip }

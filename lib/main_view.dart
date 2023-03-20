@@ -7,6 +7,7 @@ import 'detail_widget.dart';
 
 const double splitMinTree = 0.2;
 const double splitMinDetail = 0.4;
+const dialogTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.black);
 
 class DisplayData {
   DisplayData(this.splitView, this.treeViewController, {this.isOk = true});
@@ -25,12 +26,11 @@ class DisplayData {
   }
 }
 
-
 List<Widget> createTextWidgetFromList(List<String> inlist, Function(String) onselect) {
   List<Widget> l = List.empty(growable: true);
   for (var value in inlist) {
     l.add(TextButton(
-      child: Text(value),
+      child: Text(value, style: dialogTextStyle),
       onPressed: () {
         onselect(value);
       },
@@ -70,21 +70,17 @@ DisplayData createSplitView(
   treeViewController.expandAll();
 
   final treeView = TreeView(
+    shrinkWrap: true,
     controller: treeViewController,
     allowParentSelect: true,
     supportParentDoubleTap: true,
-    theme: buildTreeViewTheme(),
+    theme: buildTreeViewTheme(materialColor),
     onNodeDoubleTap: (key) {
       onSelect(key);
     },
     onNodeTap: (key) {
       onSelect(key);
     },
-  );
-
-  final Container treeContainer = Container(
-    color: Colors.green,
-    child: treeView,
   );
 
   /// Create the detail.
@@ -98,7 +94,6 @@ DisplayData createSplitView(
       child: const Center(child: Text("Selected Node was not found in the data")),
     );
   }
-
   final splitView = SplitView(
     onWeightChanged: (value) {
       if (value.isNotEmpty) {
@@ -112,7 +107,7 @@ DisplayData createSplitView(
       viewMode: splitViewMode,
       isActive: true,
     ),
-    children: [treeContainer, detailContainer],
+    children: [SingleChildScrollView(child:treeView), SingleChildScrollView(child:detailContainer)],
   );
   return DisplayData(splitView, treeViewController);
 }
@@ -159,6 +154,7 @@ Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path s
     color: materialColor.shade500,
     child: Scrollbar(
       child: ListView(
+        shrinkWrap: true,
         restorationId: 'list_demo_list_view',
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
@@ -187,7 +183,7 @@ List<Node<dynamic>> _mapToNodeList(final Map<String, dynamic> data, final Path p
         } else {
           exp = true;
         }
-        l.add(Node(key: path.toString(), label: k, expanded: exp, children: _mapToNodeList(v, path, filterList, expand, filter)));
+        l.add(Node(key: path.toString(), label: " $k", expanded: exp, children: _mapToNodeList(v, path, filterList, expand, filter)));
       }
       path.pop();
     }
@@ -211,29 +207,24 @@ void _buildMapFromPathList(final Map<String, dynamic> map, final List<String> pa
   }
 }
 
-TreeViewTheme buildTreeViewTheme() {
+TreeViewTheme buildTreeViewTheme(final MaterialColor materialColor) {
   return TreeViewTheme(
-    expanderTheme: ExpanderThemeData(
-      type: ExpanderType.caret,
-      modifier: ExpanderModifier.none,
+    expanderTheme: const ExpanderThemeData(
+      type: ExpanderType.arrow,
+      modifier: ExpanderModifier.circleOutlined,
       position: ExpanderPosition.start,
-      color: Colors.red.shade800,
-      size: 28,
+      size: 20,
     ),
-    labelStyle: const TextStyle(
+    labelStyle:  const TextStyle(
       fontSize: 20,
       letterSpacing: 0.3,
     ),
-    parentLabelStyle: TextStyle(
+    parentLabelStyle: const TextStyle(
       fontSize: 20,
       letterSpacing: 0.1,
-      fontWeight: FontWeight.w800,
-      color: Colors.red.shade600,
+      fontWeight: FontWeight.w900,
     ),
-    iconTheme: IconThemeData(
-      size: 28,
-      color: Colors.grey.shade800,
-    ),
-    colorScheme: const ColorScheme.light(),
+    colorScheme: ColorScheme.fromSeed(seedColor: materialColor),
+    verticalSpacing: 5,
   );
 }

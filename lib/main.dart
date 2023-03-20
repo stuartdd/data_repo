@@ -4,6 +4,7 @@ import 'package:data_repo/data_load.dart';
 import 'package:flutter/material.dart';
 import 'package:window_size/window_size.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:flutter_window_close/flutter_window_close.dart';
 import 'detail_widget.dart';
 import 'encrypt.dart';
 import 'path.dart';
@@ -14,7 +15,12 @@ import 'detail_buttons.dart';
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
 
-String _searchExpression = "";
+String _searchDialogResult = "";
+String _okCancelDialogResult = "";
+final TextEditingController textEditingController = TextEditingController(text: "");
+
+const appBarHeight = 50.0;
+const iconDataFileLoad = Icons.file_open;
 
 Future closer(int returnCode) async {
   exit(returnCode);
@@ -37,6 +43,7 @@ void main() async {
     stderr.writeln(e);
     closer(1);
   }
+
   runApp(MyApp());
 }
 
@@ -56,6 +63,10 @@ class MyApp extends StatelessWidget with WindowListener {
         {
           _applicationState.setShouldUpdateScreen(true);
           break;
+        }
+      case 'close':
+        {
+          return;
         }
       case 'move':
       case 'resize':
@@ -81,7 +92,6 @@ class MyApp extends StatelessWidget with WindowListener {
     if (_applicationState.isDesktop()) {
       windowManager.addListener(this);
     }
-    ;
     return MaterialApp(
       title: 'data_repo',
       theme: ThemeData(primarySwatch: _configData.getMaterialColor()),
@@ -109,15 +119,26 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String _password = "123";
+  String _password = "";
   String _expand = _configData.getUserName();
   String _search = "";
+  String _previousSearch = "";
   Path _selected = Path.empty();
   bool _isPasswordInput = true;
   bool _dataWasUpdated = false;
   Map<String, dynamic> _loadedData = {};
 
-  bool _saveData(String pw) {
+  void _setSearchExpressionState(String st) {
+    if (st == _search) {
+      return;
+    }
+    setState(() {
+      textEditingController.text = st;
+      _search = st;
+    });
+  }
+
+  bool _saveDataState(String pw) {
     print("Save; pw:$pw: file:${_configData.getDataFileLocal()}");
     DataLoad.saveToFile(_configData.getDataFileLocal(), _loadedData);
     setState(() {
@@ -126,16 +147,15 @@ class _MyHomePageState extends State<MyHomePage> {
     return false;
   }
 
-  void _loadData(String pw) {
+  void _loadDataState(String pw) {
     String str;
     try {
       str = DataLoad.loadFromFile(_configData.getDataFileLocal());
     } catch (e) {
       throw DataLoadException(message: "Data file could not be loaded");
     }
-
     Map<String, dynamic> data;
-    if (pw == "123") {
+    if (pw == "") {
       try {
         // Decrypt here in  a try catch, then do json parse in nester try catch
         data = DataLoad.jsonFromString(str);
@@ -148,11 +168,13 @@ class _MyHomePageState extends State<MyHomePage> {
       if (data[_configData.getUserId()] == null) {
         throw DataLoadException(message: "Loaded file does not contain the users data");
       }
-      _password = pw;
-      _dataWasUpdated = false;
-      _isPasswordInput = false;
-      _loadedData = data;
-      _selected = Path.fromDotPath(_loadedData.keys.first);
+      setState(() {
+        _password = pw;
+        _dataWasUpdated = false;
+        _isPasswordInput = false;
+        _loadedData = data;
+        _selected = Path.fromDotPath(_loadedData.keys.first);
+      });
       return;
     }
     throw DataLoadException(message: "Password was not provided");
@@ -165,39 +187,30 @@ class _MyHomePageState extends State<MyHomePage> {
         _expand = path.getRoot();
       }
       _selected = path;
-      print(_selected);
+      print("Selected:$_selected)");
     });
   }
 
-  void _handleSearchField(String searchFor) {
-    if (searchFor.isEmpty) {
+  void _handlePasswordFieldState(String pw) {
+    try {
+      _loadDataState(pw);
+    } catch (e) {
+      _showModalDialog(context, ["File could not be loaded:", e.toString()], false);
       return;
     }
-    setState(() {
-      if (_isPasswordInput) {
-        try {
-          _loadData(searchFor);
-        } catch(e) {
-          _showModalDialog(context, "File could not be loaded:", e.toString());
-          return;
-        }
-      } else {
-        _search = searchFor;
-      }
-    });
   }
 
   bool _handleEditSubmit(DetailAction detailActionData) {
     if (detailActionData.isValueDifferent()) {
-      final mapNode = DataLoad.findLastMapNodeForPath(_loadedData!, detailActionData.path);
+      final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
       if (mapNode == null) {
-        _showModalDialog(context, "Path was not found", detailActionData.path.toString());
-        return true;
+        _showModalDialog(context, ["Path was not found", detailActionData.path.toString()], false);
+        return false;
       }
       final key = detailActionData.getLastPathElement();
       if (key == "") {
-        _showModalDialog(context, "Last element of Path was not found", detailActionData.path.toString());
-        return true;
+        _showModalDialog(context, ["Last element of Path was not found", detailActionData.path.toString()], false);
+        return false;
       }
       setState(() {
         _dataWasUpdated = true;
@@ -210,6 +223,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    FlutterWindowClose.setWindowShouldCloseHandler(() async {
+      if (_dataWasUpdated) {
+        await _showModalDialog(context, ["Data has been updated", "Press OK to EXIT without saving", "Press CANCEL to remain in the app"], true);
+        if (_okCancelDialogResult != "OK") {
+          return false;
+        }
+      }
+      return true;
+    });
+
     final DisplayData displayData = createSplitView(
       _loadedData,
       _configData.getUserId(),
@@ -228,7 +251,8 @@ class _MyHomePageState extends State<MyHomePage> {
       },
       (searchCount) {
         // On Search complete
-        if (searchCount > 0) {
+        if (searchCount > 0 && _previousSearch != _search) {
+          _previousSearch = _search;
           _applicationState.addLastFind(_search, 5);
           _applicationState.writeToFile(false);
         }
@@ -253,26 +277,6 @@ class _MyHomePageState extends State<MyHomePage> {
       },
     );
 
-    final searchText = SearchTextOnAppBar(
-      (event) {
-        _handleSearchField(event);
-      },
-      _isPasswordInput,
-      _dataWasUpdated,
-      _search,
-      _configData.getMaterialColor(),
-      () {
-        setState(() {
-          _saveData(_password);
-        });
-      },
-      () {
-        setState(() {
-          _loadData(_password);
-        });
-      },
-    );
-
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -280,86 +284,134 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
 
-    if (displayData.treeViewController != null) {}
     return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        leading: DetailIconButton(
-          icon: const Icon(Icons.close_outlined),
-          tooltip: 'Exit application',
-          onPressed: () {
-            if (_dataWasUpdated) {
-              _showModalDialog(context, "Data has been updated", "Save first or reload");
-            } else {
-              closer(0);
-            }
-          },
-          materialColor: _configData.getMaterialColor(),
-        ),
-
-        title: searchText,
-
-        centerTitle: true,
-        actions: <Widget>[
-          DetailIconButton(
-            show: _isPasswordInput,
-            materialColor: _configData.getMaterialColor(),
-            icon: const Icon(Icons.done),
-            tooltip: 'Done',
-            onPressed: () {
-              _handleSearchField("123${searchText.getResp()}");
-            },
-          ),
-          DetailIconButton(
-            show: !_isPasswordInput,
-            materialColor: _configData.getMaterialColor(),
-            icon: const Icon(Icons.search),
-            tooltip: 'Search',
-            onPressed: () {
-              _handleSearchField(searchText.getResp());
-            },
-          ),
-          DetailIconButton(
-            show: !_isPasswordInput,
-            materialColor: _configData.getMaterialColor(),
-            icon: const Icon(Icons.access_alarm),
-            tooltip: 'Previous Searches',
-            onPressed: () async {
-              await _showSearchDialog(context, _applicationState.getLastFindList());
-              if (_searchExpression.isNotEmpty) {
-                setState(() {
-                  _search = _searchExpression;
-                });
-              }
-            },
-          ),
-          DetailIconButton(
-            show: !_isPasswordInput,
-            materialColor: _configData.getMaterialColor(),
-            icon: const Icon(Icons.arrow_left_outlined),
-            tooltip: 'Clear Search',
-            onPressed: () {
-              setState(() {
-                _search = "";
-              });
-            },
-          ),
-          DetailIconButton(
-            show: !_isPasswordInput,
-            materialColor: _configData.getMaterialColor(),
-            icon: const Icon(Icons.more_vert),
-            tooltip: 'More...',
-            onPressed: () {},
-          ),
-          const SizedBox(width: 40)
-        ],
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: displayData.splitView,
-      ),
+      body: Column(
+          // Center is a layout widget. It takes a single child and positions it
+          // in the middle of the parent.
+          children: [
+            SizedBox(
+              height: appBarHeight,
+              child: Container(
+                color: _configData.getMaterialColor().shade500,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DetailIconButton(
+                      icon: const Icon(Icons.close_outlined),
+                      tooltip: 'Exit application',
+                      onPressed: () async {
+                        if (_dataWasUpdated) {
+                          await _showModalDialog(context, ["Data has been updated", "Press OK to SAVE then Exit", "Press CANCEL remain in the App"], true);
+                          if (_okCancelDialogResult == "OK") {
+                            _saveDataState(_password);
+                            closer(0);
+                          }
+                        } else {
+                          closer(0);
+                        }
+                      },
+                      materialColor: _configData.getMaterialColor(),
+                    ),
+                    DetailIconButton(
+                      show: _dataWasUpdated,
+                      icon: const Icon(Icons.save),
+                      tooltip: 'Save Data',
+                      onPressed: () {
+                        _saveDataState(_password);
+                      },
+                      materialColor: _configData.getMaterialColor(),
+                    ),
+                    DetailIconButton(
+                      show: _dataWasUpdated,
+                      icon: const Icon(Icons.refresh),
+                      tooltip: 'Reload Data',
+                      onPressed: () {
+                        _loadDataState(_password);
+                      },
+                      materialColor: _configData.getMaterialColor(),
+                    ),
+                    Container(
+                      color: _configData.getMaterialColor().shade400,
+                      child: SizedBox(
+                        // <-- SEE HERE
+                        width: MediaQuery.of(context).size.width / 3,
+                        child: TextField(
+                          decoration: InputDecoration(
+                            border: const OutlineInputBorder(),
+                            hintText: _isPasswordInput ? 'Password' : 'Search',
+                          ),
+                          autofocus: true,
+                          onSubmitted: (value) {
+                            if (_isPasswordInput) {
+                              _handlePasswordFieldState(value);
+                            } else {
+                              _setSearchExpressionState(value);
+                            }
+                          },
+                          obscureText: _isPasswordInput,
+                          controller: textEditingController,
+                          cursorColor: const Color(0xff000000),
+                        ),
+                      ),
+                    ),
+                    DetailIconButton(
+                      show: _isPasswordInput,
+                      materialColor: _configData.getMaterialColor(),
+                      icon: const Icon(iconDataFileLoad),
+                      tooltip: 'Load Data',
+                      onPressed: () {
+                        _handlePasswordFieldState(textEditingController.text);
+                      },
+                    ),
+                    DetailIconButton(
+                      show: !_isPasswordInput,
+                      materialColor: _configData.getMaterialColor(),
+                      icon: const Icon(Icons.search),
+                      tooltip: 'Search',
+                      onPressed: () {
+                        _setSearchExpressionState(textEditingController.text);
+                      },
+                    ),
+                    DetailIconButton(
+                      show: !_isPasswordInput,
+                      materialColor: _configData.getMaterialColor(),
+                      icon: const Icon(Icons.youtube_searched_for),
+                      tooltip: 'Previous Searches',
+                      onPressed: () async {
+                        await _showSearchDialog(context, _applicationState.getLastFindList());
+                        if (_searchDialogResult.isNotEmpty) {
+                          _setSearchExpressionState(_searchDialogResult);
+                        }
+                      },
+                    ),
+                    DetailIconButton(
+                      show: !_isPasswordInput,
+                      materialColor: _configData.getMaterialColor(),
+                      icon: const Icon(Icons.search_off),
+                      tooltip: 'Clear Search',
+                      onPressed: () {
+                        _setSearchExpressionState("");
+                      },
+                    ),
+                    DetailIconButton(
+                      show: !_isPasswordInput,
+                      materialColor: _configData.getMaterialColor(),
+                      icon: const Icon(Icons.more_vert),
+                      tooltip: 'More...',
+                      onPressed: () {},
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Container(
+              color: _configData.getMaterialColor().shade400,
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height - appBarHeight,
+                child: displayData.splitView,
+              ),
+            ),
+          ]),
     );
   }
 }
@@ -374,7 +426,7 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
         content: SingleChildScrollView(
           child: ListBody(
             children: createTextWidgetFromList(prevList, (selected) {
-              _searchExpression = selected;
+              _searchDialogResult = selected;
               Navigator.of(context).pop();
             }),
           ),
@@ -383,7 +435,7 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
           TextButton(
             child: const Text('Cancel'),
             onPressed: () {
-              _searchExpression = "";
+              _searchDialogResult = "";
               Navigator.of(context).pop();
             },
           ),
@@ -393,7 +445,7 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
   );
 }
 
-Future<void> _showModalDialog(final BuildContext context, final String m1, final String m2) async {
+Future<void> _showModalDialog(final BuildContext context, final List<String> texts, bool hasCancel) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -402,9 +454,10 @@ Future<void> _showModalDialog(final BuildContext context, final String m1, final
         title: const Text('Alert'),
         content: SingleChildScrollView(
           child: ListBody(
-            children: <Widget>[
-              Text(m1),
-              Text(m2),
+            children: [
+              for (int i = 0; i < texts.length; i++) ...[
+                Text(texts[i], style: dialogTextStyle),
+              ]
             ],
           ),
         ),
@@ -412,72 +465,21 @@ Future<void> _showModalDialog(final BuildContext context, final String m1, final
           TextButton(
             child: const Text('OK'),
             onPressed: () {
+              _okCancelDialogResult = "OK";
               Navigator.of(context).pop();
             },
           ),
+          hasCancel
+              ? TextButton(
+                  child: const Text('CANCEL'),
+                  onPressed: () {
+                    _okCancelDialogResult = "CANCEL";
+                    Navigator.of(context).pop();
+                  },
+                )
+              : const SizedBox(width: 0),
         ],
       );
     },
   );
-}
-
-class SearchTextOnAppBar extends StatelessWidget {
-  SearchTextOnAppBar(this._callMe, this._isPasswordField, this._fileIsUpdated, this._initial, this.materialColor, this._onSave, this._onReload, {super.key});
-  final void Function(String event)? _callMe;
-  final String _initial;
-  final bool _isPasswordField;
-  final bool _fileIsUpdated;
-  final Function() _onSave;
-  final Function() _onReload;
-  final MaterialColor materialColor;
-  final TextEditingController _tec = TextEditingController(text: "");
-
-  @override
-  Widget build(BuildContext context) {
-    _tec.text = _initial;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        DetailIconButton(
-          show: _fileIsUpdated,
-          icon: const Icon(Icons.save),
-          tooltip: 'Save Data',
-          onPressed: () {
-            _onSave();
-          },
-          materialColor: materialColor,
-        ),
-        DetailIconButton(
-          show: _fileIsUpdated,
-          icon: const Icon(Icons.refresh),
-          tooltip: 'Reload Data',
-          onPressed: () {
-            _onReload();
-          },
-          materialColor: materialColor,
-        ),
-        SizedBox(
-          // <-- SEE HERE
-          width: 200,
-          child: TextField(
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              hintText: _isPasswordField ? 'Password' : 'Search',
-            ),
-            autofocus: true,
-            onSubmitted: (value) {
-              _callMe!(value);
-            },
-            obscureText: _isPasswordField,
-            controller: _tec,
-            cursorColor: const Color(0xff000000),
-          ),
-        ),
-      ],
-    );
-  }
-
-  String getResp() {
-    return _tec.value.text;
-  }
 }
