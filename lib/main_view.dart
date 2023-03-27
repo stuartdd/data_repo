@@ -37,6 +37,7 @@ DisplayData createSplitView(
     final bool horizontal, // Display horizontal or vertical split pane
     double initPos, // The split pane divider position
     MaterialColor materialColor, // The colour scheme
+    PathList hiLightedPath,
     final Function(String) onSelect, // Called when a tree node in selected
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final Function(int) onSearchComplete, // Called when the search is complete
@@ -75,7 +76,7 @@ DisplayData createSplitView(
   final Container detailContainer;
   final node = DataLoad.findLastMapNodeForPath(originalData, selectedNode);
   if (node != null) {
-    detailContainer = _createDetailContainer(node, selectedNode, materialColor, onDataAction);
+      detailContainer = _createDetailContainer(node, selectedNode, hiLightedPath, materialColor, onDataAction);
   } else {
     detailContainer = Container(
       color: Colors.red,
@@ -98,6 +99,49 @@ DisplayData createSplitView(
     children: [SingleChildScrollView(child:treeView), SingleChildScrollView(child:detailContainer)],
   );
   return DisplayData(splitView, treeViewController);
+}
+
+List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> json, Path path) {
+  List<DataValueDisplayRow> lm = List.empty(growable: true);
+  List<DataValueDisplayRow> lv = List.empty(growable: true);
+  for (var element in json.entries) {
+    if (element.value is Map) {
+      lm.add(DataValueDisplayRow(element.key, "", path, element.value.runtimeType.toString(), false, (element.value as Map).length));
+    } else if (element.value is List) {
+      lm.add(DataValueDisplayRow(element.key, "", path, element.value.runtimeType.toString(), false, (element.value as List).length));
+    } else {
+      lv.add(DataValueDisplayRow(element.key, element.value.toString(), path, element.value.runtimeType.toString(), true, 0));
+    }
+  }
+  lm.addAll(lv);
+  return lm;
+}
+
+Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, PathList hiLightedPaths, final MaterialColor materialColor, final bool Function(DetailAction) dataAction) {
+  List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath);
+  properties.sort((a, b) {
+    return a.name.compareTo(b.name);
+  },);
+  return Container(
+    color: materialColor.shade500,
+    child: Scrollbar(
+      child: ListView(
+        shrinkWrap: true,
+        restorationId: 'list_demo_list_view',
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        children: [
+          for (int index = 0; index < properties.length; index++)
+            DetailWidget(
+              dataValueRow: properties[index],
+              loMaterialColor: materialColor,
+              hiMaterialColor: Colors.teal,
+              hiLightedPaths: hiLightedPaths,
+              dataAction: dataAction,
+            )
+        ],
+      ),
+    ),
+  );
 }
 
 TreeViewController _buildTreeViewController(Map<String, dynamic> data, final Path selectedNode, final String filter, final String expand, final Function(int) onSearchComplete) {
@@ -136,27 +180,6 @@ TreeViewController _buildTreeViewController(Map<String, dynamic> data, final Pat
   );
 }
 
-Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final MaterialColor materialColor, final bool Function(DetailAction) dataAction) {
-  List<DataValueRow> properties = DataLoad.dataValueListFromJson(selectedNode, selectedPath);
-  return Container(
-    color: materialColor.shade500,
-    child: Scrollbar(
-      child: ListView(
-        shrinkWrap: true,
-        restorationId: 'list_demo_list_view',
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          for (int index = 0; index < properties.length; index++)
-            DetailWidget(
-              dataValueRow: properties[index],
-              materialColor: materialColor,
-              dataAction: dataAction,
-            )
-        ],
-      ),
-    ),
-  );
-}
 
 List<Node<dynamic>> _mapToNodeList(final Map<String, dynamic> data, final Path path, final Map<String, dynamic> filterList, final String expand, final String filter) {
   final List<Node<dynamic>> l = List.empty(growable: true);

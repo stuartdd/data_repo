@@ -1,3 +1,26 @@
+class PathList {
+  final List<Path> _list = List.empty(growable: true);
+  PathList();
+
+  void clean() {
+    _list.clear();
+  }
+
+  void add(Path p) {
+    _list.add(p);
+  }
+
+  bool contains(Path p) {
+    for (int i = 0; i < _list.length; i++) {
+      if (_list[i].isEqual(p)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+
 class Path {
   final List<String> pathList = List.filled(9, "", growable: false);
   int count = 0;
@@ -7,6 +30,18 @@ class Path {
       pathList[i] = list[i];
     }
     count = list.length;
+  }
+
+  bool isEqual(Path other) {
+      if (count != other.count) {
+        return false;
+      }
+      for (int i =0; i<count; i++) {
+        if (pathList[i] != other.pathList[i])  {
+          return false;
+        }
+      }
+      return true;
   }
 
   Path cloneAppend(List<String> app) {

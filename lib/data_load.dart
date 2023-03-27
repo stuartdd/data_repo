@@ -8,67 +8,48 @@ import 'dart:convert';
 class JsonException implements Exception {
   final String message;
   final Path? path;
-  JsonException(this.path,{required this.message});
+  JsonException(this.path, {required this.message});
   @override
   String toString() {
     Object? message = this.message;
-    if (path==null || path!.isEmpty()) {
+    if (path == null || path!.isEmpty()) {
       return "JsonException: $message";
     }
     return "JsonException: $message: Path:$path";
   }
 }
 
-class DataLoadException implements Exception {
-  final dynamic message;
-  DataLoadException({required this.message});
-  @override
-  String toString() {
-     return "DataLoadException: $message";
-  }
-}
-
-class DataValueRow {
-  final String _name;
-  final String _value;
-  final Path _path;
-  final String _type;
-  final bool _isValue;
-  final int _mapSize;
-
-  DataValueRow(this._name, this._value, this._path, this._type, this._isValue, this._mapSize);
-
-  Path getFullPath() {
-    return _path.cloneAppend([_name]);
+class SuccessState {
+  final bool isSuccess;
+  final String state;
+  final String data;
+  late final Exception? _exception;
+  SuccessState(this.isSuccess, {this.state = "OK", this.data = "", Exception? exception}) {
+    _exception = exception;
   }
 
-  String get name => _name;
-  String get value => _value;
-  Path get path => _path;
-  String get type => _type;
-  bool get isValue => _isValue;
-  int get mapSize => _mapSize;
+  bool get hasException {
+    return (_exception != null);
+  }
 
-  bool isLink() {
-    if (_isValue) {
-      var t = _value.toLowerCase();
-      if (t.startsWith("http://") || t.startsWith("https://")) {
-        return true;
-      }
+  Exception? get exception {
+    return _exception;
+  }
+
+  bool isDifferentFrom(SuccessState other) {
+    if (isSuccess != other.isSuccess) {
+      return true;
+    }
+    if (state != other.state) {
+      return true;
     }
     return false;
   }
-
-  @override
-  String toString() {
-    if (_isValue) {
-      return "Name:$_name ($_type) = $_value";
-    }
-    return "Name:$_name [$_mapSize]";
-  }
 }
 
+
 class DataLoad {
+
   static Future<String> fromHttpGet(String url) async {
     final uri = Uri.parse(url);
     final response = await http.get(uri).timeout(
@@ -102,18 +83,24 @@ class DataLoad {
     });
   }
 
-  static bool saveToFile(String fileName, Map<String, dynamic> contents) {
+  static SuccessState saveToFile(String fileName, Map<String, dynamic> contents) {
     try {
-      print("[$contents]");
       File(fileName).writeAsStringSync(jsonEncode(contents));
-    } catch(e) {
-      return false;
+      return SuccessState(true, state: "Data Saved OK");
+    } catch (e, s) {
+      stderr.write("DataLoad:saveToFile: $e\n$s");
+      return SuccessState(false, state: e.toString(), exception: e as Exception);
     }
-    return true;
   }
 
-  static String loadFromFile(String fileName) {
-    return File(fileName).readAsStringSync();
+  static SuccessState loadFromFile(String fileName) {
+    try {
+      final contents = File(fileName).readAsStringSync();
+      return SuccessState(true, data: contents, state: "Data loaded OK");
+    } catch (e, s) {
+      stderr.write("DataLoad:loadFromFile: $e\n$s");
+      return SuccessState(false, state: "Failed to load Data file", data: "", exception: e as Exception);
+    }
   }
 
   static Map<String, dynamic> jsonFromString(String json) {
@@ -123,7 +110,7 @@ class DataLoad {
 
   static Map<String, dynamic> jsonLoadFromFile(String fileName) {
     final json = DataLoad.loadFromFile(fileName);
-    return jsonFromString(json);
+    return jsonFromString(json.data);
   }
 
   static dynamic _nodeFromJson(Map<String, dynamic> json, Path path, String type) {
@@ -193,7 +180,7 @@ class DataLoad {
   /// Finds the map at the path.
   ///   If the last FOUND node is not a map and not a list it returns the parent node of the FOUND node.
   ///   If the last FOUND node is a map or a list it returns the FOUND node.
-  ///   
+  ///
   static Map<String, dynamic>? findLastMapNodeForPath(final Map<String, dynamic> json, Path path) {
     if (json.isEmpty || path.isEmpty()) {
       return null;
@@ -217,21 +204,6 @@ class DataLoad {
     return f;
   }
 
-  static List<DataValueRow> dataValueListFromJson(Map<String, dynamic> json, Path path) {
-    List<DataValueRow> lm = List.empty(growable: true);
-    List<DataValueRow> lv = List.empty(growable: true);
-    for (var element in json.entries) {
-      if (element.value is Map) {
-        lm.add(DataValueRow(element.key, "", path, element.value.runtimeType.toString(), false, (element.value as Map).length));
-      } else if (element.value is List) {
-        lm.add(DataValueRow(element.key, "", path, element.value.runtimeType.toString(), false, (element.value as List).length));
-      } else {
-        lv.add(DataValueRow(element.key, element.value.toString(), path, element.value.runtimeType.toString(), true, 0));
-      }
-    }
-    lm.addAll(lv);
-    return lm;
-  }
 
   static List<dynamic> listFromJson(Map<String, dynamic> json, Path path) {
     final node = _nodeFromJson(json, path, "List");

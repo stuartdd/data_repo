@@ -35,7 +35,7 @@ void main() {
     }
 
     final v = DataLoad.loadFromFile("test/data_load_test.dart");
-    assertContainsAll(["DataLoad.fromHttpGet", "DataLoad.fromFile"], v);
+    assertContainsAll(["DataLoad.fromHttpGet", "DataLoad.fromFile"], v.data);
   });
 
   test('Test Find Node in Json', () async {

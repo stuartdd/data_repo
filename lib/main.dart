@@ -15,15 +15,20 @@ import 'detail_buttons.dart';
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
 
+
 String _okCancelDialogResult = "";
+bool _inExitProcess = false;
+final PathList _hiLightedPaths = PathList();
 final TextEditingController textEditingController = TextEditingController(text: "");
 
 const appBarHeight = 50.0;
+const statusBarHeight = 30.0;
 const iconDataFileLoad = Icons.file_open;
 const dialogTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.black);
 const dialogButtonStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.blue);
+const statusTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.black);
 
-Future closer(int returnCode) async {
+void closer(int returnCode) async {
   exit(returnCode);
 }
 
@@ -127,7 +132,18 @@ class _MyHomePageState extends State<MyHomePage> {
   Path _selected = Path.empty();
   bool _isPasswordInput = true;
   bool _dataWasUpdated = false;
+  SuccessState _globalSuccessState = SuccessState(true);
   Map<String, dynamic> _loadedData = {};
+
+  SuccessState _setSuccessState(SuccessState newState) {
+    if (_globalSuccessState.isDifferentFrom(newState)) {
+      setState(() {
+        _globalSuccessState = newState;
+      });
+      return newState;
+    }
+    return _globalSuccessState;
+  }
 
   void _setSearchExpressionState(String st) {
     if (st == _search) {
@@ -139,46 +155,50 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  bool _saveDataState(String pw) {
-    print("Save; pw:$pw: file:${_configData.getDataFileLocal()}");
-    DataLoad.saveToFile(_configData.getDataFileLocal(), _loadedData);
-    setState(() {
-      _dataWasUpdated = false;
-    });
-    return false;
+  void _saveDataState(String pw) {
+    _setSuccessState(DataLoad.saveToFile(_configData.getDataFileLocal(), _loadedData));
+    if (_globalSuccessState.isSuccess) {
+      setState(() {
+        _dataWasUpdated = false;
+        _hiLightedPaths.clean();
+      });
+    }
   }
 
   void _loadDataState(String pw) {
-    String str;
-    try {
-      str = DataLoad.loadFromFile(_configData.getDataFileLocal());
-    } catch (e) {
-      throw DataLoadException(message: "Data file could not be loaded");
+    _setSuccessState(DataLoad.loadFromFile(_configData.getDataFileLocal()));
+    if (!_globalSuccessState.isSuccess) {
+      _showModalDialogSuccessState(context, _globalSuccessState);
+      return;
     }
     Map<String, dynamic> data;
     if (pw == "") {
       try {
         // Decrypt here in  a try catch, then do json parse in nester try catch
-        data = DataLoad.jsonFromString(str);
+        data = DataLoad.jsonFromString(_globalSuccessState.data);
       } catch (r) {
-        throw DataLoadException(message: "Data file could not be parsed");
+        _showModalDialogSuccessState(context, _setSuccessState(SuccessState(false, state: "Data file could not be parsed", exception: r as Exception)));
+        return;
       }
       if (data.isEmpty) {
-        throw DataLoadException(message: "Loaded file does not contain any data");
+        _showModalDialogSuccessState(context, _setSuccessState(SuccessState(false, state: "Data file does not contain any data")));
+        return;
       }
       if (data[_configData.getUserId()] == null) {
-        throw DataLoadException(message: "Loaded file does not contain the users data");
-      }
+        _showModalDialogSuccessState(context, _setSuccessState(SuccessState(false, state: "Data file does not contain the users data")));
+        return;
+       }
       setState(() {
         _password = pw;
         _dataWasUpdated = false;
         _isPasswordInput = false;
         _loadedData = data;
         _selected = Path.fromDotPath(_loadedData.keys.first);
+        _hiLightedPaths.clean();
       });
       return;
     }
-    throw DataLoadException(message: "Password was not provided");
+    _showModalDialogSuccessState(context, _setSuccessState(SuccessState(false, state: "Password was not provided")));
   }
 
   void _handleTreeSelect(String dotPath) {
@@ -192,46 +212,75 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _handlePasswordFieldState(String pw) {
-    try {
-      _loadDataState(pw);
-    } catch (e) {
-      _showModalDialog(context, ["File could not be loaded:", e.toString()], false);
-      return;
+  bool _handleRenameSubmit(DetailAction detailActionData) {
+    if (detailActionData.isValueDifferent()) {
+      final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
+      if (mapNode == null) {
+        _showModalDialog(context, ["Path was not found", detailActionData.path.toString()], ["OK"]);
+        return false;
+      }
+      setState(() {
+        var v = mapNode[detailActionData.v1];
+        mapNode.remove(detailActionData.v1);
+        mapNode[detailActionData.v2] = v;
+        _dataWasUpdated = true;
+        detailActionData.path.pop();
+        detailActionData.path.push(detailActionData.v2);
+        _hiLightedPaths.add(detailActionData.path);
+      });
     }
+    return true;
   }
 
   bool _handleEditSubmit(DetailAction detailActionData) {
     if (detailActionData.isValueDifferent()) {
       final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
       if (mapNode == null) {
-        _showModalDialog(context, ["Path was not found", detailActionData.path.toString()], false);
+        _showModalDialog(context, ["Path was not found", detailActionData.path.toString()], ["OK"]);
         return false;
       }
       final key = detailActionData.getLastPathElement();
       if (key == "") {
-        _showModalDialog(context, ["Last element of Path was not found", detailActionData.path.toString()], false);
+        _showModalDialog(context, ["Last element of Path was not found", detailActionData.path.toString()], ["OK"]);
         return false;
       }
       setState(() {
         _dataWasUpdated = true;
         mapNode[key] = detailActionData.v2;
+        _hiLightedPaths.add(detailActionData.path);
       });
       return true;
     }
     return true;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    FlutterWindowClose.setWindowShouldCloseHandler(() async {
+  Future<bool> _shouldExitHandler() async {
+    if (_inExitProcess) {
+      return false;
+    }
+    _inExitProcess = true;
+    try {
       if (_dataWasUpdated) {
-        await _showModalDialog(context, ["Data has been updated", "Press OK to EXIT without saving", "Press CANCEL to remain in the app"], true);
-        if (_okCancelDialogResult != "OK") {
+        await _showModalDialog(context, ["Data has been updated", "Press OK to SAVE before Exit", "Press CANCEL remain in the App", "Press EXIT to leave without saving"], ["OK", "CANCEL", "EXIT"]);
+        if (_okCancelDialogResult == "OK") {
+          _saveDataState(_password);
+          return _globalSuccessState.isSuccess;
+        }
+        if (_okCancelDialogResult == "CANCEL") {
+          _setSuccessState(SuccessState(true, state: "Exit Cancelled"));
           return false;
         }
       }
       return true;
+    } finally {
+      _inExitProcess = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    FlutterWindowClose.setWindowShouldCloseHandler(() async {
+      return await _shouldExitHandler();
     });
 
     final DisplayData displayData = createSplitView(
@@ -243,6 +292,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _applicationState.isDesktop(),
       _applicationState.screen.hDiv,
       _configData.getMaterialColor(),
+      _hiLightedPaths,
       _handleTreeSelect,
       (divPos) {
         //
@@ -265,6 +315,10 @@ class _MyHomePageState extends State<MyHomePage> {
           case ActionType.none:
             {
               return false;
+            }
+          case ActionType.renameSubmit:
+            {
+              return _handleRenameSubmit(detailActionData);
             }
           case ActionType.editSubmit:
             {
@@ -301,13 +355,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       icon: const Icon(Icons.close_outlined),
                       tooltip: 'Exit application',
                       onPressed: () async {
-                        if (_dataWasUpdated) {
-                          await _showModalDialog(context, ["Data has been updated", "Press OK to SAVE then Exit", "Press CANCEL remain in the App"], true);
-                          if (_okCancelDialogResult == "OK") {
-                            _saveDataState(_password);
-                            closer(0);
-                          }
-                        } else {
+                        final close = await _shouldExitHandler();
+                        if (close) {
                           closer(0);
                         }
                       },
@@ -344,7 +393,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           autofocus: true,
                           onSubmitted: (value) {
                             if (_isPasswordInput) {
-                              _handlePasswordFieldState(value);
+                              _loadDataState(value);
                             } else {
                               _setSearchExpressionState(value);
                             }
@@ -361,7 +410,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       icon: const Icon(iconDataFileLoad),
                       tooltip: 'Load Data',
                       onPressed: () {
-                        _handlePasswordFieldState(textEditingController.text);
+                        _loadDataState(textEditingController.text);
                       },
                     ),
                     DetailIconButton(
@@ -413,8 +462,22 @@ class _MyHomePageState extends State<MyHomePage> {
             Container(
               color: _configData.getMaterialColor().shade400,
               child: SizedBox(
-                height: MediaQuery.of(context).size.height - appBarHeight,
+                height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight),
                 child: displayData.splitView,
+              ),
+            ),
+            Container(
+              color: _globalSuccessState.isSuccess ? _configData.getMaterialColor().shade500 : Colors.red.shade500,
+              child: SizedBox(
+                height: statusBarHeight,
+                child: Row(
+                  children: [
+                    Text(
+                      _globalSuccessState.isSuccess ? "State: ${_globalSuccessState.state}" : "Error: ${_globalSuccessState.state}",
+                      style: statusTextStyle,
+                    )
+                  ],
+                ),
               ),
             ),
           ]),
@@ -471,7 +534,15 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
   );
 }
 
-Future<void> _showModalDialog(final BuildContext context, final List<String> texts, bool hasCancel) async {
+Future<void> _showModalDialogSuccessState(final BuildContext context, SuccessState successState) async {
+  if (_applicationState.isDesktop() && successState.hasException) {
+    _showModalDialog(context, [successState.state, successState.exception.toString()], ['OK']);
+  } else {
+    _showModalDialog(context, [successState.state], ['OK']);
+  }
+}
+
+Future<void> _showModalDialog(final BuildContext context, final List<String> texts, final List<String> buttons) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -488,22 +559,19 @@ Future<void> _showModalDialog(final BuildContext context, final List<String> tex
           ),
         ),
         actions: <Widget>[
-          TextButton(
-            child: const Text('OK', style: dialogButtonStyle),
-            onPressed: () {
-              _okCancelDialogResult = "OK";
-              Navigator.of(context).pop();
-            },
-          ),
-          hasCancel
-              ? TextButton(
-                  child: const Text('CANCEL', style: dialogButtonStyle),
+          Row(
+            children: [
+              for (int i = 0; i < buttons.length; i++) ...[
+                DetailButton(
+                  text: buttons[i],
                   onPressed: () {
-                    _okCancelDialogResult = "CANCEL";
+                    _okCancelDialogResult = buttons[i].toUpperCase();
                     Navigator.of(context).pop();
                   },
-                )
-              : const SizedBox(width: 0),
+                ),
+              ]
+            ],
+          ),
         ],
       );
     },
