@@ -191,7 +191,7 @@ class ConfigData {
 
   ConfigData(this._fileName) {
     final s = DataLoad.loadFromFile(_fileName);
-    final json = DataLoad.jsonFromString(s.data);
+    final json = DataLoad.jsonFromString(s.value);
     _getDataFileUrl = DataLoad.stringFromJson(json, Path.fromList(["file", "getDataUrl"]));
     _dataFileName = DataLoad.stringFromJson(json, Path.fromList(["file", "datafile"]));
     _dataFilePath = DataLoad.stringFromJson(json, Path.fromList(["file", "datafilePath"]));

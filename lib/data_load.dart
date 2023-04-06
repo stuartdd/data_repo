@@ -20,11 +20,11 @@ class JsonException implements Exception {
 }
 
 class SuccessState {
-  final bool isSuccess;
-  final String state;
-  final String data;
+  final String message;
+  final String value;
+  final bool _isSuccess;
   late final Exception? _exception;
-  SuccessState(this.isSuccess, {this.state = "OK", this.data = "", Exception? exception}) {
+  SuccessState(this._isSuccess, {this.message = "", this.value = "", Exception? exception}) {
     _exception = exception;
   }
 
@@ -32,24 +32,54 @@ class SuccessState {
     return (_exception != null);
   }
 
+  bool get isSuccess {
+    if (hasException) {
+      return false;
+    }
+    return _isSuccess;
+  }
+
+  bool get isFail{
+    if (hasException) {
+      return true;
+    }
+    return !_isSuccess;
+  }
+
+  String get status {
+    if (hasException) {
+      return "Exception:";
+    }
+    if (isSuccess) {
+      return "OK:";
+    }
+    return "Error:";
+  }
+
   Exception? get exception {
     return _exception;
+  }
+
+  @override
+  String toString() {
+    return '$status $message';
   }
 
   bool isDifferentFrom(SuccessState other) {
     if (isSuccess != other.isSuccess) {
       return true;
     }
-    if (state != other.state) {
+    if (value != other.value) {
+      return true;
+    }
+    if (message != other.message) {
       return true;
     }
     return false;
   }
 }
 
-
 class DataLoad {
-
   static Future<String> fromHttpGet(String url) async {
     final uri = Uri.parse(url);
     final response = await http.get(uri).timeout(
@@ -83,23 +113,28 @@ class DataLoad {
     });
   }
 
-  static SuccessState saveToFile(String fileName, Map<String, dynamic> contents) {
+  static SuccessState saveToFile(final String fileName, final Map<String, dynamic> contents) {
     try {
-      File(fileName).writeAsStringSync(jsonEncode(contents));
-      return SuccessState(true, state: "Data Saved OK");
+      JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+      File(fileName).writeAsStringSync(encoder.convert(contents));
+      return SuccessState(true, message: "Data Saved OK");
     } catch (e, s) {
       stderr.write("DataLoad:saveToFile: $e\n$s");
-      return SuccessState(false, state: e.toString(), exception: e as Exception);
+      return SuccessState(false, message: e.toString(), exception: e as Exception);
     }
+  }
+
+  static mapToString(final Map<String, dynamic> contents) {
+    return jsonEncode(contents);
   }
 
   static SuccessState loadFromFile(String fileName) {
     try {
       final contents = File(fileName).readAsStringSync();
-      return SuccessState(true, data: contents, state: "Data loaded OK");
+      return SuccessState(true, value: contents, message: "Data loaded OK");
     } catch (e, s) {
       stderr.write("DataLoad:loadFromFile: $e\n$s");
-      return SuccessState(false, state: "Failed to load Data file", data: "", exception: e as Exception);
+      return SuccessState(false, message: "Failed to load Data file", value: "", exception: e as Exception);
     }
   }
 
@@ -110,7 +145,7 @@ class DataLoad {
 
   static Map<String, dynamic> jsonLoadFromFile(String fileName) {
     final json = DataLoad.loadFromFile(fileName);
-    return jsonFromString(json.data);
+    return jsonFromString(json.value);
   }
 
   static dynamic _nodeFromJson(Map<String, dynamic> json, Path path, String type) {
@@ -203,7 +238,6 @@ class DataLoad {
     }
     return f;
   }
-
 
   static List<dynamic> listFromJson(Map<String, dynamic> json, Path path) {
     final node = _nodeFromJson(json, path, "List");

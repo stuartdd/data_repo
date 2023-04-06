@@ -25,8 +25,6 @@ class DisplayData {
   }
 }
 
-
-
 /// Creates both Left and Right panes.
 DisplayData createSplitView(
     final Map<String, dynamic> originalData, // The original data from the file
@@ -76,7 +74,7 @@ DisplayData createSplitView(
   final Container detailContainer;
   final node = DataLoad.findLastMapNodeForPath(originalData, selectedNode);
   if (node != null) {
-      detailContainer = _createDetailContainer(node, selectedNode, hiLightedPath, materialColor, onDataAction);
+    detailContainer = _createDetailContainer(node, selectedNode, hiLightedPath, materialColor, onDataAction);
   } else {
     detailContainer = Container(
       color: Colors.red,
@@ -96,7 +94,7 @@ DisplayData createSplitView(
       viewMode: splitViewMode,
       isActive: true,
     ),
-    children: [SingleChildScrollView(child:treeView), SingleChildScrollView(child:detailContainer)],
+    children: [SingleChildScrollView(child: treeView), SingleChildScrollView(child: detailContainer)],
   );
   return DisplayData(splitView, treeViewController);
 }
@@ -106,11 +104,11 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
   List<DataValueDisplayRow> lv = List.empty(growable: true);
   for (var element in json.entries) {
     if (element.value is Map) {
-      lm.add(DataValueDisplayRow(element.key, "", path, element.value.runtimeType.toString(), false, (element.value as Map).length));
+      lm.add(DataValueDisplayRow(element.key, "", "Name", false, path, (element.value as Map).length));
     } else if (element.value is List) {
-      lm.add(DataValueDisplayRow(element.key, "", path, element.value.runtimeType.toString(), false, (element.value as List).length));
+      lm.add(DataValueDisplayRow(element.key, "", "Name", false, path, (element.value as List).length));
     } else {
-      lv.add(DataValueDisplayRow(element.key, element.value.toString(), path, element.value.runtimeType.toString(), true, 0));
+      lv.add(DataValueDisplayRow(element.key, element.value.toString(), element.value.runtimeType.toString(), true, path, 0));
     }
   }
   lm.addAll(lv);
@@ -119,9 +117,11 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
 
 Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, PathList hiLightedPaths, final MaterialColor materialColor, final bool Function(DetailAction) dataAction) {
   List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath);
-  properties.sort((a, b) {
-    return a.name.compareTo(b.name);
-  },);
+  properties.sort(
+    (a, b) {
+      return a.name.compareTo(b.name);
+    },
+  );
   return Container(
     color: materialColor.shade500,
     child: Scrollbar(
@@ -144,7 +144,7 @@ Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path s
   );
 }
 
-TreeViewController _buildTreeViewController(Map<String, dynamic> data, final Path selectedNode, final String filter, final String expand, final Function(int) onSearchComplete) {
+TreeViewController _buildTreeViewController(final Map<String, dynamic> data, final Path selectedNode, final String filter, final String expand, final Function(int) onSearchComplete) {
   if (data.isEmpty) {
     return TreeViewController(
       children: [const Node(key: 'root', label: 'Empty Tree')],
@@ -180,7 +180,6 @@ TreeViewController _buildTreeViewController(Map<String, dynamic> data, final Pat
   );
 }
 
-
 List<Node<dynamic>> _mapToNodeList(final Map<String, dynamic> data, final Path path, final Map<String, dynamic> filterList, final String expand, final String filter) {
   final List<Node<dynamic>> l = List.empty(growable: true);
   final expandLC = expand.toLowerCase();
@@ -194,6 +193,7 @@ List<Node<dynamic>> _mapToNodeList(final Map<String, dynamic> data, final Path p
         } else {
           exp = true;
         }
+        debugPrint("AA:_mapToNodeList:$path");
         l.add(Node(key: path.toString(), label: " $k", expanded: exp, children: _mapToNodeList(v, path, filterList, expand, filter)));
       }
       path.pop();
@@ -226,7 +226,7 @@ TreeViewTheme buildTreeViewTheme(final MaterialColor materialColor) {
       position: ExpanderPosition.start,
       size: 20,
     ),
-    labelStyle:  const TextStyle(
+    labelStyle: const TextStyle(
       fontSize: 20,
       letterSpacing: 0.3,
     ),

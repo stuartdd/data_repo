@@ -53,6 +53,14 @@ class Path {
     return Path(l);
   }
 
+  Path parentPath() {
+    final List<String> l = List.empty(growable: true);
+    for (int i = 0; i<count-1; i++) {
+      l.add(pathList[i]);
+    }
+    return Path(l);
+  }
+
   factory  Path.empty() {
     return Path([]);
   }

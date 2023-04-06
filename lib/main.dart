@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:data_repo/data_load.dart';
 import 'package:flutter/material.dart';
 import 'package:window_size/window_size.dart';
@@ -15,18 +14,18 @@ import 'detail_buttons.dart';
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
 
-
 String _okCancelDialogResult = "";
 bool _inExitProcess = false;
 final PathList _hiLightedPaths = PathList();
 final TextEditingController textEditingController = TextEditingController(text: "");
 
 const appBarHeight = 50.0;
-const statusBarHeight = 30.0;
+const statusBarHeight = 35.0;
 const iconDataFileLoad = Icons.file_open;
 const dialogTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.black);
 const dialogButtonStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.blue);
 const statusTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.black);
+const inputTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 30.0, color: Colors.black);
 
 void closer(int returnCode) async {
   exit(returnCode);
@@ -135,123 +134,186 @@ class _MyHomePageState extends State<MyHomePage> {
   SuccessState _globalSuccessState = SuccessState(true);
   Map<String, dynamic> _loadedData = {};
 
-  SuccessState _setSuccessState(SuccessState newState) {
-    if (_globalSuccessState.isDifferentFrom(newState)) {
-      setState(() {
-        _globalSuccessState = newState;
-      });
-      return newState;
-    }
-    return _globalSuccessState;
-  }
-
   void _setSearchExpressionState(String st) {
     if (st == _search) {
       return;
     }
     setState(() {
+      debugPrint("SS:_setSearchExpressionState");
       textEditingController.text = st;
       _search = st;
     });
   }
 
   void _saveDataState(String pw) {
-    _setSuccessState(DataLoad.saveToFile(_configData.getDataFileLocal(), _loadedData));
-    if (_globalSuccessState.isSuccess) {
-      setState(() {
+    setState(() {
+      debugPrint("SS:_saveDataState");
+      final ss = DataLoad.saveToFile(_configData.getDataFileLocal(), _loadedData);
+      if (ss.isSuccess) {
         _dataWasUpdated = false;
         _hiLightedPaths.clean();
-      });
-    }
+      }
+      _globalSuccessState = ss;
+    });
   }
 
   void _loadDataState(String pw) {
-    _setSuccessState(DataLoad.loadFromFile(_configData.getDataFileLocal()));
-    if (!_globalSuccessState.isSuccess) {
-      _showModalDialogSuccessState(context, _globalSuccessState);
-      return;
-    }
-    Map<String, dynamic> data;
     if (pw == "") {
-      try {
-        // Decrypt here in  a try catch, then do json parse in nester try catch
-        data = DataLoad.jsonFromString(_globalSuccessState.data);
-      } catch (r) {
-        _showModalDialogSuccessState(context, _setSuccessState(SuccessState(false, state: "Data file could not be parsed", exception: r as Exception)));
-        return;
-      }
-      if (data.isEmpty) {
-        _showModalDialogSuccessState(context, _setSuccessState(SuccessState(false, state: "Data file does not contain any data")));
-        return;
-      }
-      if (data[_configData.getUserId()] == null) {
-        _showModalDialogSuccessState(context, _setSuccessState(SuccessState(false, state: "Data file does not contain the users data")));
-        return;
-       }
       setState(() {
-        _password = pw;
-        _dataWasUpdated = false;
-        _isPasswordInput = false;
-        _loadedData = data;
-        _selected = Path.fromDotPath(_loadedData.keys.first);
-        _hiLightedPaths.clean();
+        debugPrint("SS:_loadDataState 1");
+        _globalSuccessState = SuccessState(false, message: "Password was not provided");
       });
       return;
     }
-    _showModalDialogSuccessState(context, _setSuccessState(SuccessState(false, state: "Password was not provided")));
+    final ss = DataLoad.loadFromFile(_configData.getDataFileLocal());
+    if (ss.isFail) {
+      setState(() {
+        debugPrint("SS:_loadDataState 2");
+        _globalSuccessState = ss;
+      });
+      return;
+    }
+    Map<String, dynamic> data;
+    try {
+      data = DataLoad.jsonFromString(ss.value);
+    } catch (r) {
+      setState(() {
+        debugPrint("SS:_loadDataState 2");
+        _globalSuccessState = SuccessState(false, message: "Data file could not be parsed", exception: r as Exception);
+      });
+      return;
+    }
+    setState(() {
+      debugPrint("SS:_loadDataState 4");
+      if (data.isEmpty) {
+        _globalSuccessState = SuccessState(false, message: "Data file does not contain any data");
+        return;
+      }
+      if (data[_configData.getUserId()] == null) {
+        _globalSuccessState = SuccessState(false, message: "Data file does not contain the users data");
+        return;
+      }
+      _password = pw;
+      _dataWasUpdated = false;
+      _isPasswordInput = false;
+      _loadedData = data;
+      _selected = Path.fromDotPath(_loadedData.keys.first);
+      _hiLightedPaths.clean();
+    });
+  }
+
+  void _handleAddSubmitState(DetailAction detailActionData, String newValue) {
+    setState(() {
+      debugPrint("SS:_handleAddSubmitState");
+      if (newValue.length < 2) {
+        _globalSuccessState = SuccessState(false, message: "Name is too short");
+        return;
+      }
+      final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
+      if (mapNode == null) {
+        _globalSuccessState = SuccessState(false, message: "Path not found");
+        return;
+      }
+      if (mapNode[newValue] != null) {
+        _globalSuccessState = SuccessState(false, message: "Name already exists");
+        return;
+      }
+      _dataWasUpdated = true;
+      if (detailActionData.value) {
+        debugPrint("SS:_handleAddSubmitState:value");
+        mapNode[newValue] = "";
+      } else {
+        debugPrint("SS:_handleAddSubmitState:group");
+        mapNode[newValue] = {};
+      }
+      _hiLightedPaths.add(detailActionData.path);
+      _globalSuccessState = SuccessState(true, message: "Item updated");
+    });
   }
 
   void _handleTreeSelect(String dotPath) {
     final path = Path.fromDotPath(dotPath);
     setState(() {
+      debugPrint("SS:_handleTreeSelect");
       if (path.isNotEmpty()) {
         _expand = path.getRoot();
       }
       _selected = path;
-      print("Selected:$_selected)");
     });
   }
 
-  bool _handleRenameSubmit(DetailAction detailActionData) {
-    if (detailActionData.isValueDifferent()) {
-      final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
-      if (mapNode == null) {
-        _showModalDialog(context, ["Path was not found", detailActionData.path.toString()], ["OK"]);
-        return false;
-      }
+  void _handleRenameSubmit(DetailAction detailActionData, String newName) {
+    if (detailActionData.oldValue != newName) {
       setState(() {
-        var v = mapNode[detailActionData.v1];
-        mapNode.remove(detailActionData.v1);
-        mapNode[detailActionData.v2] = v;
-        _dataWasUpdated = true;
-        detailActionData.path.pop();
-        detailActionData.path.push(detailActionData.v2);
-        _hiLightedPaths.add(detailActionData.path);
+        debugPrint("SS:_handleRenameSubmit");
+        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
+        if (mapNode == null) {
+          _globalSuccessState = SuccessState(false, message: "Path not found");
+        }
+        if (detailActionData.value) {
+          if (mapNode![newName] != null) {
+            _globalSuccessState = SuccessState(false, message: "Value already exists");
+          }
+          final renameNode = mapNode[detailActionData.oldValue];
+          if (renameNode == null) {
+            _globalSuccessState = SuccessState(false, message: "Value not found");
+          }
+          mapNode.remove(detailActionData.oldValue);
+          mapNode[newName] = renameNode;
+          _dataWasUpdated = true;
+          detailActionData.path.pop();
+          detailActionData.path.push(newName);
+          _hiLightedPaths.add(detailActionData.path);
+        } else {
+          if (newName.length <= 2) {
+            _globalSuccessState = SuccessState(false, message: "New value is too short");
+          }
+          final pp = detailActionData.path.parentPath();
+          final parentNode = DataLoad.findLastMapNodeForPath(_loadedData, pp);
+          if (parentNode == null) {
+            _globalSuccessState = SuccessState(false, message: "Parent not found");
+          }
+          if (parentNode![newName] != null) {
+            _globalSuccessState = SuccessState(false, message: "Value already exists");
+          }
+          parentNode.remove(detailActionData.oldValue);
+          parentNode[newName] = mapNode;
+          _dataWasUpdated = true;
+          detailActionData.path.pop();
+          detailActionData.path.push(newName);
+          _hiLightedPaths.add(detailActionData.path);
+          _globalSuccessState = SuccessState(true, message: "Item renamed");
+        }
       });
     }
-    return true;
   }
 
-  bool _handleEditSubmit(DetailAction detailActionData) {
-    if (detailActionData.isValueDifferent()) {
-      final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
-      if (mapNode == null) {
-        _showModalDialog(context, ["Path was not found", detailActionData.path.toString()], ["OK"]);
-        return false;
-      }
-      final key = detailActionData.getLastPathElement();
-      if (key == "") {
-        _showModalDialog(context, ["Last element of Path was not found", detailActionData.path.toString()], ["OK"]);
-        return false;
-      }
+  void _handleEditSubmit(DetailAction detailActionData, String newValue, String type) {
+    if (detailActionData.oldValue != newValue) {
       setState(() {
+        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
+        if (mapNode == null) {
+          _globalSuccessState = SuccessState(false, message: "Path not found");
+        }
+        final key = detailActionData.getLastPathElement();
+        if (key == "") {
+          _globalSuccessState = SuccessState(false, message: "Last element of Path was not found");
+        }
+        debugPrint("SS:_handleEditSubmit (${detailActionData.oldValueType})");
         _dataWasUpdated = true;
-        mapNode[key] = detailActionData.v2;
+        if (type == "double") {
+          mapNode![key] = double.parse(newValue);
+        } else {
+          if (type == "int") {
+            mapNode![key] = int.parse(newValue);
+          } else {
+            mapNode![key] = newValue;
+          }
+        }
         _hiLightedPaths.add(detailActionData.path);
+        _globalSuccessState = SuccessState(true, message: "Item updated");
       });
-      return true;
     }
-    return true;
   }
 
   Future<bool> _shouldExitHandler() async {
@@ -267,7 +329,9 @@ class _MyHomePageState extends State<MyHomePage> {
           return _globalSuccessState.isSuccess;
         }
         if (_okCancelDialogResult == "CANCEL") {
-          _setSuccessState(SuccessState(true, state: "Exit Cancelled"));
+          setState(() {
+            _globalSuccessState = SuccessState(true, message: "Exit Cancelled");
+          });
           return false;
         }
       }
@@ -282,6 +346,7 @@ class _MyHomePageState extends State<MyHomePage> {
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
       return await _shouldExitHandler();
     });
+    debugPrint("BB:build");
 
     final DisplayData displayData = createSplitView(
       _loadedData,
@@ -316,13 +381,83 @@ class _MyHomePageState extends State<MyHomePage> {
             {
               return false;
             }
-          case ActionType.renameSubmit:
+          case ActionType.select:
             {
-              return _handleRenameSubmit(detailActionData);
+              setState(() {
+                _selected = detailActionData.path;
+              });
+              return true;
             }
-          case ActionType.editSubmit:
+          case ActionType.addStart:
             {
-              return _handleEditSubmit(detailActionData);
+              final title = detailActionData.value ? "Value" : "Group";
+              _showModalInputDialog(
+                context,
+                'Add new $title to "${detailActionData.getLastPathElement()}"',
+                "",
+                "Name",
+                (action, text, type) {
+                  if (action == "OK") {
+                    _handleAddSubmitState(detailActionData, text);
+                  }
+                },
+                (value, type, typeName) {
+                  // Validate
+                  return "";
+                },
+              );
+              return true;
+            }
+          case ActionType.renameStart:
+            {
+              final title = detailActionData.value ? "Value" : "Group";
+              _showModalInputDialog(
+                context,
+                "Re-Name $title '${detailActionData.getLastPathElement()}'",
+                detailActionData.oldValue,
+                detailActionData.oldValueType,
+                (action, text, type) {
+                  if (action == "OK") {
+                    _handleRenameSubmit(detailActionData, text);
+                  }
+                },
+                (value, type, typeName) {
+                  // Validate
+                  return "";
+                },
+              );
+              return true;
+            }
+          case ActionType.editStart:
+            {
+              _showModalInputDialog(
+                context,
+                "Update Value '${detailActionData.getLastPathElement()}'",
+                detailActionData.oldValue,
+                detailActionData.oldValueType,
+                (action, text, type) {
+                  if (action == "OK") {
+                    _handleEditSubmit(detailActionData, text, type);
+                  }
+                },
+                (value, type, typeName) {
+                  if (type == "double") {
+                    try {
+                      if (type == "double") {
+                        double.parse(value);
+                      } else {
+                        if (type == "int") {
+                          int.parse(value);
+                        }
+                      }
+                     } catch (e) {
+                      return "That is not $typeName";
+                    }
+                  }
+                  return "";
+                },
+              );
+              return true;
             }
           default:
             {
@@ -338,7 +473,6 @@ class _MyHomePageState extends State<MyHomePage> {
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
-
     return Scaffold(
       body: Column(
           // Center is a layout widget. It takes a single child and positions it
@@ -410,7 +544,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       icon: const Icon(iconDataFileLoad),
                       tooltip: 'Load Data',
                       onPressed: () {
-                        _loadDataState(textEditingController.text);
+                        _loadDataState("to-do ${textEditingController.text}");
                       },
                     ),
                     DetailIconButton(
@@ -473,7 +607,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Row(
                   children: [
                     Text(
-                      _globalSuccessState.isSuccess ? "State: ${_globalSuccessState.state}" : "Error: ${_globalSuccessState.state}",
+                      _globalSuccessState.toString(),
                       style: statusTextStyle,
                     )
                   ],
@@ -536,9 +670,9 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
 
 Future<void> _showModalDialogSuccessState(final BuildContext context, SuccessState successState) async {
   if (_applicationState.isDesktop() && successState.hasException) {
-    _showModalDialog(context, [successState.state, successState.exception.toString()], ['OK']);
+    _showModalDialog(context, [successState.status, successState.toString()], ['OK']);
   } else {
-    _showModalDialog(context, [successState.state], ['OK']);
+    _showModalDialog(context, [successState.status], ['OK']);
   }
 }
 
@@ -573,6 +707,40 @@ Future<void> _showModalDialog(final BuildContext context, final List<String> tex
             ],
           ),
         ],
+      );
+    },
+  );
+}
+
+Future<void> _showModalInputDialog(final BuildContext context, final String title, final String value, final String type, final void Function(String, String, String) onAction, final String Function(String, String, String) validate) async {
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: _configData.getMaterialColor().shade300,
+        title: Text(title, style: inputTextStyle),
+        content: SingleChildScrollView(
+          child: ListBody(
+            children: [
+              ValidatedInputField(
+                prompt: "Input \$",
+                initialValue: value,
+                onClose: (action, text, type) {
+                  onAction(action, text, type);
+                  Navigator.of(context).pop();
+                },
+                validate: (v, t, tn) {
+                  if (v == value) {
+                    return "";
+                  }
+                  return validate(v, t, tn);
+                },
+                inputType: type,
+              ),
+            ],
+          ),
+        ),
       );
     },
   );
