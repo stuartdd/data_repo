@@ -5,6 +5,7 @@ const _buttonBorderStyle = BorderSide(color: Colors.black, width: 2);
 const _buttonBorderStyleGrey = BorderSide(color: Colors.grey, width: 2);
 const _styleSmall = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.black);
 const _styleSmallDisabled = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.grey);
+const _inputTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 30.0, color: Colors.black);
 
 class DetailIconButton extends StatefulWidget {
   final bool show;
@@ -25,6 +26,7 @@ class _DetailIconButton extends State<DetailIconButton> {
   Widget build(BuildContext context) {
     if (widget.show) {
       return IconButton(
+        padding: const EdgeInsets.fromLTRB(1, 12, 1, 0),
         color: grey ? widget.materialColor.shade900 : widget.materialColor.shade900,
         icon: widget.icon,
         tooltip: widget.tooltip,
@@ -74,15 +76,13 @@ class _DetailButtonState extends State<DetailButton> {
               if (grey) {
                 return;
               }
+              widget.onPressed();
               setState(() {
                 grey = true;
               });
-              Timer(const Duration(milliseconds: 5), () {
-                widget.onPressed();
-                Timer(Duration(milliseconds: 15 + widget.timerMs), () {
-                  setState(() {
-                    grey = false;
-                  });
+              Timer(Duration(milliseconds: 15 + widget.timerMs), () {
+                setState(() {
+                  grey = false;
                 });
               });
             },
@@ -95,5 +95,197 @@ class _DetailButtonState extends State<DetailButton> {
     } else {
       return const SizedBox(width: 0);
     }
+  }
+}
+
+const inputTypeNames = {double: "a 'decimal number'", int: "an 'integer number'", bool: "'true' or 'false'", String: "String"};
+
+class _OptionPair {
+  final String display;
+  final Type optionType;
+  _OptionPair(
+    this.optionType,
+    this.display,
+  );
+}
+
+class OptionList extends StatefulWidget {
+  final List<_OptionPair> _optionList = List.empty(growable: true);
+  final void Function(Type, String) onSelect;
+  late final Type _initialSelect;
+
+  OptionList({super.key, required final Map<Type, String> options, required final Type selectedOption, required this.onSelect}) {
+    if (options.isEmpty) {
+      _initialSelect = String;
+    } else {
+      bool notFound = true;
+      options.forEach((typ, disp) {
+        _optionList.add(_OptionPair(typ, disp));
+        if (typ == selectedOption) {
+          notFound = false;
+          _initialSelect = typ;
+        }
+      });
+      if (notFound) {
+        _initialSelect = _optionList[0].optionType;
+      }
+    }
+  }
+
+  @override
+  State<OptionList> createState() => _OptionListState();
+}
+
+class _OptionListState extends State<OptionList> {
+  String _select = "";
+
+  @override
+  initState() {
+    super.initState();
+    _select = widget._initialSelect.toString();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget._optionList.isEmpty) {
+      return const SizedBox(
+        height: 0,
+        width: 0,
+      );
+    }
+    return Column(
+      children: <Widget>[
+        for (int i = 0; i < widget._optionList.length; i++) ...[
+          RadioListTile<String>(
+            title: Text(
+              widget._optionList[i].display,
+              style: _styleSmall,
+            ),
+            value: widget._optionList[i].optionType.toString(),
+            groupValue: _select,
+            onChanged: (String? value) {
+              setState(() {
+                if (value != null) {
+                  _select = value;
+                  widget.onSelect(widget._optionList[i].optionType, widget._optionList[i].display);
+                }
+              });
+            },
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class ValidatedInputField extends StatefulWidget {
+  ValidatedInputField({super.key, required this.initialValue, required this.onClose, required this.validate, required this.initialType, required this.prompt, required this.options, required this.currentOptionType});
+  final String initialValue;
+  final Type initialType;
+  final String prompt;
+  final Map<Type, String> options;
+  final Type currentOptionType;
+  final void Function(String, String, Type) onClose;
+  final String Function(String, String, Type, String) validate;
+  final controller = TextEditingController();
+
+  @override
+  State<ValidatedInputField> createState() => _ValidatedInputFieldState();
+}
+
+class _ValidatedInputFieldState extends State<ValidatedInputField> {
+  String help = "";
+  String initial = "";
+  String current = "";
+  Type inputType = String;
+  String inputTypeName = "";
+  bool currentIsValid = false;
+  bool showOkButton = false;
+
+  @override
+  initState() {
+    super.initState();
+    initial = widget.initialValue.trim();
+    current = widget.initialValue.trim();
+    inputType = widget.initialType;
+    inputTypeName = inputTypeNames[inputType]!;
+    widget.controller.text = current;
+    help = widget.validate(current, initial, inputType, inputTypeName);
+    currentIsValid = help.isEmpty;
+  }
+
+  void _validate() {
+    setState(() {
+      help = widget.validate(current, initial, inputType, inputTypeName);
+      currentIsValid = help.isEmpty;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        OptionList(
+            options: widget.options,
+            selectedOption: widget.currentOptionType,
+            onSelect: (selType, typeName) {
+              inputType = selType;
+              inputTypeName = typeName;
+              showOkButton = (inputType != widget.initialType);
+              _validate();
+            }),
+        Container(
+          alignment: Alignment.centerLeft,
+          child: Text(widget.prompt.replaceAll("\$", inputTypeName), style: _inputTextStyle),
+        ),
+        (help.isEmpty)
+            ? const SizedBox(
+                height: 0,
+              )
+            : Column(children: [
+                Container(
+                  alignment: Alignment.centerLeft,
+                  color: Colors.brown,
+                  child: Text(
+                    " $help ",
+                    style: _inputTextStyle,
+                  ),
+                ),
+                const SizedBox(
+                  height: 10,
+                )
+              ]),
+        TextField(
+          controller: widget.controller,
+          style: _inputTextStyle,
+          onChanged: (value) {
+            current = value;
+            showOkButton = (current != widget.initialValue);
+            _validate();
+          },
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+          ),
+        ),
+        Row(
+          children: [
+            DetailButton(
+              show: currentIsValid && showOkButton,
+              text: 'OK',
+              onPressed: () {
+                widget.onClose("OK", widget.controller.text.trim(), inputType);
+              },
+            ),
+            DetailButton(
+              text: 'Cancel',
+              onPressed: () {
+                widget.onClose("Cancel", widget.controller.text.trim(), inputType);
+              },
+            )
+          ],
+        ),
+      ],
+    );
   }
 }

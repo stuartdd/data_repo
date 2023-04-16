@@ -32,6 +32,7 @@ DisplayData createSplitView(
     final String filter, // The search text
     final String expand,
     final Path selectedNode, // The first node in the root
+    final bool isEditDataDisplay,
     final bool horizontal, // Display horizontal or vertical split pane
     double initPos, // The split pane divider position
     MaterialColor materialColor, // The colour scheme
@@ -74,7 +75,7 @@ DisplayData createSplitView(
   final Container detailContainer;
   final node = DataLoad.findLastMapNodeForPath(originalData, selectedNode);
   if (node != null) {
-    detailContainer = _createDetailContainer(node, selectedNode, hiLightedPath, materialColor, onDataAction);
+    detailContainer = _createDetailContainer(node, selectedNode, isEditDataDisplay, hiLightedPath, materialColor, onDataAction);
   } else {
     detailContainer = Container(
       color: Colors.red,
@@ -104,18 +105,18 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
   List<DataValueDisplayRow> lv = List.empty(growable: true);
   for (var element in json.entries) {
     if (element.value is Map) {
-      lm.add(DataValueDisplayRow(element.key, "", "Name", false, path, (element.value as Map).length));
+      lm.add(DataValueDisplayRow(element.key, "", String, false, path, (element.value as Map).length));
     } else if (element.value is List) {
-      lm.add(DataValueDisplayRow(element.key, "", "Name", false, path, (element.value as List).length));
+      lm.add(DataValueDisplayRow(element.key, "", String, false, path, (element.value as List).length));
     } else {
-      lv.add(DataValueDisplayRow(element.key, element.value.toString(), element.value.runtimeType.toString(), true, path, 0));
+      lv.add(DataValueDisplayRow(element.key, element.value.toString(), element.value.runtimeType, true, path, 0));
     }
   }
   lm.addAll(lv);
   return lm;
 }
 
-Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, PathList hiLightedPaths, final MaterialColor materialColor, final bool Function(DetailAction) dataAction) {
+Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final bool isEditDataDisplay, PathList hiLightedPaths, final MaterialColor materialColor, final bool Function(DetailAction) dataAction) {
   List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath);
   properties.sort(
     (a, b) {
@@ -137,6 +138,7 @@ Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path s
               hiMaterialColor: Colors.teal,
               hiLightedPaths: hiLightedPaths,
               dataAction: dataAction,
+              isEditDataDisplay: isEditDataDisplay,
             )
         ],
       ),

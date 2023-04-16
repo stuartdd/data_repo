@@ -25,6 +25,7 @@ const iconDataFileLoad = Icons.file_open;
 const dialogTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.black);
 const dialogButtonStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.blue);
 const statusTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.black);
+const headingTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.black);
 const inputTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 30.0, color: Colors.black);
 
 void closer(int returnCode) async {
@@ -131,6 +132,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Path _selected = Path.empty();
   bool _isPasswordInput = true;
   bool _dataWasUpdated = false;
+  bool _isEditDataDisplay = true;
   SuccessState _globalSuccessState = SuccessState(true);
   Map<String, dynamic> _loadedData = {};
 
@@ -288,9 +290,32 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _handleEditSubmit(DetailAction detailActionData, String newValue, String type) {
-    if (detailActionData.oldValue != newValue) {
+  void _handleAdd(Path path, String value, String response) async {}
+
+  void _handleDelete(Path path, String value, String response) async {
+    if (response == "OK") {
       setState(() {
+        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, path);
+        if (mapNode == null) {
+          _globalSuccessState = SuccessState(false, message: "Path not found");
+        } else {
+          final pp = path.parentPath();
+          final parentNode = DataLoad.findLastMapNodeForPath(_loadedData, pp);
+          if (parentNode == null) {
+            _globalSuccessState = SuccessState(false, message: "Parent not found");
+          }
+          parentNode?.remove(path.getLast());
+          _dataWasUpdated = true;
+          _globalSuccessState = SuccessState(true, message: "Removed: '${path.getLast()}'");
+        }
+      });
+    }
+  }
+
+  void _handleEditSubmit(DetailAction detailActionData, String newValue, Type type) {
+    if (detailActionData.oldValue != newValue || detailActionData.oldValueType != type) {
+      setState(() {
+        debugPrint("SS:_handleEditSubmit (${detailActionData.oldValueType})");
         final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
         if (mapNode == null) {
           _globalSuccessState = SuccessState(false, message: "Path not found");
@@ -301,13 +326,25 @@ class _MyHomePageState extends State<MyHomePage> {
         }
         debugPrint("SS:_handleEditSubmit (${detailActionData.oldValueType})");
         _dataWasUpdated = true;
-        if (type == "double") {
-          mapNode![key] = double.parse(newValue);
+        final nvTrim = newValue.trim();
+        if (type == bool) {
+          final lvTrimLc = nvTrim.toLowerCase();
+          mapNode![key] = (lvTrimLc == "true" || lvTrimLc == "yes" || nvTrim == "1");
         } else {
-          if (type == "int") {
-            mapNode![key] = int.parse(newValue);
+          if (type == double || type == int) {
+            try {
+              final iv = int.parse(nvTrim);
+              mapNode![key] = iv;
+            } catch (e) {
+              try {
+                final dv = double.parse(nvTrim);
+                mapNode![key] = dv;
+              } catch (e) {
+                mapNode![key] = nvTrim;
+              }
+            }
           } else {
-            mapNode![key] = newValue;
+            mapNode![key] = nvTrim;
           }
         }
         _hiLightedPaths.add(detailActionData.path);
@@ -323,7 +360,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _inExitProcess = true;
     try {
       if (_dataWasUpdated) {
-        await _showModalDialog(context, ["Data has been updated", "Press OK to SAVE before Exit", "Press CANCEL remain in the App", "Press EXIT to leave without saving"], ["OK", "CANCEL", "EXIT"]);
+        await _showModalDialog(context, ["Data has been updated", "Press OK to SAVE before Exit", "Press CANCEL remain in the App", "Press EXIT to leave without saving"], ["OK", "CANCEL", "EXIT"], null, null);
         if (_okCancelDialogResult == "OK") {
           _saveDataState(_password);
           return _globalSuccessState.isSuccess;
@@ -346,7 +383,6 @@ class _MyHomePageState extends State<MyHomePage> {
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
       return await _shouldExitHandler();
     });
-    debugPrint("BB:build");
 
     final DisplayData displayData = createSplitView(
       _loadedData,
@@ -354,6 +390,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _search,
       _expand,
       _selected,
+      _isEditDataDisplay,
       _applicationState.isDesktop(),
       _applicationState.screen.hDiv,
       _configData.getMaterialColor(),
@@ -381,6 +418,11 @@ class _MyHomePageState extends State<MyHomePage> {
             {
               return false;
             }
+          case ActionType.delete:
+            {
+              _showModalDialog(context, ["Remove ${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDelete);
+              return true;
+            }
           case ActionType.select:
             {
               setState(() {
@@ -388,32 +430,13 @@ class _MyHomePageState extends State<MyHomePage> {
               });
               return true;
             }
-          case ActionType.addStart:
-            {
-              final title = detailActionData.value ? "Value" : "Group";
-              _showModalInputDialog(
-                context,
-                'Add new $title to "${detailActionData.getLastPathElement()}"',
-                "",
-                "Name",
-                (action, text, type) {
-                  if (action == "OK") {
-                    _handleAddSubmitState(detailActionData, text);
-                  }
-                },
-                (value, type, typeName) {
-                  // Validate
-                  return "";
-                },
-              );
-              return true;
-            }
           case ActionType.renameStart:
             {
-              final title = detailActionData.value ? "Value" : "Group";
+              final title = detailActionData.valueName;
               _showModalInputDialog(
                 context,
                 "Re-Name $title '${detailActionData.getLastPathElement()}'",
+                {},
                 detailActionData.oldValue,
                 detailActionData.oldValueType,
                 (action, text, type) {
@@ -421,8 +444,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     _handleRenameSubmit(detailActionData, text);
                   }
                 },
-                (value, type, typeName) {
-                  // Validate
+                (value, initial, type, typeName) {
                   return "";
                 },
               );
@@ -433,6 +455,7 @@ class _MyHomePageState extends State<MyHomePage> {
               _showModalInputDialog(
                 context,
                 "Update Value '${detailActionData.getLastPathElement()}'",
+                {double: "A Number", bool: "Yes or No", String: "A String"},
                 detailActionData.oldValue,
                 detailActionData.oldValueType,
                 (action, text, type) {
@@ -440,20 +463,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     _handleEditSubmit(detailActionData, text, type);
                   }
                 },
-                (value, type, typeName) {
-                  if (type == "double") {
-                    try {
-                      if (type == "double") {
-                        double.parse(value);
-                      } else {
-                        if (type == "int") {
-                          int.parse(value);
-                        }
-                      }
-                     } catch (e) {
-                      return "That is not $typeName";
-                    }
-                  }
+                (value, initial, type, typeName) {
                   return "";
                 },
               );
@@ -582,12 +592,38 @@ class _MyHomePageState extends State<MyHomePage> {
                         _setSearchExpressionState("");
                       },
                     ),
+                    !_isPasswordInput
+                        ? Container(
+                            height: appBarHeight,
+                            color: _configData.getMaterialColor().shade400,
+                            padding: const EdgeInsets.fromLTRB(1, 12, 1, 1),
+                            child: const Text(
+                              " EDIT: ",
+                              style: headingTextStyle,
+                            ),
+                          )
+                        : const SizedBox(
+                            width: 0,
+                          ),
                     DetailIconButton(
                       show: !_isPasswordInput,
                       materialColor: _configData.getMaterialColor(),
-                      icon: const Icon(Icons.more_vert),
-                      tooltip: 'More...',
-                      onPressed: () {},
+                      icon: _isEditDataDisplay ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
+                      tooltip: 'Editing',
+                      onPressed: () {
+                        setState(() {
+                          _isEditDataDisplay = !_isEditDataDisplay;
+                        });
+                      },
+                    ),
+                    DetailIconButton(
+                      show: _isEditDataDisplay && !_isPasswordInput,
+                      materialColor: _configData.getMaterialColor(),
+                      icon: const Icon(Icons.add_box_outlined),
+                      tooltip: 'Add',
+                      onPressed: () {
+                        _showModalDialog(context, ["Add a Group", "OR", "Add a Value"], ["Group", "Value", "Cancel"], _selected, _handleAdd);
+                      },
                     ),
                   ],
                 ),
@@ -617,19 +653,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ]),
     );
   }
-}
-
-List<Widget> createTextWidgetFromList(List<String> inlist, Function(String) onselect) {
-  List<Widget> l = List.empty(growable: true);
-  for (var value in inlist) {
-    l.add(TextButton(
-      child: Text("'$value'", style: dialogTextStyle),
-      onPressed: () {
-        onselect(value);
-      },
-    ));
-  }
-  return l;
 }
 
 Future<void> _showSearchDialog(final BuildContext context, final List<String> prevList, final Function(String) onSelect) async {
@@ -670,13 +693,13 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
 
 Future<void> _showModalDialogSuccessState(final BuildContext context, SuccessState successState) async {
   if (_applicationState.isDesktop() && successState.hasException) {
-    _showModalDialog(context, [successState.status, successState.toString()], ['OK']);
+    _showModalDialog(context, [successState.status, successState.toString()], ['OK'], null, null);
   } else {
-    _showModalDialog(context, [successState.status], ['OK']);
+    _showModalDialog(context, [successState.status], ['OK'], null, null);
   }
 }
 
-Future<void> _showModalDialog(final BuildContext context, final List<String> texts, final List<String> buttons) async {
+Future<void> _showModalDialog(final BuildContext context, final List<String> texts, final List<String> buttons, final Path? action, final void Function(Path, String, String)? onAction) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -699,11 +722,15 @@ Future<void> _showModalDialog(final BuildContext context, final List<String> tex
                 DetailButton(
                   text: buttons[i],
                   onPressed: () {
-                    _okCancelDialogResult = buttons[i].toUpperCase();
+                    if (onAction != null && action != null) {
+                      onAction(action, "", buttons[i].toUpperCase());
+                    } else {
+                      _okCancelDialogResult = buttons[i].toUpperCase();
+                    }
                     Navigator.of(context).pop();
                   },
                 ),
-              ]
+              ],
             ],
           ),
         ],
@@ -712,7 +739,7 @@ Future<void> _showModalDialog(final BuildContext context, final List<String> tex
   );
 }
 
-Future<void> _showModalInputDialog(final BuildContext context, final String title, final String value, final String type, final void Function(String, String, String) onAction, final String Function(String, String, String) validate) async {
+Future<void> _showModalInputDialog(final BuildContext context, final String title, final Map<Type, String> types, final String value, final Type type, final void Function(String, String, Type) onAction, final String Function(String, String, Type, String) validate) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -724,19 +751,45 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
           child: ListBody(
             children: [
               ValidatedInputField(
+                options: types,
+                currentOptionType: type,
                 prompt: "Input \$",
                 initialValue: value,
                 onClose: (action, text, type) {
                   onAction(action, text, type);
                   Navigator.of(context).pop();
                 },
-                validate: (v, t, tn) {
-                  if (v == value) {
-                    return "";
+                validate: (v, i, t, tn) {
+                  if (t == bool) {
+                    final lcv = v.trim().toLowerCase();
+                    if (lcv == "yes" || lcv == "no" || lcv == "true" || lcv == "false"|| lcv == "1" || lcv == "0") {
+                      return "";
+                    } else {
+                      return "Must be 'yes' or 'no";
+                    }
                   }
-                  return validate(v, t, tn);
+                  if (t == String) {
+                    if (v == i) {
+                      return "";
+                    }
+                    return validate(v, i, t, tn);
+                  }
+                  if (t == double || t == int) {
+                    try {
+                      int.parse(value);
+                      return "";
+                    } catch (e) {
+                      try {
+                        double.parse(value);
+                        return "";
+                      } catch (e) {
+                        return "That is not a Number";
+                      }
+                    }
+                  }
+                  return validate(v, i, t, tn);
                 },
-                inputType: type,
+                initialType: type,
               ),
             ],
           ),
