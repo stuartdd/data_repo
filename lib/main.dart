@@ -464,7 +464,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   }
                 },
                 (value, initial, type, typeName) {
-                  return "";
+                  return value.trim().isEmpty ? "Cannot be empty":"";
                 },
               );
               return true;
@@ -776,11 +776,11 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                   }
                   if (t == double || t == int) {
                     try {
-                      int.parse(value);
+                      int.parse(v.trim());
                       return "";
                     } catch (e) {
                       try {
-                        double.parse(value);
+                        double.parse(v.trim());
                         return "";
                       } catch (e) {
                         return "That is not a Number";
