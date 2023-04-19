@@ -244,6 +244,30 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  String _checkRenameOk(DetailAction detailActionData, String newName) {
+    if (detailActionData.oldValue != newName) {
+        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
+        if (mapNode == null) {
+          return "Path not found";
+        }
+        if (detailActionData.value) {
+            if (mapNode![newName] != null) {
+              return "Value already exists";
+            }
+        } else {
+          final pp = detailActionData.path.parentPath();
+          final parentNode = DataLoad.findLastMapNodeForPath(_loadedData, pp);
+          if (parentNode == null) {
+            return "Parent not found";
+          }
+          if (parentNode![newName] != null) {
+            return "Value already exists";
+          }
+        }
+     }
+    return "";
+  }
+
   void _handleRenameSubmit(DetailAction detailActionData, String newName) {
     if (detailActionData.oldValue != newName) {
       setState(() {
@@ -445,7 +469,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   }
                 },
                 (value, initial, type, typeName) {
-                  return "";
+                  return _checkRenameOk(detailActionData, value);
                 },
               );
               return true;
@@ -753,7 +777,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
               ValidatedInputField(
                 options: types,
                 currentOptionType: type,
-                prompt: "Input \$",
+                prompt: "Input: \$",
                 initialValue: value,
                 onClose: (action, text, type) {
                   onAction(action, text, type);
@@ -765,7 +789,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                     if (lcv == "yes" || lcv == "no" || lcv == "true" || lcv == "false"|| lcv == "1" || lcv == "0") {
                       return "";
                     } else {
-                      return "Must be 'yes' or 'no";
+                      return "Must be 'Yes' or 'No";
                     }
                   }
                   if (t == String) {

@@ -98,8 +98,6 @@ class _DetailButtonState extends State<DetailButton> {
   }
 }
 
-const inputTypeNames = {double: "a 'decimal number'", int: "an 'integer number'", bool: "'true' or 'false'", String: "String"};
-
 class _OptionPair {
   final String display;
   final Type optionType;
@@ -206,9 +204,11 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
   initState() {
     super.initState();
     initial = widget.initialValue.trim();
-    current = widget.initialValue.trim();
+    current = initial;
     inputType = widget.initialType;
-    inputTypeName = inputTypeNames[inputType]!;
+    if (widget.options.isNotEmpty && widget.options[inputType] != null) {
+      inputTypeName = widget.options[inputType]!;
+    }
     widget.controller.text = current;
     help = widget.validate(current, initial, inputType, inputTypeName);
     currentIsValid = help.isEmpty;
@@ -233,6 +233,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
               inputType = selType;
               inputTypeName = typeName;
               showOkButton = (inputType != widget.initialType);
+              current = _toYesNoString(_toTrueFalse(current));
               _validate();
             }),
         Container(
@@ -256,31 +257,40 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                   height: 10,
                 )
               ]),
-        TextField(
-          controller: widget.controller,
-          style: _inputTextStyle,
-          onChanged: (value) {
-            current = value;
-            showOkButton = (current != widget.initialValue);
-            _validate();
-          },
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-          ),
-        ),
+        (inputType == bool)
+            ? OptionList(
+                options: const {bool: "Yes (true)", int:"No (false)"},
+                selectedOption: (_toTrueFalse(current)?bool:int),
+                onSelect: (selType, typeName) {
+                  current = _toYesNoString(selType == bool);
+                  showOkButton = (current != _toYesNoString(_toTrueFalse(widget.initialValue)));
+                  _validate();
+                })
+            : TextField(
+                controller: widget.controller,
+                style: _inputTextStyle,
+                onChanged: (value) {
+                  current = value;
+                  showOkButton = (current != widget.initialValue);
+                  _validate();
+                },
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                ),
+              ),
         Row(
           children: [
             DetailButton(
               show: currentIsValid && showOkButton,
               text: 'OK',
               onPressed: () {
-                widget.onClose("OK", widget.controller.text.trim(), inputType);
+                widget.onClose("OK", current, inputType);
               },
             ),
             DetailButton(
               text: 'Cancel',
               onPressed: () {
-                widget.onClose("Cancel", widget.controller.text.trim(), inputType);
+                widget.onClose("Cancel", current, inputType);
               },
             )
           ],
@@ -288,4 +298,19 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
       ],
     );
   }
+}
+
+String _toYesNoString(bool value) {
+  if (value) {
+    return "Yes";
+  }
+  return "No";
+}
+
+bool _toTrueFalse(String value) {
+  final vlc = value.trim().toLowerCase();
+  if (vlc == "true" || vlc == "yes" || vlc == "1") {
+    return true;
+  }
+  return false;
 }

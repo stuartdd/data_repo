@@ -222,7 +222,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   show: widget.isEditDataDisplay,
                   text: 'Re-Name',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.renameStart, true, widget.dataValueRow.getFullPath(), widget.dataValueRow.name, String, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.renameStart, false, widget.dataValueRow.getFullPath(), widget.dataValueRow.name, String, _onCompleteAction));
                   },
                 ),
                 DetailButton(
