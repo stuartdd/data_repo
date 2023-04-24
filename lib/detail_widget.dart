@@ -23,6 +23,7 @@ class DetailAction {
     return path.getLast();
   }
 
+
   String get valueName {
     return value ? "Value" : "Group";
   }
@@ -64,8 +65,8 @@ class DetailAction {
 }
 
 class DataValueDisplayRow {
-  final String _name;
-  final String _value;
+   final String _name;
+   final String _value;
   final Type _type;
   final bool _isValue;
   final Path _path;
@@ -73,18 +74,27 @@ class DataValueDisplayRow {
 
   DataValueDisplayRow(this._name, this._value, this._type, this._isValue, this._path, this._mapSize);
 
-  Path getFullPath() {
-    return _path.cloneAppend([_name]);
-  }
-
   String get name => _name;
-  String get value => _value;
   Type get type => _type;
   Path get path => _path;
   bool get isValue => _isValue;
   int get mapSize => _mapSize;
 
-  bool isLink() {
+  String get value {
+    if (_type == bool) {
+      if (_value == "true") {
+        return "Yes";
+      }
+      return "No";
+    }
+    return _value;
+  }
+
+  Path get pathString {
+    return _path.cloneAppend([_name]);
+  }
+
+  bool get isLink {
     if (_isValue) {
       var t = _value.toLowerCase();
       if (t.startsWith("http://") || t.startsWith("https://")) {
@@ -97,9 +107,9 @@ class DataValueDisplayRow {
   @override
   String toString() {
     if (_isValue) {
-      return "Name:$_name ($_type) = $_value";
+      return "Name:$value ($_type) = $value";
     }
-    return "Name:$_name [$_mapSize]";
+    return "Name:$value [$_mapSize]";
   }
 }
 
@@ -128,7 +138,7 @@ class _DetailWidgetState extends State<DetailWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final hiLight = widget.hiLightedPaths.contains(widget.dataValueRow.getFullPath());
+    final hiLight = widget.hiLightedPaths.contains(widget.dataValueRow.pathString);
     final materialColor = hiLight ? widget.hiMaterialColor : widget.loMaterialColor;
     if (widget.dataValueRow.isValue) {
       return _detailForValue(materialColor, hiLight);
@@ -161,14 +171,14 @@ class _DetailWidgetState extends State<DetailWidget> {
                   show: widget.isEditDataDisplay,
                   text: 'Edit',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.editStart, true, widget.dataValueRow.getFullPath(), widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.editStart, true, widget.dataValueRow.pathString, widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
                   },
                 ),
                 DetailButton(
                   show: widget.isEditDataDisplay,
                   text: 'Re-Name',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.renameStart, true, widget.dataValueRow.getFullPath(), widget.dataValueRow.name, String, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.renameStart, true, widget.dataValueRow.pathString, widget.dataValueRow.name, String, _onCompleteAction));
                   },
                 ),
                 DetailButton(
@@ -177,15 +187,15 @@ class _DetailWidgetState extends State<DetailWidget> {
                   text: 'Copy',
                   onPressed: () async {
                     await Clipboard.setData(ClipboardData(text: widget.dataValueRow.value));
-                    widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.getFullPath(), widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.pathString, widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
                   },
                 ),
                 DetailButton(
-                  show: widget.dataValueRow.isLink() && !widget.isEditDataDisplay,
+                  show: widget.dataValueRow.isLink && !widget.isEditDataDisplay,
                   timerMs: 500,
                   text: 'Link',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.getFullPath(), widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.pathString, widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
                   },
                 ),
                 DetailButton(
@@ -193,7 +203,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   timerMs: 500,
                   text: 'Remove',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.delete, true, widget.dataValueRow.getFullPath(), widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.delete, true, widget.dataValueRow.pathString, widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
                   },
                 ),
               ],
@@ -212,7 +222,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               title: Text(widget.dataValueRow.name, style: _styleSmall),
               subtitle: Text("Group is Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: _styleSubTitle),
               onTap: () {
-                widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.getFullPath(), widget.dataValueRow.name, String, _onCompleteAction));
+                widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathString, widget.dataValueRow.name, String, _onCompleteAction));
               },
             ),
             Row(
@@ -222,14 +232,14 @@ class _DetailWidgetState extends State<DetailWidget> {
                   show: widget.isEditDataDisplay,
                   text: 'Re-Name',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.renameStart, false, widget.dataValueRow.getFullPath(), widget.dataValueRow.name, String, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.renameStart, false, widget.dataValueRow.pathString, widget.dataValueRow.name, String, _onCompleteAction));
                   },
                 ),
                 DetailButton(
                   show: widget.isEditDataDisplay,
                   text: 'Remove',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.delete, false, widget.dataValueRow.getFullPath(), widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.delete, false, widget.dataValueRow.pathString, widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
                   },
                 ),
               ],

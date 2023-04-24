@@ -39,13 +39,6 @@ class SuccessState {
     return _isSuccess;
   }
 
-  bool get isFail{
-    if (hasException) {
-      return true;
-    }
-    return !_isSuccess;
-  }
-
   String get status {
     if (hasException) {
       return "Exception:";

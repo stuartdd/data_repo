@@ -168,7 +168,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
     final ss = DataLoad.loadFromFile(_configData.getDataFileLocal());
-    if (ss.isFail) {
+    if (!ss.isSuccess) {
       setState(() {
         debugPrint("SS:_loadDataState 2");
         _globalSuccessState = ss;
@@ -202,6 +202,18 @@ class _MyHomePageState extends State<MyHomePage> {
       _selected = Path.fromDotPath(_loadedData.keys.first);
       _hiLightedPaths.clean();
     });
+  }
+
+  void _handleAdd(Path path, String name, Type type) async {
+    switch (type) {
+      case String:
+        debugPrint("SS:_handle Add Value '$name' to path $path");
+        break;
+      case dynamic:
+        debugPrint("SS:_handle Add Group '$name' to path $path");
+        break;
+    }
+
   }
 
   void _handleAddSubmitState(DetailAction detailActionData, String newValue) {
@@ -246,25 +258,28 @@ class _MyHomePageState extends State<MyHomePage> {
 
   String _checkRenameOk(DetailAction detailActionData, String newName) {
     if (detailActionData.oldValue != newName) {
-        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
-        if (mapNode == null) {
-          return "Path not found";
+      if (newName.isEmpty) {
+        return "Cannot be empty";
+      }
+      final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
+      if (mapNode == null) {
+        return "Path not found";
+      }
+      if (detailActionData.value) {
+        if (mapNode![newName] != null) {
+          return "Name already exists";
         }
-        if (detailActionData.value) {
-            if (mapNode![newName] != null) {
-              return "Value already exists";
-            }
-        } else {
-          final pp = detailActionData.path.parentPath();
-          final parentNode = DataLoad.findLastMapNodeForPath(_loadedData, pp);
-          if (parentNode == null) {
-            return "Parent not found";
-          }
-          if (parentNode![newName] != null) {
-            return "Value already exists";
-          }
+      } else {
+        final pp = detailActionData.path.parentPath();
+        final parentNode = DataLoad.findLastMapNodeForPath(_loadedData, pp);
+        if (parentNode == null) {
+          return "Parent not found";
         }
-     }
+        if (parentNode![newName] != null) {
+          return "Name already exists";
+        }
+      }
+    }
     return "";
   }
 
@@ -278,12 +293,13 @@ class _MyHomePageState extends State<MyHomePage> {
         }
         if (detailActionData.value) {
           if (mapNode![newName] != null) {
-            _globalSuccessState = SuccessState(false, message: "Value already exists");
+            _globalSuccessState = SuccessState(false, message: "Name already exists");
           }
           final renameNode = mapNode[detailActionData.oldValue];
           if (renameNode == null) {
-            _globalSuccessState = SuccessState(false, message: "Value not found");
+            _globalSuccessState = SuccessState(false, message: "Name not found");
           }
+
           mapNode.remove(detailActionData.oldValue);
           mapNode[newName] = renameNode;
           _dataWasUpdated = true;
@@ -292,7 +308,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _hiLightedPaths.add(detailActionData.path);
         } else {
           if (newName.length <= 2) {
-            _globalSuccessState = SuccessState(false, message: "New value is too short");
+            _globalSuccessState = SuccessState(false, message: "New Name is too short");
           }
           final pp = detailActionData.path.parentPath();
           final parentNode = DataLoad.findLastMapNodeForPath(_loadedData, pp);
@@ -300,7 +316,7 @@ class _MyHomePageState extends State<MyHomePage> {
             _globalSuccessState = SuccessState(false, message: "Parent not found");
           }
           if (parentNode![newName] != null) {
-            _globalSuccessState = SuccessState(false, message: "Value already exists");
+            _globalSuccessState = SuccessState(false, message: "Name already exists");
           }
           parentNode.remove(detailActionData.oldValue);
           parentNode[newName] = mapNode;
@@ -313,8 +329,6 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
   }
-
-  void _handleAdd(Path path, String value, String response) async {}
 
   void _handleDelete(Path path, String value, String response) async {
     if (response == "OK") {
@@ -384,7 +398,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _inExitProcess = true;
     try {
       if (_dataWasUpdated) {
-        await _showModalDialog(context, ["Data has been updated", "Press OK to SAVE before Exit", "Press CANCEL remain in the App", "Press EXIT to leave without saving"], ["OK", "CANCEL", "EXIT"], null, null);
+        await _showModalDialog(context, "Alert", ["Data has been updated", "Press OK to SAVE before Exit", "Press CANCEL remain in the App", "Press EXIT to leave without saving"], ["OK", "CANCEL", "EXIT"], null, null);
         if (_okCancelDialogResult == "OK") {
           _saveDataState(_password);
           return _globalSuccessState.isSuccess;
@@ -444,7 +458,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.delete:
             {
-              _showModalDialog(context, ["Remove ${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDelete);
+              _showModalDialog(context, "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDelete);
               return true;
             }
           case ActionType.select:
@@ -488,7 +502,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   }
                 },
                 (value, initial, type, typeName) {
-                  return value.trim().isEmpty ? "Cannot be empty":"";
+                  return value.trim().isEmpty ? "Cannot be empty" : "";
                 },
               );
               return true;
@@ -646,7 +660,22 @@ class _MyHomePageState extends State<MyHomePage> {
                       icon: const Icon(Icons.add_box_outlined),
                       tooltip: 'Add',
                       onPressed: () {
-                        _showModalDialog(context, ["Add a Group", "OR", "Add a Value"], ["Group", "Value", "Cancel"], _selected, _handleAdd);
+                        _showModalInputDialog(
+                          context,
+                          "Add To: '${_selected.getLast()}'",
+                          {dynamic: "A Group Name", String: "A Value Name"},
+                          "",
+                          String,
+                          (action, text, type) {
+                            if (action == "OK") {
+                              _handleAdd(_selected, text, type);
+                            }
+                          },
+                          (value, initial, type, typeName) {
+                            return value.trim().isEmpty ? "Cannot be empty" : "";
+                          },
+                        );
+//                        _showModalDialog(context, "Add an Item to:", ["#'${_selected.getLast()}'", "Select Group or Value"], ["Group", "Value", "Cancel"], _selected, _handleAdd);
                       },
                     ),
                   ],
@@ -715,26 +744,27 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
   );
 }
 
-Future<void> _showModalDialogSuccessState(final BuildContext context, SuccessState successState) async {
+Future<void> _showModalDialogSuccessState(final BuildContext context, final String title, SuccessState successState) async {
   if (_applicationState.isDesktop() && successState.hasException) {
-    _showModalDialog(context, [successState.status, successState.toString()], ['OK'], null, null);
+    _showModalDialog(context, title, [successState.status, successState.toString()], ['OK'], null, null);
   } else {
-    _showModalDialog(context, [successState.status], ['OK'], null, null);
+    _showModalDialog(context, title, [successState.status], ['OK'], null, null);
   }
 }
 
-Future<void> _showModalDialog(final BuildContext context, final List<String> texts, final List<String> buttons, final Path? action, final void Function(Path, String, String)? onAction) async {
+Future<void> _showModalDialog(final BuildContext context, final String title, final List<String> texts, final List<String> buttons, final Path? action, final void Function(Path, String, String)? onAction) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        title: const Text('Alert'),
+        backgroundColor: _configData.getMaterialColor().shade300,
+        title: Text(title, style: dialogTextStyle),
         content: SingleChildScrollView(
           child: ListBody(
             children: [
               for (int i = 0; i < texts.length; i++) ...[
-                Text(texts[i], style: dialogTextStyle),
+                (texts[i].startsWith('#')) ? Container(alignment: Alignment.center, color: _configData.getMaterialColor().shade500, child: Text(texts[i].substring(1), style: dialogTextStyle)) : Text(texts[i], style: dialogTextStyle),
               ]
             ],
           ),
@@ -786,14 +816,14 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                 validate: (v, i, t, tn) {
                   if (t == bool) {
                     final lcv = v.trim().toLowerCase();
-                    if (lcv == "yes" || lcv == "no" || lcv == "true" || lcv == "false"|| lcv == "1" || lcv == "0") {
+                    if (lcv == "yes" || lcv == "no" || lcv == "true" || lcv == "false" || lcv == "1" || lcv == "0") {
                       return "";
                     } else {
                       return "Must be 'Yes' or 'No";
                     }
                   }
                   if (t == String) {
-                    if (v == i) {
+                    if (v == i && i != "") {
                       return "";
                     }
                     return validate(v, i, t, tn);

@@ -208,6 +208,8 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
     inputType = widget.initialType;
     if (widget.options.isNotEmpty && widget.options[inputType] != null) {
       inputTypeName = widget.options[inputType]!;
+    } else {
+      inputTypeName = "Name";
     }
     widget.controller.text = current;
     help = widget.validate(current, initial, inputType, inputTypeName);
@@ -233,7 +235,9 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
               inputType = selType;
               inputTypeName = typeName;
               showOkButton = (inputType != widget.initialType);
-              current = _toYesNoString(_toTrueFalse(current));
+              if (inputType == bool) {
+                current = _toYesNoString(_toTrueFalse(current));
+              }
               _validate();
             }),
         Container(
@@ -273,6 +277,12 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                   current = value;
                   showOkButton = (current != widget.initialValue);
                   _validate();
+                },
+                onSubmitted: (value) {
+                  _validate();
+                  if (currentIsValid) {
+                    widget.onClose("OK", current, inputType);
+                  }
                 },
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),

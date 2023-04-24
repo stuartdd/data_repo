@@ -8,7 +8,7 @@
         },
         "S1A1P1s": "/stuart/S1A1P1g",
         "S1A1P2": "http://stuart/S1A1P2",
-        "S1A1P1_NUM": false
+        "S1A1P1\"NUM\\": 99
       },
       "S1A2": {
         "S1A2M1": {
@@ -35,7 +35,9 @@
   "Roger": {
     "R1": {
       "R1A1": {
-        "R1A1P1": "/roger/R1A1P1"
+        "R1A1P1": "/roger/R1A1P1",
+        "R1A1P1\"Q1\\": "\"roger\"\\R1A1P1\\",
+        "R1A1P1\\Q2\\\"": "\\roger\"\"R1A1P1\\\""
       },
       "R1A2": {
         "R1A2P1": "/roger/R1A1P1",
