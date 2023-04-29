@@ -205,45 +205,67 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _handleAdd(Path path, String name, Type type) async {
+    debugPrint("SS:_handleAdd");
+    if (name.length < 2) {
+      _globalSuccessState = SuccessState(false, message: "Name is too short");
+      return;
+    }
+    final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, path);
+    if (mapNode == null) {
+      _globalSuccessState = SuccessState(false, message: "Path not found");
+      return;
+    }
+    if (mapNode[name] != null) {
+      _globalSuccessState = SuccessState(false, message: "Name already exists");
+      return;
+    }
     switch (type) {
       case String:
-        debugPrint("SS:_handle Add Value '$name' to path $path");
+        setState(() {
+          debugPrint("SS:_handleAdd:value");
+          mapNode[name] = "undefined";
+          _hiLightedPaths.add(path);
+          _dataWasUpdated = true;
+        });
         break;
       case dynamic:
-        debugPrint("SS:_handle Add Group '$name' to path $path");
+        setState(() {
+          debugPrint("SS:_handleAdd:group");
+          final Map<String, dynamic> m = {};
+          mapNode[name] = m;
+          _hiLightedPaths.add(path);
+          _dataWasUpdated = true;
+        });
         break;
     }
-
   }
 
-  void _handleAddSubmitState(DetailAction detailActionData, String newValue) {
-    setState(() {
-      debugPrint("SS:_handleAddSubmitState");
-      if (newValue.length < 2) {
-        _globalSuccessState = SuccessState(false, message: "Name is too short");
-        return;
-      }
-      final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
-      if (mapNode == null) {
-        _globalSuccessState = SuccessState(false, message: "Path not found");
-        return;
-      }
-      if (mapNode[newValue] != null) {
-        _globalSuccessState = SuccessState(false, message: "Name already exists");
-        return;
-      }
-      _dataWasUpdated = true;
-      if (detailActionData.value) {
-        debugPrint("SS:_handleAddSubmitState:value");
-        mapNode[newValue] = "";
-      } else {
-        debugPrint("SS:_handleAddSubmitState:group");
-        mapNode[newValue] = {};
-      }
-      _hiLightedPaths.add(detailActionData.path);
-      _globalSuccessState = SuccessState(true, message: "Item updated");
-    });
-  }
+  // void _handleAddSubmitState(String newValue, Path path, bool value) {
+  //   debugPrint("SS:_handleAddSubmitState");
+  //   if (newValue.length < 2) {
+  //     _globalSuccessState = SuccessState(false, message: "Name is too short");
+  //     return;
+  //   }
+  //   final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, path);
+  //   if (mapNode == null) {
+  //     _globalSuccessState = SuccessState(false, message: "Path not found");
+  //     return;
+  //   }
+  //   if (mapNode[newValue] != null) {
+  //     _globalSuccessState = SuccessState(false, message: "Name already exists");
+  //     return;
+  //   }
+  //   _dataWasUpdated = true;
+  //   if (value) {
+  //     debugPrint("SS:_handleAddSubmitState:value");
+  //     mapNode[newValue] = "undefined";
+  //   } else {
+  //     debugPrint("SS:_handleAddSubmitState:group");
+  //     mapNode[newValue] = {"undefinedName": "undefined"};
+  //   }
+  //   _hiLightedPaths.add(path);
+  //   _globalSuccessState = SuccessState(true, message: "Item updated");
+  // }
 
   void _handleTreeSelect(String dotPath) {
     final path = Path.fromDotPath(dotPath);
@@ -675,7 +697,6 @@ class _MyHomePageState extends State<MyHomePage> {
                             return value.trim().isEmpty ? "Cannot be empty" : "";
                           },
                         );
-//                        _showModalDialog(context, "Add an Item to:", ["#'${_selected.getLast()}'", "Select Group or Value"], ["Group", "Value", "Cancel"], _selected, _handleAdd);
                       },
                     ),
                   ],
