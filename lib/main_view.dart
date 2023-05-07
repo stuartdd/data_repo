@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:split_view/split_view.dart';
 import 'package:flutter_treeview/flutter_treeview.dart';
 import 'data_load.dart';
+import "data_types.dart";
 import "path.dart";
 import 'detail_widget.dart';
 
@@ -105,11 +106,11 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
   List<DataValueDisplayRow> lv = List.empty(growable: true);
   for (var element in json.entries) {
     if (element.value is Map) {
-      lm.add(DataValueDisplayRow(element.key, "", String, false, path, (element.value as Map).length));
+      lm.add(DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as Map).length));
     } else if (element.value is List) {
-      lm.add(DataValueDisplayRow(element.key, "", String, false, path, (element.value as List).length));
+      lm.add(DataValueDisplayRow(element.key, "",  optionTypeDataGroup, false, path, (element.value as List).length));
     } else {
-      lv.add(DataValueDisplayRow(element.key, element.value.toString(), element.value.runtimeType, true, path, 0));
+      lv.add(DataValueDisplayRow(element.key, element.value.toString(),  OptionsTypeData.ForType(element.value.runtimeType), true, path, 0));
     }
   }
   lm.addAll(lv);

@@ -2,86 +2,54 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'path.dart';
+import 'data_types.dart';
 import 'detail_buttons.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 const _styleLarge = TextStyle(fontFamily: 'Code128', fontWeight: FontWeight.w500, fontSize: 30.0, color: Colors.black);
+const _styleList = TextStyle(fontFamily: 'Code128', fontWeight: FontWeight.w500, fontSize: 25.0, color: Colors.black);
 const _styleSmall = TextStyle(fontFamily: 'Code128', fontWeight: FontWeight.w500, fontSize: 25.0, color: Colors.black);
 const _styleSubTitle = TextStyle(fontFamily: 'Code128', fontSize: 17.0, color: Colors.black);
 
-enum ActionType { none, editStart, renameStart, select, delete, link, clip }
 
-class DetailAction {
-  final ActionType action;
-  final bool value;
-  final Path path;
-  final String oldValue;
-  final Type oldValueType;
-  final bool Function(String, String, String) onCompleteAction;
-  DetailAction(this.action, this.value, this.path, this.oldValue, this.oldValueType, this.onCompleteAction);
-
-  String getLastPathElement() {
-    return path.getLast();
-  }
-
-
-  String get valueName {
-    return value ? "Value" : "Group";
-  }
-
-  @override
-  String toString() {
-    final s = "Type:'${value ? "Value" : "Map"}' Path:'$path' V1:'$oldValue' ";
-    switch (action) {
-      case ActionType.none:
-        {
-          return "NONE: $s";
-        }
-      case ActionType.editStart:
-        {
-          return "EDIT-START: $s";
-        }
-      case ActionType.renameStart:
-        {
-          return "RENAME-START: $s";
-        }
-      case ActionType.select:
-        {
-          return "SELECT: $s";
-        }
-      case ActionType.delete:
-        {
-          return "DELETE: $s";
-        }
-      case ActionType.link:
-        {
-          return "LINK: $s";
-        }
-      case ActionType.clip:
-        {
-          return "CLIP: $s";
-        }
-    }
-  }
-}
+//
 
 class DataValueDisplayRow {
-   final String _name;
-   final String _value;
-  final Type _type;
+  final String _name;
+  final String _value;
+  final OptionsTypeData _type;
   final bool _isValue;
   final Path _path;
   final int _mapSize;
+  DisplayTypeData _displayTypeData = simpleDisplayData;
 
-  DataValueDisplayRow(this._name, this._value, this._type, this._isValue, this._path, this._mapSize);
+  DataValueDisplayRow(this._name, this._value, this._type, this._isValue, this._path, this._mapSize) {
+    if (_type.key == "String") {
+      displayTypeMap.forEach((key, value) {
+        if (name.toLowerCase().endsWith(key)) {
+          _displayTypeData = value;
+        }
+      });
+      debugPrint("Found $_name is ${_displayTypeData.description}");
+    }
+  }
 
   String get name => _name;
-  Type get type => _type;
+  OptionsTypeData get type => _type;
   Path get path => _path;
   bool get isValue => _isValue;
   int get mapSize => _mapSize;
+  DisplayTypeData get displayTypeData => _displayTypeData;
+
+  String getName(bool editMode) {
+    if (editMode) {
+      return name;
+    }
+    return name.substring(0, (_name.length - displayTypeData.markerLength));
+  }
 
   String get value {
-    if (_type == bool) {
+    if (_type.key == "bool") {
       if (_value == "true") {
         return "Yes";
       }
@@ -146,23 +114,100 @@ class _DetailWidgetState extends State<DetailWidget> {
     return _dataForMap(materialColor, hiLight);
   }
 
-  Widget _detailForValue(MaterialColor materialColor, bool hiLight) {
+  Widget _rowForString(final String value, final MaterialColor materialColor) {
+    return Row(
+      children: [
+        for (int i = 0; i < value.length; i++) ...[
+          Container(
+            color: (i % 2 == 0) ? materialColor.shade300 : materialColor.shade400,
+            width: (i < 9) ? 20 : 32,
+            child: Text(
+              (i < 9) ? value[i] : " ${value[i]}",
+              style: _styleList,
+            ),
+          ),
+          Container(
+            color: Colors.black,
+            width: 2,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _rowForPosition(final int last, final MaterialColor materialColor) {
+    return Row(
+      children: [
+        for (int i = 0; i < last; i++) ...[
+          Container(
+            color: (i % 2 == 0) ? materialColor.shade300 : materialColor.shade400,
+            width: (i < 9) ? 20 : 32,
+            child: Text(
+              "${i + 1}",
+              style: _styleList,
+            ),
+          ),
+          Container(
+            color: Colors.black,
+            width: 2,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _cardForValue(final DataValueDisplayRow dataValueRow, final MaterialColor materialColor, final bool hiLight) {
+    if (dataValueRow.displayTypeData.displayType == DisplayType.positionalString) {
+      return Card(
+        margin: EdgeInsetsGeometry.lerp(null, null, 5),
+        color: materialColor.shade700,
+        child: Column(
+          children: [
+            _rowForPosition(dataValueRow.value.length, materialColor),
+            Container(
+              color: Colors.black,
+              height: 2,
+            ),
+            _rowForString(dataValueRow.value, materialColor),
+          ],
+        ),
+      );
+    }
+    if (dataValueRow.displayTypeData.displayType == DisplayType.markDown) {
+      return Card(
+        margin: EdgeInsetsGeometry.lerp(null, null, 5),
+        color: materialColor.shade200,
+        child: SizedBox(
+          height: 200,
+          child: Markdown(
+            data: dataValueRow.value,
+            selectable: true,
+            shrinkWrap: true,
+            styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
+          ),
+        ),
+      );
+    }
+    return Card(
+      margin: EdgeInsetsGeometry.lerp(null, null, 5),
+      color: materialColor.shade200,
+      child: Padding(padding: const EdgeInsets.only(left: 20.0), child: Text(dataValueRow.value, style: _styleLarge)),
+    );
+  }
+
+  Widget _detailForValue(final MaterialColor materialColor, final bool hiLight) {
     return SizedBox(
       child: Card(
           color: materialColor.shade600,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ListTile(
               leading: hiLight ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
-              title: Text(widget.dataValueRow.name, style: _styleSmall),
+              title: Text(widget.dataValueRow.getName(widget.isEditDataDisplay), style: _styleSmall),
               subtitle: Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: _styleSubTitle),
             ),
             SizedBox(
               width: double.infinity,
-              child: Card(
-                margin: EdgeInsetsGeometry.lerp(null, null, 5),
-                color: materialColor.shade200,
-                child: Padding(padding: const EdgeInsets.only(left: 20.0), child: Text(widget.dataValueRow.value, style: _styleLarge)),
-              ),
+              child: _cardForValue(widget.dataValueRow, materialColor, hiLight),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -178,11 +223,11 @@ class _DetailWidgetState extends State<DetailWidget> {
                   show: widget.isEditDataDisplay,
                   text: 'Re-Name',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.renameStart, true, widget.dataValueRow.pathString, widget.dataValueRow.name, String, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.renameStart, true, widget.dataValueRow.pathString, widget.dataValueRow.name, optionTypeDataString, _onCompleteAction));
                   },
                 ),
                 DetailButton(
-                  show: !widget.isEditDataDisplay,
+                  show: !widget.isEditDataDisplay && (widget.dataValueRow.displayTypeData.displayType != DisplayType.positionalString),
                   timerMs: 500,
                   text: 'Copy',
                   onPressed: () async {
@@ -191,7 +236,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   },
                 ),
                 DetailButton(
-                  show: widget.dataValueRow.isLink && !widget.isEditDataDisplay,
+                  show: widget.dataValueRow.isLink && !widget.isEditDataDisplay && (widget.dataValueRow.displayTypeData.displayType != DisplayType.positionalString),
                   timerMs: 500,
                   text: 'Link',
                   onPressed: () {
@@ -222,7 +267,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               title: Text(widget.dataValueRow.name, style: _styleSmall),
               subtitle: Text("Group is Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: _styleSubTitle),
               onTap: () {
-                widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathString, widget.dataValueRow.name, String, _onCompleteAction));
+                widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathString, widget.dataValueRow.name,optionTypeDataGroup, _onCompleteAction));
               },
             ),
             Row(
@@ -232,14 +277,14 @@ class _DetailWidgetState extends State<DetailWidget> {
                   show: widget.isEditDataDisplay,
                   text: 'Re-Name',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.renameStart, false, widget.dataValueRow.pathString, widget.dataValueRow.name, String, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.renameStart, false, widget.dataValueRow.pathString, widget.dataValueRow.name, optionTypeDataGroup, _onCompleteAction));
                   },
                 ),
                 DetailButton(
                   show: widget.isEditDataDisplay,
                   text: 'Remove',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.delete, false, widget.dataValueRow.pathString, widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.delete, false, widget.dataValueRow.pathString, widget.dataValueRow.value, optionTypeDataGroup, _onCompleteAction));
                   },
                 ),
               ],

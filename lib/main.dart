@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:window_size/window_size.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
-import 'detail_widget.dart';
 import 'encrypt.dart';
 import 'path.dart';
+import 'data_types.dart';
 import 'config.dart';
 import 'main_view.dart';
 import 'detail_buttons.dart';
@@ -87,7 +87,7 @@ class MyApp extends StatelessWidget with WindowListener {
         }
       default:
         {
-          print("Event:$eventName");
+          debugPrint("Event:$eventName");
         }
     }
     super.onWindowEvent(eventName);
@@ -204,7 +204,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _handleAdd(Path path, String name, Type type) async {
+  void _handleAdd(Path path, String name, OptionsTypeData type) async {
     debugPrint("SS:_handleAdd");
     if (name.length < 2) {
       _globalSuccessState = SuccessState(false, message: "Name is too short");
@@ -220,7 +220,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
     switch (type) {
-      case String:
+      case optionTypeDataValue:
         setState(() {
           debugPrint("SS:_handleAdd:value");
           mapNode[name] = "undefined";
@@ -228,7 +228,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _dataWasUpdated = true;
         });
         break;
-      case dynamic:
+      case optionTypeDataGroup:
         setState(() {
           debugPrint("SS:_handleAdd:group");
           final Map<String, dynamic> m = {};
@@ -239,33 +239,6 @@ class _MyHomePageState extends State<MyHomePage> {
         break;
     }
   }
-
-  // void _handleAddSubmitState(String newValue, Path path, bool value) {
-  //   debugPrint("SS:_handleAddSubmitState");
-  //   if (newValue.length < 2) {
-  //     _globalSuccessState = SuccessState(false, message: "Name is too short");
-  //     return;
-  //   }
-  //   final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, path);
-  //   if (mapNode == null) {
-  //     _globalSuccessState = SuccessState(false, message: "Path not found");
-  //     return;
-  //   }
-  //   if (mapNode[newValue] != null) {
-  //     _globalSuccessState = SuccessState(false, message: "Name already exists");
-  //     return;
-  //   }
-  //   _dataWasUpdated = true;
-  //   if (value) {
-  //     debugPrint("SS:_handleAddSubmitState:value");
-  //     mapNode[newValue] = "undefined";
-  //   } else {
-  //     debugPrint("SS:_handleAddSubmitState:group");
-  //     mapNode[newValue] = {"undefinedName": "undefined"};
-  //   }
-  //   _hiLightedPaths.add(path);
-  //   _globalSuccessState = SuccessState(true, message: "Item updated");
-  // }
 
   void _handleTreeSelect(String dotPath) {
     final path = Path.fromDotPath(dotPath);
@@ -288,7 +261,7 @@ class _MyHomePageState extends State<MyHomePage> {
         return "Path not found";
       }
       if (detailActionData.value) {
-        if (mapNode![newName] != null) {
+        if (mapNode[newName] != null) {
           return "Name already exists";
         }
       } else {
@@ -297,7 +270,7 @@ class _MyHomePageState extends State<MyHomePage> {
         if (parentNode == null) {
           return "Parent not found";
         }
-        if (parentNode![newName] != null) {
+        if (parentNode[newName] != null) {
           return "Name already exists";
         }
       }
@@ -372,7 +345,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _handleEditSubmit(DetailAction detailActionData, String newValue, Type type) {
+  void _handleEditSubmit(DetailAction detailActionData, String newValue, OptionsTypeData type) {
     if (detailActionData.oldValue != newValue || detailActionData.oldValueType != type) {
       setState(() {
         debugPrint("SS:_handleEditSubmit (${detailActionData.oldValueType})");
@@ -387,11 +360,11 @@ class _MyHomePageState extends State<MyHomePage> {
         debugPrint("SS:_handleEditSubmit (${detailActionData.oldValueType})");
         _dataWasUpdated = true;
         final nvTrim = newValue.trim();
-        if (type == bool) {
+        if (type.elementType == bool) {
           final lvTrimLc = nvTrim.toLowerCase();
           mapNode![key] = (lvTrimLc == "true" || lvTrimLc == "yes" || nvTrim == "1");
         } else {
-          if (type == double || type == int) {
+          if (type.elementType == double || type.elementType == int) {
             try {
               final iv = int.parse(nvTrim);
               mapNode![key] = iv;
@@ -472,7 +445,7 @@ class _MyHomePageState extends State<MyHomePage> {
       },
       (detailActionData) {
         // On action
-        print(detailActionData);
+        debugPrint(detailActionData.toString());
         switch (detailActionData.action) {
           case ActionType.none:
             {
@@ -496,15 +469,15 @@ class _MyHomePageState extends State<MyHomePage> {
               _showModalInputDialog(
                 context,
                 "Re-Name $title '${detailActionData.getLastPathElement()}'",
-                {},
                 detailActionData.oldValue,
+                detailActionData.value ? optionsForRenameElement : [],
                 detailActionData.oldValueType,
                 (action, text, type) {
                   if (action == "OK") {
                     _handleRenameSubmit(detailActionData, text);
                   }
                 },
-                (value, initial, type, typeName) {
+                (initial, value, initialType, valueType) {
                   return _checkRenameOk(detailActionData, value);
                 },
               );
@@ -515,15 +488,15 @@ class _MyHomePageState extends State<MyHomePage> {
               _showModalInputDialog(
                 context,
                 "Update Value '${detailActionData.getLastPathElement()}'",
-                {double: "A Number", bool: "Yes or No", String: "A String"},
                 detailActionData.oldValue,
+                optionsForUpdateElement,
                 detailActionData.oldValueType,
                 (action, text, type) {
                   if (action == "OK") {
                     _handleEditSubmit(detailActionData, text, type);
                   }
                 },
-                (value, initial, type, typeName) {
+                (initial, value, initialType, valueType) {
                   return value.trim().isEmpty ? "Cannot be empty" : "";
                 },
               );
@@ -685,15 +658,15 @@ class _MyHomePageState extends State<MyHomePage> {
                         _showModalInputDialog(
                           context,
                           "Add To: '${_selected.getLast()}'",
-                          {dynamic: "A Group Name", String: "A Value Name"},
                           "",
-                          String,
+                          optionsForAddElement,
+                          optionTypeDataValue,
                           (action, text, type) {
                             if (action == "OK") {
                               _handleAdd(_selected, text, type);
                             }
                           },
-                          (value, initial, type, typeName) {
+                          (initial, value, initialType, valueType) {
                             return value.trim().isEmpty ? "Cannot be empty" : "";
                           },
                         );
@@ -765,14 +738,6 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
   );
 }
 
-Future<void> _showModalDialogSuccessState(final BuildContext context, final String title, SuccessState successState) async {
-  if (_applicationState.isDesktop() && successState.hasException) {
-    _showModalDialog(context, title, [successState.status, successState.toString()], ['OK'], null, null);
-  } else {
-    _showModalDialog(context, title, [successState.status], ['OK'], null, null);
-  }
-}
-
 Future<void> _showModalDialog(final BuildContext context, final String title, final List<String> texts, final List<String> buttons, final Path? action, final void Function(Path, String, String)? onAction) async {
   return showDialog<void>(
     context: context,
@@ -814,7 +779,7 @@ Future<void> _showModalDialog(final BuildContext context, final String title, fi
   );
 }
 
-Future<void> _showModalInputDialog(final BuildContext context, final String title, final Map<Type, String> types, final String value, final Type type, final void Function(String, String, Type) onAction, final String Function(String, String, Type, String) validate) async {
+Future<void> _showModalInputDialog(final BuildContext context, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final void Function(String, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -826,45 +791,53 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
           child: ListBody(
             children: [
               ValidatedInputField(
-                options: types,
-                currentOptionType: type,
+                options: options,
+                initialOption: currentOption,
                 prompt: "Input: \$",
-                initialValue: value,
+                initialValue: currentValue,
                 onClose: (action, text, type) {
                   onAction(action, text, type);
                   Navigator.of(context).pop();
                 },
-                validate: (v, i, t, tn) {
-                  if (t == bool) {
-                    final lcv = v.trim().toLowerCase();
-                    if (lcv == "yes" || lcv == "no" || lcv == "true" || lcv == "false" || lcv == "1" || lcv == "0") {
+                onValidate: (ix, vx, it, vt) {
+                  final trimV = vx.trim();
+                  final trimI = ix.trim();
+                  if (vt.elementType == bool) {
+                    final trimLcV = trimV.toLowerCase();
+                    if (trimLcV == "yes" || trimLcV == "no" || trimLcV == "true" || trimLcV == "false" || trimLcV == "1" || trimLcV == "0") {
                       return "";
                     } else {
                       return "Must be 'Yes' or 'No";
                     }
                   }
-                  if (t == String) {
-                    if (v == i && i != "") {
+                  if (vt.elementType == String) {
+                    if (trimV == trimI && trimI != "") {
                       return "";
                     }
-                    return validate(v, i, t, tn);
+                    final m = vt.inRangeInt("Length", trimV.length);
+                    if (m.isNotEmpty) {
+                      return m;
+                    }
+                    return externalValidate(trimI, trimV, it, vt);
                   }
-                  if (t == double || t == int) {
+                  if (vt.elementType == double) {
                     try {
-                      int.parse(v.trim());
-                      return "";
+                      final d = double.parse(trimV);
+                      return vt.inRangeDouble("Value ", d);
                     } catch (e) {
-                      try {
-                        double.parse(v.trim());
-                        return "";
-                      } catch (e) {
-                        return "That is not a Number";
-                      }
+                      return "That is not a ${vt.description}";
                     }
                   }
-                  return validate(v, i, t, tn);
+                  if (vt.elementType == int) {
+                    try {
+                      final i = int.parse(trimV);
+                      return vt.inRangeInt("Value ", i);
+                    } catch (e) {
+                      return "That is not a ${vt.description}";
+                    }
+                  }
+                  return externalValidate(trimI, trimV, it, vt);
                 },
-                initialType: type,
               ),
             ],
           ),
