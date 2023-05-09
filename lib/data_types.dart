@@ -48,6 +48,9 @@ class OptionsTypeData {
   bool notEqual(OptionsTypeData other) {
     return key != other.key;
   }
+  bool equal(OptionsTypeData other) {
+    return key == other.key;
+  }
 
   @override
   String toString() {
@@ -69,7 +72,7 @@ class OptionsTypeData {
     return inRangeInt(pref, n.toInt());
   }
 
-  factory OptionsTypeData.ForName(Type type, String name) {
+  factory OptionsTypeData.forTypeOrName(Type type, String name) {
     final n = name.trim();
     if (n.isNotEmpty) {
       for (var x in _elementTypesSpecial) {
@@ -83,10 +86,6 @@ class OptionsTypeData {
         }
       }
     }
-    return optionTypeDataNotFound;
-  }
-
-  factory OptionsTypeData.ForType(Type type) {
     for (var x in _elementTypesNative) {
       if (type == x.elementType) {
         return x;

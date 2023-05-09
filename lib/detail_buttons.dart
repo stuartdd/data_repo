@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'data_types.dart';
+import 'path.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 const _buttonBorderStyle = BorderSide(color: Colors.black, width: 2);
 const _buttonBorderStyleGrey = BorderSide(color: Colors.grey, width: 2);
@@ -9,6 +11,35 @@ const _styleSmallDisabled = TextStyle(fontFamily: 'Code128', fontSize: 20.0, col
 const _inputTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 30.0, color: Colors.black);
 const _trueStr = "true";
 const _falseStr = "false";
+const helpText = """# # Heading 1 (one more # for each sub heading)
+## ## Heading 2  (Use blank lines before and after headings)
+_\\_Italic\\__ \\_\\___Bold__\\_\\_ \\_\\_\\____BoldItalic___\\_\\_\\_. One Two or Three underscore.
+
+Escape using '\\\\'. 
+
+For a 'New Line': Use an empty line. Otherwise it is a paragraph. Don't have empty spaces at the start of a line.
+
+> > Block Quotes. Note space after >
+
+1. First list line (Ordered Lists)
+1. Sublist (4 spaces indent)
+2. Second List Line
+
+- Un-ordered list start line with a dash+space '- '
+
+``Code Blocks surround with 'backtick'. Use 2 to include a backtick `
+``
+
+Code block Special chars use &code; where code = lt, gt, amp
+
+Horizontal line use 3 '*' or 3 '-' or 3 '_'
+___
+To add an image, add an exclamation mark (!), followed by alt text in brackets, and the path or URL to the image asset in parentheses. You can optionally add a title in quotation marks after the path or URL.
+
+mages ``![alt text](images/image.jpg "Comment")``
+
+[Link](https://www.markdownguide.org/basic-syntax/#images-1) ``[Link](https://www.markdownguide.org/basic-syntax/#images-1)``
+""";
 
 class DetailIconButton extends StatefulWidget {
   final bool show;
@@ -74,23 +105,26 @@ class _DetailButtonState extends State<DetailButton> {
     if (widget.show) {
       return Row(
         children: [
-          OutlinedButton(
-            onPressed: () {
-              if (grey) {
-                return;
-              }
-              widget.onPressed();
-              setState(() {
-                grey = true;
-              });
-              Timer(Duration(milliseconds: 15 + widget.timerMs), () {
+          SizedBox(
+            height: 40,
+            child: OutlinedButton(
+              onPressed: () {
+                if (grey) {
+                  return;
+                }
+                widget.onPressed();
                 setState(() {
-                  grey = false;
+                  grey = true;
                 });
-              });
-            },
-            style: OutlinedButton.styleFrom(side: grey ? _buttonBorderStyleGrey : _buttonBorderStyle),
-            child: Text(widget.text, style: grey ? _styleSmallDisabled : _styleSmall),
+                Timer(Duration(milliseconds: 15 + widget.timerMs), () {
+                  setState(() {
+                    grey = false;
+                  });
+                });
+              },
+              style: OutlinedButton.styleFrom(side: grey ? _buttonBorderStyleGrey : _buttonBorderStyle),
+              child: Text(widget.text, style: grey ? _styleSmallDisabled : _styleSmall),
+            ),
           ),
           const SizedBox(width: 8)
         ],
@@ -170,6 +204,104 @@ class _OptionListWidgetState extends State<OptionListWidget> {
           ),
         ],
       ],
+    );
+  }
+}
+
+class MarkDownInputField extends StatefulWidget {
+  final String initialText;
+  final void Function(String, String, OptionsTypeData) onClose;
+  final double height;
+  final double width;
+  final bool Function(bool) shouldDisplayHelp;
+  final bool Function(DetailAction) dataAction;
+
+  const MarkDownInputField({super.key, required this.initialText, required this.onClose, required this.height, required this.width, required this.shouldDisplayHelp, required this.dataAction});
+  @override
+  State<MarkDownInputField> createState() => _MarkDownInputField();
+}
+
+class _MarkDownInputField extends State<MarkDownInputField> {
+  final controller = TextEditingController();
+  @override
+  initState() {
+    super.initState();
+    controller.text = widget.initialText;
+  }
+
+  void doOnTapLink(String text, String? href, String title) {
+    if (href != null) {
+      widget.dataAction(DetailAction(
+        ActionType.link,
+        true,
+        Path.empty(),
+        href,
+        optionTypeDataString,(p0, p1, p2) {
+          return true;
+        },
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: widget.height,
+      width: widget.width,
+      child: Column(
+        children: [
+          widget.shouldDisplayHelp(false)
+              ? Container(
+                  color: Colors.green.shade300,
+                  child: Markdown(
+                    data: helpText,
+                    selectable: true,
+                    shrinkWrap: true,
+                    styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
+                    onTapLink: doOnTapLink,
+                  ))
+              : const SizedBox(
+                  height: 0,
+                ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.multiline,
+              style: _inputTextStyle,
+              maxLines: null,
+              expands: true,
+              onChanged: (value) {
+                setState(() {});
+              },
+            ),
+          ),
+          Row(
+            children: [
+              DetailButton(
+                show: controller.text != widget.initialText,
+                text: 'OK',
+                onPressed: () {
+                  widget.onClose("OK", controller.text, optionTypeDataMarkDown);
+                },
+              ),
+              DetailButton(
+                text: 'Cancel',
+                onPressed: () {
+                  widget.onClose("Cancel", widget.initialText, optionTypeDataMarkDown);
+                },
+              ),
+              DetailButton(
+                text: widget.shouldDisplayHelp(false) ? 'Hide Help' : "Show Help",
+                onPressed: () {
+                  setState(() {
+                    widget.shouldDisplayHelp(true);
+                  });
+                },
+              )
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -312,9 +444,7 @@ String _toTrueFalse(String value) {
       return _falseStr;
     }
     return _trueStr;
-  } catch(e) {
+  } catch (e) {
     return _falseStr;
   }
 }
-
-

@@ -10,8 +10,6 @@ const _styleLarge = TextStyle(fontFamily: 'Code128', fontWeight: FontWeight.w500
 const _styleList = TextStyle(fontFamily: 'Code128', fontWeight: FontWeight.w500, fontSize: 25.0, color: Colors.black);
 const _styleSmall = TextStyle(fontFamily: 'Code128', fontWeight: FontWeight.w500, fontSize: 25.0, color: Colors.black);
 const _styleSubTitle = TextStyle(fontFamily: 'Code128', fontSize: 17.0, color: Colors.black);
-
-
 //
 
 class DataValueDisplayRow {
@@ -104,6 +102,14 @@ class _DetailWidgetState extends State<DetailWidget> {
     return true;
   }
 
+  void doOnTapLink(String text, String? href, String title) {
+    if (href != null) {
+      widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.path, href,widget.dataValueRow.type , (p0, p1, p2) {
+        return true;
+      }));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final hiLight = widget.hiLightedPaths.contains(widget.dataValueRow.pathString);
@@ -157,7 +163,7 @@ class _DetailWidgetState extends State<DetailWidget> {
   }
 
   Widget _cardForValue(final DataValueDisplayRow dataValueRow, final MaterialColor materialColor, final bool hiLight) {
-    if (dataValueRow.displayTypeData.displayType == DisplayType.positionalString) {
+    if (dataValueRow.type.equal(optionTypeDataPositional)) {
       return Card(
         margin: EdgeInsetsGeometry.lerp(null, null, 5),
         color: materialColor.shade700,
@@ -173,17 +179,17 @@ class _DetailWidgetState extends State<DetailWidget> {
         ),
       );
     }
-    if (dataValueRow.displayTypeData.displayType == DisplayType.markDown) {
+    if (dataValueRow.type.equal(optionTypeDataMarkDown)) {
       return Card(
         margin: EdgeInsetsGeometry.lerp(null, null, 5),
         color: materialColor.shade200,
         child: SizedBox(
-          height: 200,
           child: Markdown(
             data: dataValueRow.value,
             selectable: true,
             shrinkWrap: true,
             styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
+            onTapLink: doOnTapLink,
           ),
         ),
       );
@@ -267,7 +273,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               title: Text(widget.dataValueRow.name, style: _styleSmall),
               subtitle: Text("Group is Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: _styleSubTitle),
               onTap: () {
-                widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathString, widget.dataValueRow.name,optionTypeDataGroup, _onCompleteAction));
+                widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathString, widget.dataValueRow.name, optionTypeDataGroup, _onCompleteAction));
               },
             ),
             Row(

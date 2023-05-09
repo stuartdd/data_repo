@@ -21,15 +21,23 @@ final TextEditingController textEditingController = TextEditingController(text: 
 
 const appBarHeight = 50.0;
 const statusBarHeight = 35.0;
+const inputTextTitleStyleHeight = 35.0;
 const iconDataFileLoad = Icons.file_open;
 const dialogTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.black);
 const dialogButtonStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.blue);
 const statusTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.black);
 const headingTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.black);
-const inputTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 30.0, color: Colors.black);
+const inputTextTitleStyle = TextStyle(fontFamily: 'Code128', fontSize: 30.0, color: Colors.black);
+
+bool _shouldDisplayMarkdownHelp = false;
 
 void closer(int returnCode) async {
   exit(returnCode);
+}
+
+bool implementLink(String href) {
+  debugPrint("LINK to $href. Simples!");
+  return true;
 }
 
 void main() async {
@@ -502,6 +510,10 @@ class _MyHomePageState extends State<MyHomePage> {
               );
               return true;
             }
+          case ActionType.link:
+            {
+              return implementLink(detailActionData.oldValue);
+            }
           default:
             {
               return false;
@@ -786,59 +798,78 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
     builder: (BuildContext context) {
       return AlertDialog(
         backgroundColor: _configData.getMaterialColor().shade300,
-        title: Text(title, style: inputTextStyle),
+        title: SizedBox(height: inputTextTitleStyleHeight, child: Text(title, style: inputTextTitleStyle)),
         content: SingleChildScrollView(
           child: ListBody(
             children: [
-              ValidatedInputField(
-                options: options,
-                initialOption: currentOption,
-                prompt: "Input: \$",
-                initialValue: currentValue,
-                onClose: (action, text, type) {
-                  onAction(action, text, type);
-                  Navigator.of(context).pop();
-                },
-                onValidate: (ix, vx, it, vt) {
-                  final trimV = vx.trim();
-                  final trimI = ix.trim();
-                  if (vt.elementType == bool) {
-                    final trimLcV = trimV.toLowerCase();
-                    if (trimLcV == "yes" || trimLcV == "no" || trimLcV == "true" || trimLcV == "false" || trimLcV == "1" || trimLcV == "0") {
-                      return "";
-                    } else {
-                      return "Must be 'Yes' or 'No";
-                    }
-                  }
-                  if (vt.elementType == String) {
-                    if (trimV == trimI && trimI != "") {
-                      return "";
-                    }
-                    final m = vt.inRangeInt("Length", trimV.length);
-                    if (m.isNotEmpty) {
-                      return m;
-                    }
-                    return externalValidate(trimI, trimV, it, vt);
-                  }
-                  if (vt.elementType == double) {
-                    try {
-                      final d = double.parse(trimV);
-                      return vt.inRangeDouble("Value ", d);
-                    } catch (e) {
-                      return "That is not a ${vt.description}";
-                    }
-                  }
-                  if (vt.elementType == int) {
-                    try {
-                      final i = int.parse(trimV);
-                      return vt.inRangeInt("Value ", i);
-                    } catch (e) {
-                      return "That is not a ${vt.description}";
-                    }
-                  }
-                  return externalValidate(trimI, trimV, it, vt);
-                },
-              ),
+              currentOption == optionTypeDataMarkDown
+                  ? MarkDownInputField(
+                      initialText: currentValue,
+                      onClose: (action, text, type) {
+                        onAction(action, text, type);
+                        Navigator.of(context).pop();
+                      },
+                      height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
+                      width: MediaQuery.of(context).size.width,
+                      shouldDisplayHelp: (flipValue) {
+                        if (flipValue) {
+                          _shouldDisplayMarkdownHelp = !_shouldDisplayMarkdownHelp;
+                        }
+                        return _shouldDisplayMarkdownHelp;
+                      },
+                      dataAction: (action) {
+                        return implementLink(action.oldValue);
+                      },
+                    )
+                  : ValidatedInputField(
+                      options: options,
+                      initialOption: currentOption,
+                      prompt: "Input: \$",
+                      initialValue: currentValue,
+                      onClose: (action, text, type) {
+                        onAction(action, text, type);
+                        Navigator.of(context).pop();
+                      },
+                      onValidate: (ix, vx, it, vt) {
+                        final trimV = vx.trim();
+                        final trimI = ix.trim();
+                        if (vt.elementType == bool) {
+                          final trimLcV = trimV.toLowerCase();
+                          if (trimLcV == "yes" || trimLcV == "no" || trimLcV == "true" || trimLcV == "false" || trimLcV == "1" || trimLcV == "0") {
+                            return "";
+                          } else {
+                            return "Must be 'Yes' or 'No";
+                          }
+                        }
+                        if (vt.elementType == String) {
+                          if (trimV == trimI && trimI != "") {
+                            return "";
+                          }
+                          final m = vt.inRangeInt("Length", trimV.length);
+                          if (m.isNotEmpty) {
+                            return m;
+                          }
+                          return externalValidate(trimI, trimV, it, vt);
+                        }
+                        if (vt.elementType == double) {
+                          try {
+                            final d = double.parse(trimV);
+                            return vt.inRangeDouble("Value ", d);
+                          } catch (e) {
+                            return "That is not a ${vt.description}";
+                          }
+                        }
+                        if (vt.elementType == int) {
+                          try {
+                            final i = int.parse(trimV);
+                            return vt.inRangeInt("Value ", i);
+                          } catch (e) {
+                            return "That is not a ${vt.description}";
+                          }
+                        }
+                        return externalValidate(trimI, trimV, it, vt);
+                      },
+                    ),
             ],
           ),
         ),

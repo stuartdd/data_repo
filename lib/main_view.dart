@@ -110,7 +110,7 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
     } else if (element.value is List) {
       lm.add(DataValueDisplayRow(element.key, "",  optionTypeDataGroup, false, path, (element.value as List).length));
     } else {
-      lv.add(DataValueDisplayRow(element.key, element.value.toString(),  OptionsTypeData.ForType(element.value.runtimeType), true, path, 0));
+      lv.add(DataValueDisplayRow(element.key, element.value.toString(),  OptionsTypeData.forTypeOrName(element.value.runtimeType, element.key), true, path, 0));
     }
   }
   lm.addAll(lv);
