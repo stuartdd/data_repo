@@ -12,6 +12,7 @@ import 'main_view.dart';
 import 'detail_buttons.dart';
 
 late final ConfigData _configData;
+late final AppColours _appColours;
 late final ApplicationState _applicationState;
 
 String _okCancelDialogResult = "";
@@ -30,6 +31,7 @@ const headingTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color:
 const inputTextTitleStyle = TextStyle(fontFamily: 'Code128', fontSize: 30.0, color: Colors.black);
 
 bool _shouldDisplayMarkdownHelp = false;
+bool _shouldDisplayMarkdownPreview = false;
 
 void closer(int returnCode) async {
   exit(returnCode);
@@ -44,6 +46,7 @@ void main() async {
   try {
     _configData = ConfigData("config.json");
     _applicationState = await ApplicationState.readFromFile(_configData.getStateFileLocal());
+    _appColours = _configData.getAppColours();
     WidgetsFlutterBinding.ensureInitialized();
     if (_applicationState.isDesktop()) {
       setWindowTitle("${_configData.getTitle()}: ${_configData.getUserName()}");
@@ -108,7 +111,7 @@ class MyApp extends StatelessWidget with WindowListener {
     }
     return MaterialApp(
       title: 'data_repo',
-      theme: ThemeData(primarySwatch: _configData.getMaterialColor()),
+      theme: ThemeData(primarySwatch: _appColours.primary),
       home: MyHomePage(
         title: _configData.getTitle(),
       ),
@@ -434,7 +437,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _isEditDataDisplay,
       _applicationState.isDesktop(),
       _applicationState.screen.hDiv,
-      _configData.getMaterialColor(),
+      _appColours,
       _hiLightedPaths,
       _handleTreeSelect,
       (divPos) {
@@ -536,7 +539,7 @@ class _MyHomePageState extends State<MyHomePage> {
             SizedBox(
               height: appBarHeight,
               child: Container(
-                color: _configData.getMaterialColor().shade500,
+                color: _appColours.primary.shade500,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -549,7 +552,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           closer(0);
                         }
                       },
-                      materialColor: _configData.getMaterialColor(),
+                      appColours: _appColours,
                     ),
                     DetailIconButton(
                       show: _dataWasUpdated,
@@ -558,7 +561,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       onPressed: () {
                         _saveDataState(_password);
                       },
-                      materialColor: _configData.getMaterialColor(),
+                      appColours: _appColours,
                     ),
                     DetailIconButton(
                       show: _dataWasUpdated,
@@ -567,10 +570,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       onPressed: () {
                         _loadDataState(_password);
                       },
-                      materialColor: _configData.getMaterialColor(),
+                      appColours: _appColours,
                     ),
                     Container(
-                      color: _configData.getMaterialColor().shade400,
+                      color: _appColours.primary.shade400,
                       child: SizedBox(
                         // <-- SEE HERE
                         width: MediaQuery.of(context).size.width / 3,
@@ -595,7 +598,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     DetailIconButton(
                       show: _isPasswordInput,
-                      materialColor: _configData.getMaterialColor(),
+                      appColours: _appColours,
                       icon: const Icon(iconDataFileLoad),
                       tooltip: 'Load Data',
                       onPressed: () {
@@ -604,7 +607,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     DetailIconButton(
                       show: !_isPasswordInput,
-                      materialColor: _configData.getMaterialColor(),
+                      appColours: _appColours,
                       icon: const Icon(Icons.search),
                       tooltip: 'Search',
                       onPressed: () {
@@ -613,7 +616,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     DetailIconButton(
                       show: !_isPasswordInput,
-                      materialColor: _configData.getMaterialColor(),
+                      appColours: _appColours,
                       icon: const Icon(Icons.youtube_searched_for),
                       tooltip: 'Previous Searches',
                       onPressed: () async {
@@ -630,7 +633,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     DetailIconButton(
                       show: !_isPasswordInput,
-                      materialColor: _configData.getMaterialColor(),
+                      appColours: _appColours,
                       icon: const Icon(Icons.search_off),
                       tooltip: 'Clear Search',
                       onPressed: () {
@@ -640,7 +643,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     !_isPasswordInput
                         ? Container(
                             height: appBarHeight,
-                            color: _configData.getMaterialColor().shade400,
+                            color: _appColours.primary.shade400,
                             padding: const EdgeInsets.fromLTRB(1, 12, 1, 1),
                             child: const Text(
                               " EDIT: ",
@@ -652,7 +655,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                     DetailIconButton(
                       show: !_isPasswordInput,
-                      materialColor: _configData.getMaterialColor(),
+                      appColours: _appColours,
                       icon: _isEditDataDisplay ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
                       tooltip: 'Editing',
                       onPressed: () {
@@ -663,7 +666,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     DetailIconButton(
                       show: _isEditDataDisplay && !_isPasswordInput,
-                      materialColor: _configData.getMaterialColor(),
+                      appColours: _appColours,
                       icon: const Icon(Icons.add_box_outlined),
                       tooltip: 'Add',
                       onPressed: () {
@@ -689,14 +692,14 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
             Container(
-              color: _configData.getMaterialColor().shade400,
+              color: _appColours.primary.shade400,
               child: SizedBox(
                 height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight),
                 child: displayData.splitView,
               ),
             ),
             Container(
-              color: _globalSuccessState.isSuccess ? _configData.getMaterialColor().shade500 : Colors.red.shade500,
+              color: _globalSuccessState.isSuccess ? _appColours.primary.shade500 : _appColours.error.shade900,
               child: SizedBox(
                 height: statusBarHeight,
                 child: Row(
@@ -756,13 +759,13 @@ Future<void> _showModalDialog(final BuildContext context, final String title, fi
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        backgroundColor: _configData.getMaterialColor().shade300,
+        backgroundColor: _appColours.primary.shade300,
         title: Text(title, style: dialogTextStyle),
         content: SingleChildScrollView(
           child: ListBody(
             children: [
               for (int i = 0; i < texts.length; i++) ...[
-                (texts[i].startsWith('#')) ? Container(alignment: Alignment.center, color: _configData.getMaterialColor().shade500, child: Text(texts[i].substring(1), style: dialogTextStyle)) : Text(texts[i], style: dialogTextStyle),
+                (texts[i].startsWith('#')) ? Container(alignment: Alignment.center, color: _appColours.primary.shade500, child: Text(texts[i].substring(1), style: dialogTextStyle)) : Text(texts[i], style: dialogTextStyle),
               ]
             ],
           ),
@@ -797,7 +800,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        backgroundColor: _configData.getMaterialColor().shade300,
+        backgroundColor: _appColours.primary.shade300,
         title: SizedBox(height: inputTextTitleStyleHeight, child: Text(title, style: inputTextTitleStyle)),
         content: SingleChildScrollView(
           child: ListBody(
@@ -814,18 +817,32 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                       shouldDisplayHelp: (flipValue) {
                         if (flipValue) {
                           _shouldDisplayMarkdownHelp = !_shouldDisplayMarkdownHelp;
+                          if (_shouldDisplayMarkdownHelp) {
+                            _shouldDisplayMarkdownPreview = false;
+                          }
                         }
                         return _shouldDisplayMarkdownHelp;
+                      },
+                      shouldDisplayPreview: (flipValue) {
+                        if (flipValue) {
+                          _shouldDisplayMarkdownPreview = !_shouldDisplayMarkdownPreview;
+                          if (_shouldDisplayMarkdownPreview) {
+                            _shouldDisplayMarkdownHelp = false;
+                          }
+                        }
+                        return _shouldDisplayMarkdownPreview;
                       },
                       dataAction: (action) {
                         return implementLink(action.oldValue);
                       },
+                      appColours: _appColours,
                     )
                   : ValidatedInputField(
                       options: options,
                       initialOption: currentOption,
                       prompt: "Input: \$",
                       initialValue: currentValue,
+                      appColours: _appColours,
                       onClose: (action, text, type) {
                         onAction(action, text, type);
                         Navigator.of(context).pop();

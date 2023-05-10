@@ -1,3 +1,4 @@
+import 'package:data_repo/config.dart';
 import 'package:flutter/material.dart';
 import 'package:split_view/split_view.dart';
 import 'package:flutter_treeview/flutter_treeview.dart';
@@ -36,7 +37,7 @@ DisplayData createSplitView(
     final bool isEditDataDisplay,
     final bool horizontal, // Display horizontal or vertical split pane
     double initPos, // The split pane divider position
-    MaterialColor materialColor, // The colour scheme
+    AppColours appColours, // The colour scheme
     PathList hiLightedPath,
     final Function(String) onSelect, // Called when a tree node in selected
     final Function(double) onDivChange, // Called when the split pane divider is moved
@@ -63,7 +64,7 @@ DisplayData createSplitView(
     controller: treeViewController,
     allowParentSelect: true,
     supportParentDoubleTap: true,
-    theme: buildTreeViewTheme(materialColor),
+    theme: buildTreeViewTheme(appColours),
     onNodeDoubleTap: (key) {
       onSelect(key);
     },
@@ -76,7 +77,7 @@ DisplayData createSplitView(
   final Container detailContainer;
   final node = DataLoad.findLastMapNodeForPath(originalData, selectedNode);
   if (node != null) {
-    detailContainer = _createDetailContainer(node, selectedNode, isEditDataDisplay, hiLightedPath, materialColor, onDataAction);
+    detailContainer = _createDetailContainer(node, selectedNode, isEditDataDisplay, hiLightedPath, appColours, onDataAction);
   } else {
     detailContainer = Container(
       color: Colors.red,
@@ -108,16 +109,16 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
     if (element.value is Map) {
       lm.add(DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as Map).length));
     } else if (element.value is List) {
-      lm.add(DataValueDisplayRow(element.key, "",  optionTypeDataGroup, false, path, (element.value as List).length));
+      lm.add(DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as List).length));
     } else {
-      lv.add(DataValueDisplayRow(element.key, element.value.toString(),  OptionsTypeData.forTypeOrName(element.value.runtimeType, element.key), true, path, 0));
+      lv.add(DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.forTypeOrName(element.value.runtimeType, element.key), true, path, 0));
     }
   }
   lm.addAll(lv);
   return lm;
 }
 
-Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final bool isEditDataDisplay, PathList hiLightedPaths, final MaterialColor materialColor, final bool Function(DetailAction) dataAction) {
+Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final bool isEditDataDisplay, PathList hiLightedPaths, final AppColours appColours, final bool Function(DetailAction) dataAction) {
   List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath);
   properties.sort(
     (a, b) {
@@ -125,7 +126,7 @@ Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path s
     },
   );
   return Container(
-    color: materialColor.shade500,
+    color: appColours.primary.shade500,
     child: Scrollbar(
       child: ListView(
         shrinkWrap: true,
@@ -135,8 +136,7 @@ Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path s
           for (int index = 0; index < properties.length; index++)
             DetailWidget(
               dataValueRow: properties[index],
-              loMaterialColor: materialColor,
-              hiMaterialColor: Colors.teal,
+              appColours: appColours,
               hiLightedPaths: hiLightedPaths,
               dataAction: dataAction,
               isEditDataDisplay: isEditDataDisplay,
@@ -221,7 +221,7 @@ void _buildMapFromPathList(final Map<String, dynamic> map, final List<String> pa
   }
 }
 
-TreeViewTheme buildTreeViewTheme(final MaterialColor materialColor) {
+TreeViewTheme buildTreeViewTheme(final AppColours appColours) {
   return TreeViewTheme(
     expanderTheme: const ExpanderThemeData(
       type: ExpanderType.arrow,
@@ -238,7 +238,7 @@ TreeViewTheme buildTreeViewTheme(final MaterialColor materialColor) {
       letterSpacing: 0.1,
       fontWeight: FontWeight.w900,
     ),
-    colorScheme: ColorScheme.fromSeed(seedColor: materialColor),
+    colorScheme: ColorScheme.fromSeed(seedColor: appColours.primary),
     verticalSpacing: 5,
   );
 }

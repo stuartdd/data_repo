@@ -2,7 +2,9 @@
     {
         "application" : {
             "title": "Data Repository",
-            "colour": "blue"
+            "colours": {
+                "primary": "blue"
+            }
         },
         "user" : {
             "name" : "Stuart",

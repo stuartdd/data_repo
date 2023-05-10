@@ -1,3 +1,4 @@
+import 'package:data_repo/config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -80,10 +81,9 @@ class DataValueDisplayRow {
 }
 
 class DetailWidget extends StatefulWidget {
-  const DetailWidget({super.key, required this.dataValueRow, required this.loMaterialColor, required this.dataAction, required this.hiLightedPaths, required this.hiMaterialColor, required this.isEditDataDisplay});
+  const DetailWidget({super.key, required this.dataValueRow, required this.appColours, required this.dataAction, required this.hiLightedPaths, required this.isEditDataDisplay});
   final DataValueDisplayRow dataValueRow;
-  final MaterialColor loMaterialColor;
-  final MaterialColor hiMaterialColor;
+  final AppColours appColours;
   final PathList hiLightedPaths;
   final bool isEditDataDisplay;
   final bool Function(DetailAction) dataAction;
@@ -104,7 +104,7 @@ class _DetailWidgetState extends State<DetailWidget> {
 
   void doOnTapLink(String text, String? href, String title) {
     if (href != null) {
-      widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.path, href,widget.dataValueRow.type , (p0, p1, p2) {
+      widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.path, href, widget.dataValueRow.type, (p0, p1, p2) {
         return true;
       }));
     }
@@ -113,11 +113,10 @@ class _DetailWidgetState extends State<DetailWidget> {
   @override
   Widget build(BuildContext context) {
     final hiLight = widget.hiLightedPaths.contains(widget.dataValueRow.pathString);
-    final materialColor = hiLight ? widget.hiMaterialColor : widget.loMaterialColor;
     if (widget.dataValueRow.isValue) {
-      return _detailForValue(materialColor, hiLight);
+      return _detailForValue(widget.appColours, hiLight);
     }
-    return _dataForMap(materialColor, hiLight);
+    return _dataForMap(widget.appColours, hiLight);
   }
 
   Widget _rowForString(final String value, final MaterialColor materialColor) {
@@ -162,19 +161,19 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _cardForValue(final DataValueDisplayRow dataValueRow, final MaterialColor materialColor, final bool hiLight) {
+  Widget _cardForValue(final DataValueDisplayRow dataValueRow, final AppColours appColours, final bool hiLight) {
     if (dataValueRow.type.equal(optionTypeDataPositional)) {
       return Card(
         margin: EdgeInsetsGeometry.lerp(null, null, 5),
-        color: materialColor.shade700,
+        color: appColours.hiLowColor(hiLight).shade700,
         child: Column(
           children: [
-            _rowForPosition(dataValueRow.value.length, materialColor),
+            _rowForPosition(dataValueRow.value.length, appColours.hiLowColor(hiLight)),
             Container(
               color: Colors.black,
               height: 2,
             ),
-            _rowForString(dataValueRow.value, materialColor),
+            _rowForString(dataValueRow.value, appColours.hiLowColor(hiLight)),
           ],
         ),
       );
@@ -182,7 +181,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     if (dataValueRow.type.equal(optionTypeDataMarkDown)) {
       return Card(
         margin: EdgeInsetsGeometry.lerp(null, null, 5),
-        color: materialColor.shade200,
+        color: appColours.hiLowColor(hiLight).shade200,
         child: SizedBox(
           child: Markdown(
             data: dataValueRow.value,
@@ -196,15 +195,15 @@ class _DetailWidgetState extends State<DetailWidget> {
     }
     return Card(
       margin: EdgeInsetsGeometry.lerp(null, null, 5),
-      color: materialColor.shade200,
+      color: appColours.hiLowColor(hiLight).shade200,
       child: Padding(padding: const EdgeInsets.only(left: 20.0), child: Text(dataValueRow.value, style: _styleLarge)),
     );
   }
 
-  Widget _detailForValue(final MaterialColor materialColor, final bool hiLight) {
+  Widget _detailForValue(final AppColours appColours, final bool hiLight) {
     return SizedBox(
       child: Card(
-          color: materialColor.shade600,
+          color: appColours.primary.shade600,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ListTile(
               leading: hiLight ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
@@ -213,7 +212,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ),
             SizedBox(
               width: double.infinity,
-              child: _cardForValue(widget.dataValueRow, materialColor, hiLight),
+              child: _cardForValue(widget.dataValueRow, appColours, hiLight),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -263,10 +262,10 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _dataForMap(MaterialColor materialColor, bool hiLight) {
+  Widget _dataForMap(AppColours appColours, bool hiLight) {
     return SizedBox(
       child: Card(
-          color: materialColor.shade300,
+          color: appColours.primary.shade300,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ListTile(
               leading: hiLight ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),

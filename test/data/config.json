@@ -12,7 +12,9 @@
         },
         "application" : {
             "title": "Data Repository",
-            "colour": "green"
+            "colours": {
+                "primary": "green"
+            }
         },
         "user" : {
             "name" : "Stuart (me)",

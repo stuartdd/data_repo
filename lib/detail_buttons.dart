@@ -1,3 +1,4 @@
+import 'package:data_repo/config.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'data_types.dart';
@@ -22,7 +23,7 @@ For a 'New Line': Use an empty line. Otherwise it is a paragraph. Don't have emp
 > > Block Quotes. Note space after >
 
 1. First list line (Ordered Lists)
-1. Sublist (4 spaces indent)
+    1. Sublist (4 spaces indent)
 2. Second List Line
 
 - Un-ordered list start line with a dash+space '- '
@@ -47,8 +48,8 @@ class DetailIconButton extends StatefulWidget {
   final int timerMs;
   final Icon icon;
   final String tooltip;
-  final MaterialColor materialColor;
-  const DetailIconButton({super.key, this.show = true, required this.onPressed, this.timerMs = 100, required this.icon, this.tooltip = "", required this.materialColor});
+  final AppColours appColours;
+  const DetailIconButton({super.key, this.show = true, required this.onPressed, this.timerMs = 100, required this.icon, this.tooltip = "", required this.appColours});
   @override
   State<DetailIconButton> createState() => _DetailIconButton();
 }
@@ -61,7 +62,7 @@ class _DetailIconButton extends State<DetailIconButton> {
     if (widget.show) {
       return IconButton(
         padding: const EdgeInsets.fromLTRB(1, 12, 1, 0),
-        color: grey ? widget.materialColor.shade900 : widget.materialColor.shade900,
+        color: grey ? widget.appColours.primary.shade200 : widget.appColours.primary.shade900,
         icon: widget.icon,
         tooltip: widget.tooltip,
         onPressed: () {
@@ -213,10 +214,12 @@ class MarkDownInputField extends StatefulWidget {
   final void Function(String, String, OptionsTypeData) onClose;
   final double height;
   final double width;
+  final AppColours appColours;
   final bool Function(bool) shouldDisplayHelp;
+  final bool Function(bool) shouldDisplayPreview;
   final bool Function(DetailAction) dataAction;
 
-  const MarkDownInputField({super.key, required this.initialText, required this.onClose, required this.height, required this.width, required this.shouldDisplayHelp, required this.dataAction});
+  const MarkDownInputField({super.key, required this.initialText, required this.onClose, required this.height, required this.width, required this.shouldDisplayHelp, required this.shouldDisplayPreview, required this.dataAction, required this.appColours});
   @override
   State<MarkDownInputField> createState() => _MarkDownInputField();
 }
@@ -250,9 +253,22 @@ class _MarkDownInputField extends State<MarkDownInputField> {
       width: widget.width,
       child: Column(
         children: [
+          widget.shouldDisplayPreview(false)
+              ? Container(
+              color: widget.appColours.hiLight.shade300,
+              child: Markdown(
+                data: controller.text,
+                selectable: true,
+                shrinkWrap: true,
+                styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
+                onTapLink: doOnTapLink,
+              ))
+              : const SizedBox(
+            height: 0,
+          ),
           widget.shouldDisplayHelp(false)
               ? Container(
-                  color: Colors.green.shade300,
+                  color: widget.appColours.secondary.shade300,
                   child: Markdown(
                     data: helpText,
                     selectable: true,
@@ -297,6 +313,14 @@ class _MarkDownInputField extends State<MarkDownInputField> {
                     widget.shouldDisplayHelp(true);
                   });
                 },
+              ),
+              DetailButton(
+                text: widget.shouldDisplayPreview(false) ? 'Hide Preview' : "Show Preview",
+                onPressed: () {
+                  setState(() {
+                    widget.shouldDisplayPreview(true);
+                  });
+                },
               )
             ],
           ),
@@ -307,7 +331,7 @@ class _MarkDownInputField extends State<MarkDownInputField> {
 }
 
 class ValidatedInputField extends StatefulWidget {
-  ValidatedInputField({super.key, required this.initialValue, required this.onClose, required this.onValidate, required this.prompt, required this.options, required this.initialOption});
+  ValidatedInputField({super.key, required this.initialValue, required this.onClose, required this.onValidate, required this.prompt, required this.options, required this.initialOption, required this.appColours});
   final String initialValue;
   final List<OptionsTypeData> options;
   final OptionsTypeData initialOption;
@@ -315,6 +339,7 @@ class ValidatedInputField extends StatefulWidget {
   final void Function(String, String, OptionsTypeData) onClose;
   final String Function(String, String, OptionsTypeData, OptionsTypeData) onValidate;
   final controller = TextEditingController();
+  final AppColours appColours;
 
   @override
   State<ValidatedInputField> createState() => _ValidatedInputFieldState();
@@ -375,7 +400,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
             : Column(children: [
                 Container(
                   alignment: Alignment.centerLeft,
-                  color: Colors.brown,
+                  color: widget.appColours.error.shade900,
                   child: Text(
                     " $help ",
                     style: _inputTextStyle,

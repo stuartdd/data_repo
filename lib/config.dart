@@ -6,6 +6,79 @@ import 'data_load.dart';
 import 'path.dart';
 import 'dart:io';
 
+const Map<String, MaterialColor> _colourNames = <String, MaterialColor>{
+  'red': Colors.red,
+  'pink': Colors.pink,
+  'purple': Colors.purple,
+  'deepPurple': Colors.deepPurple,
+  'indigo': Colors.indigo,
+  'blue': Colors.blue,
+  'lightBlue': Colors.lightBlue,
+  'cyan': Colors.cyan,
+  'teal': Colors.teal,
+  'green': Colors.green,
+  'lightGreen': Colors.lightGreen,
+  'lime': Colors.lime,
+  'yellow': Colors.yellow,
+  'amber': Colors.amber,
+  'orange': Colors.orange,
+  'deepOrange': Colors.deepOrange,
+  'brown': Colors.brown,
+  // The grey swatch is intentionally omitted because when picking a color
+  // randomly from this list to colorize an application, picking grey suddenly
+  // makes the app look disabled.
+  'blueGrey': Colors.blueGrey,
+};
+
+class AppColours {
+  var primary = _colourNames["blue"]!;
+  var secondary = _colourNames["green"]!;
+  var hiLight = _colourNames["yellow"]!;
+  var error = _colourNames["red"]!;
+
+  AppColours(Map<String, dynamic> json, Path path) {
+    final coloursAt = DataLoad.mapFromJson(json, path);
+    StringBuffer sb = StringBuffer();
+    sb.write("Invalid colours at config:application.colours: ");
+    int notFoundCount = 0;
+    coloursAt.forEach((n, v) {
+      if (v.runtimeType == String) {
+        final name = n.trim().toLowerCase();
+        final value = (v.toString()).trim().toLowerCase();
+
+        final colour = _colourNames[value];
+        if (colour != null) {
+          switch (name) {
+            case "primary":
+              primary = colour;
+              break;
+            case "secondary":
+              secondary = colour;
+              break;
+            case "hilight":
+              hiLight = colour;
+              break;
+            case "error":
+              error = colour;
+              break;
+          }
+        } else {
+          notFoundCount++;
+          sb.write(value);
+          sb.write(", ");
+        }
+      }
+    });
+    if (notFoundCount > 0) {
+      throw Exception(sb.toString());
+    }
+  }
+
+  MaterialColor hiLowColor(bool isHiLight) {
+    return isHiLight ? hiLight: primary;
+  }
+}
+
 class ApplicationScreen {
   ApplicationScreen(this.x, this.y, this.w, this.h, this.hDiv);
   final double x;
@@ -154,30 +227,6 @@ class ApplicationState {
 }
 
 class ConfigData {
-  static const Map<String, MaterialColor> _colourNames = <String, MaterialColor>{
-    'red': Colors.red,
-    'pink': Colors.pink,
-    'purple': Colors.purple,
-    'deepPurple': Colors.deepPurple,
-    'indigo': Colors.indigo,
-    'blue': Colors.blue,
-    'lightBlue': Colors.lightBlue,
-    'cyan': Colors.cyan,
-    'teal': Colors.teal,
-    'green': Colors.green,
-    'lightGreen': Colors.lightGreen,
-    'lime': Colors.lime,
-    'yellow': Colors.yellow,
-    'amber': Colors.amber,
-    'orange': Colors.orange,
-    'deepOrange': Colors.deepOrange,
-    'brown': Colors.brown,
-    // The grey swatch is intentionally omitted because when picking a color
-    // randomly from this list to colorize an application, picking grey suddenly
-    // makes the app look disabled.
-    'blueGrey': Colors.blueGrey,
-  };
-
   final String _fileName;
   late final String _getDataFileUrl;
   late final String _dataFileName;
@@ -187,7 +236,7 @@ class ConfigData {
   late final String _title;
   late final String _userName;
   late final String _userId;
-  late final MaterialColor _materialColor;
+  late final AppColours _appColours;
 
   ConfigData(this._fileName) {
     final s = DataLoad.loadFromFile(_fileName);
@@ -200,29 +249,11 @@ class ConfigData {
     _userName = DataLoad.stringFromJson(json, Path.fromList(["user", "name"]));
     _userId = DataLoad.stringFromJson(json, Path.fromList(["user", "id"]));
     _title = DataLoad.stringFromJson(json, Path.fromList(["application", "title"]));
-    final col = DataLoad.stringFromJson(json, Path.fromList(["application", "colour"]));
-    var mc = _colourNames["red"];
-    var notFound = true;
-    for (var k in _colourNames.keys) {
-      if (k == col) {
-        mc = _colourNames[k];
-        notFound = false;
-        break;
-      }
-    }
-    _materialColor = mc!;
-    if (notFound) {
-      StringBuffer sb = StringBuffer();
-      for (var k in _colourNames.keys) {
-        sb.write(k);
-        sb.write(", ");
-      }
-      throw JsonException(message: "ConfigData: MaterialColor values must be one of [$sb]", Path.fromList(["application", "colour"]));
-    }
+    _appColours = AppColours(json, Path.fromList(["application", "colours"]));
   }
 
-  MaterialColor getMaterialColor() {
-    return _materialColor;
+  AppColours getAppColours() {
+    return _appColours;
   }
 
   String getDataFileUrl() {
