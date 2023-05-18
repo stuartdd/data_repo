@@ -1,4 +1,5 @@
 import 'package:data_repo/data_load.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'test_tools.dart';
 import 'package:data_repo/path.dart';
@@ -6,36 +7,27 @@ import 'package:data_repo/path.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 
+void log(String text) {
+  debugPrint(text);
+}
+
 void main() {
   // test('Test Get From Server', () async {
-  //   try {
-  //     var s = await DataLoad.fromHttpGet("http://192.168.1.243:8080/files/user/stuart/loc/mydb/named/mydb.data");
-  //     fail("Did not throw any Exception");
-  //   } on http.ClientException catch (e) {
-  //     assertContains(["404", "408"], e.toString());
-  //   } on TestFailure catch (e) {
-  //     fail("$e");
-  //   } catch (e) {
-  //     fail("Did not throw a ClientException. Got $e ${e.runtimeType.toString()}");
-  //   }
-  //   var v = await DataLoad.fromHttpGet("http://192.168.1.243:8080/files/user/stuart/loc/mydb/name/mydb.data");
-  //   expect(v.length > 100, true, reason: "Length of response from server is less than 100");
+  //   var resp = await DataLoad.fromHttpGet("http://192.168.1.243:8080/files/user/stuart/loc/mydb/named/mydb.data", log: log);
+  //   var v = await DataLoad.fromHttpGet("http://192.168.1.243:8080/files/user/stuart/loc/mydb/name/mydb.data", log: log);
+  //   expect(v.value.length > 100, true, reason: "Length of response from server is less than 100");
   // });
 
   test('Test Get From File', () async {
-    try {
-      DataLoad.loadFromFile("abc.txt");
-      fail("Did not throw any Exception");
-    } on PathNotFoundException catch (e) {
-      assertContainsAll(["No such file or directory"], e.toString());
-    } on TestFailure catch (e) {
-      fail("$e");
-    } catch (e) {
-      fail("Did not throw a PathNotFoundException. Got $e ${e.runtimeType.toString()}");
-    }
+    var state = DataLoad.loadFromFile("abc.txt", log: log);
+    assertContainsAll(["Failed to load Data file"], state.message);
+    assertContainsAll(["PathNotFoundException", "No such file or directory"], state.exception.toString());
+    expect(state.isSuccess, false);
 
-    final v = DataLoad.loadFromFile("test/data_load_test.dart");
-    assertContainsAll(["DataLoad.fromHttpGet", "DataLoad.fromFile"], v.message);
+    state = DataLoad.loadFromFile("test/data_load_test.dart", log: log);
+    assertContainsAll(["Data loaded OK"], state.message);
+    assertContainsAll(["void main()"], state.value);
+    expect(state.isSuccess, true);
   });
 
   test('Test Find Node in Json', () async {
@@ -53,10 +45,25 @@ void main() {
     }
   });
 
+  test('Test Get JSON String Not Found', () async {
+    try {
+      var s = DataLoad.jsonLoadFromFile("test/data/config.json");
+      expect(DataLoad.stringFromJson(s, Path.fromList(["application", "colours", "xxx"]), fallback: "green"), "green");
+      expect(DataLoad.stringFromJson(s, Path.fromList(["application", "colours", "xxx"])), "green");
+      fail("Did not throw any Exception");
+    } on JsonException catch (e) {
+      assertContainsAll(["stringFromJson", "Node was NOT found"], e.toString());
+    } on TestFailure catch (e) {
+      fail("$e");
+    } catch (e) {
+      fail("Did not throw a ConfigException. Got $e ${e.runtimeType.toString()}");
+    }
+  });
+
   test('Test Get JSON Colour', () async {
     try {
       var s = DataLoad.jsonLoadFromFile("test/data/config.json");
-      expect(DataLoad.stringFromJson(s, Path.fromList(["application", "colour"])), "green");
+      expect(DataLoad.stringFromJson(s, Path.fromList(["application", "colours", "primary"])), "green");
       expect(DataLoad.colorFromHexJson(s, Path.fromList(["test-data", "colourHex"])).value.toRadixString(16), "ff2196ff");
       expect(DataLoad.colorFromHexJson(s, Path.fromList(["test-data", "colourBad"])), 0);
       fail("Did not throw any Exception");

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:data_repo/data_load.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 import 'package:window_size/window_size.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
@@ -8,12 +9,17 @@ import 'encrypt.dart';
 import 'path.dart';
 import 'data_types.dart';
 import 'config.dart';
+import 'appState.dart';
 import 'main_view.dart';
 import 'detail_buttons.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 late final ConfigData _configData;
 late final AppColours _appColours;
 late final ApplicationState _applicationState;
+
+StringBuffer eventLog = StringBuffer();
+String eventLogLatest = "";
 
 String _okCancelDialogResult = "";
 bool _inExitProcess = false;
@@ -42,13 +48,26 @@ bool implementLink(String href) {
   return true;
 }
 
+void log(String text) {
+  if (text == eventLogLatest) {
+    return;
+  }
+  eventLogLatest = text;
+  eventLog.writeln(text);
+  eventLog.writeln("\n");
+}
+
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   try {
-    _configData = ConfigData("config.json");
-    _applicationState = await ApplicationState.readFromFile(_configData.getStateFileLocal());
+    final path = await ApplicationState.getAppPath();
+    final isDesktop = ApplicationState.appIsDesktop();
+    log("${isDesktop ? "__START:__ Desktop" : "__Mobile__"} App");
+    log("__PATH:__ $path");
+    _configData = ConfigData(path, "config.json", isDesktop, log);
+    _applicationState = await ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), log);
     _appColours = _configData.getAppColours();
-    WidgetsFlutterBinding.ensureInitialized();
-    if (_applicationState.isDesktop()) {
+    if (isDesktop) {
       setWindowTitle("${_configData.getTitle()}: ${_configData.getUserName()}");
       const WindowOptions(
         minimumSize: Size(200, 200),
@@ -60,7 +79,6 @@ void main() async {
     stderr.writeln(e);
     closer(1);
   }
-
   runApp(MyApp());
 }
 
@@ -88,10 +106,10 @@ class MyApp extends StatelessWidget with WindowListener {
       case 'move':
       case 'resize':
         {
-          if (_applicationState.isDesktop()) {
+          if (_configData.isDesktop()) {
             final info = await getWindowInfo();
             if (_applicationState.updateScreen(info.frame.left, info.frame.top, info.frame.width, info.frame.height)) {
-              await _applicationState.writeToFile(false);
+              await _applicationState.writeAppStateConfigFile(false);
             }
           }
           break;
@@ -106,7 +124,7 @@ class MyApp extends StatelessWidget with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    if (_applicationState.isDesktop()) {
+    if (_configData.isDesktop()) {
       windowManager.addListener(this);
     }
     return MaterialApp(
@@ -170,40 +188,33 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _loadDataState(String pw) {
+  void _loadDataState(String pw) async {
     if (pw == "") {
       setState(() {
-        debugPrint("SS:_loadDataState 1");
-        _globalSuccessState = SuccessState(false, message: "Password was not provided");
+        _globalSuccessState = SuccessState(false, message: "Password was not provided", log: log);
+        return;
       });
-      return;
     }
-    final ss = DataLoad.loadFromFile(_configData.getDataFileLocal());
-    if (!ss.isSuccess) {
-      setState(() {
-        debugPrint("SS:_loadDataState 2");
-        _globalSuccessState = ss;
-      });
-      return;
-    }
-    Map<String, dynamic> data;
-    try {
-      data = DataLoad.jsonFromString(ss.value);
-    } catch (r) {
-      setState(() {
-        debugPrint("SS:_loadDataState 2");
-        _globalSuccessState = SuccessState(false, message: "Data file could not be parsed", exception: r as Exception);
-      });
-      return;
+    var ss = await DataLoad.fromHttpGet(_configData.getDataFileUrl(), log: log);
+    if (ss.isFail) {
+      ss = DataLoad.loadFromFile(_configData.getDataFileLocal(), log: log);
+      if (ss.isFail) {
+        setState(() {
+          _globalSuccessState = ss;
+          return;
+        });
+      }
     }
     setState(() {
-      debugPrint("SS:_loadDataState 4");
-      if (data.isEmpty) {
-        _globalSuccessState = SuccessState(false, message: "Data file does not contain any data");
+      final Map<String, dynamic> data;
+      try {
+        data = DataLoad.jsonFromString(ss.value);
+      } catch (r) {
+        _globalSuccessState = SuccessState(false, message: "Data file could not be parsed", exception: r as Exception, log: log);
         return;
       }
-      if (data[_configData.getUserId()] == null) {
-        _globalSuccessState = SuccessState(false, message: "Data file does not contain the users data");
+      if (data.isEmpty) {
+        _globalSuccessState = SuccessState(false, message: "Data file does not contain any data", log: log);
         return;
       }
       _password = pw;
@@ -212,6 +223,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _loadedData = data;
       _selected = Path.fromDotPath(_loadedData.keys.first);
       _hiLightedPaths.clean();
+      _globalSuccessState = SuccessState(true, message: "Data File loaded and parsed", log: log);
     });
   }
 
@@ -249,6 +261,7 @@ class _MyHomePageState extends State<MyHomePage> {
         });
         break;
     }
+    _globalSuccessState = SuccessState(true, message: "Node '$name' added", log: log);
   }
 
   void _handleTreeSelect(String dotPath) {
@@ -332,6 +345,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _hiLightedPaths.add(detailActionData.path);
           _globalSuccessState = SuccessState(true, message: "Item renamed");
         }
+        _globalSuccessState = SuccessState(true, message: "Node '${detailActionData.oldValue}' renamed $newName", log: log);
       });
     }
   }
@@ -352,6 +366,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _dataWasUpdated = true;
           _globalSuccessState = SuccessState(true, message: "Removed: '${path.getLast()}'");
         }
+        _globalSuccessState = SuccessState(true, message: "Node '${path.getLast()}' removed", log: log);
       });
     }
   }
@@ -392,7 +407,7 @@ class _MyHomePageState extends State<MyHomePage> {
           }
         }
         _hiLightedPaths.add(detailActionData.path);
-        _globalSuccessState = SuccessState(true, message: "Item updated");
+        _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.getLastPathElement()} updated");
       });
     }
   }
@@ -435,7 +450,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _expand,
       _selected,
       _isEditDataDisplay,
-      _applicationState.isDesktop(),
+      _configData.isDesktop(),
       _applicationState.screen.hDiv,
       _appColours,
       _hiLightedPaths,
@@ -443,7 +458,7 @@ class _MyHomePageState extends State<MyHomePage> {
       (divPos) {
         //
         if (_applicationState.updateDividerPos(divPos)) {
-          _applicationState.writeToFile(false);
+          _applicationState.writeAppStateConfigFile(false);
         }
       },
       (searchCount) {
@@ -451,7 +466,7 @@ class _MyHomePageState extends State<MyHomePage> {
         if (searchCount > 0 && _previousSearch != _search) {
           _previousSearch = _search;
           _applicationState.addLastFind(_search, 5);
-          _applicationState.writeToFile(false);
+          _applicationState.writeAppStateConfigFile(false);
         }
       },
       (detailActionData) {
@@ -523,6 +538,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
         }
       },
+      log,
     );
 
     // This method is rerun every time setState is called, for instance as done
@@ -601,6 +617,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       appColours: _appColours,
                       icon: const Icon(iconDataFileLoad),
                       tooltip: 'Load Data',
+                      timerMs: 5000,
                       onPressed: () {
                         _loadDataState("to-do ${textEditingController.text}");
                       },
@@ -704,6 +721,18 @@ class _MyHomePageState extends State<MyHomePage> {
                 height: statusBarHeight,
                 child: Row(
                   children: [
+                    DetailIconButton(
+                      appColours: _appColours,
+                      icon: const Icon(
+                        Icons.view_timeline,
+                        size: statusBarHeight,
+                      ),
+                      tooltip: 'Log',
+                      padding: const EdgeInsets.fromLTRB(1, 1, 1, 0),
+                      onPressed: () {
+                        _showLogDialog(context, eventLog.toString());
+                      },
+                    ),
                     Text(
                       _globalSuccessState.toString(),
                       style: statusTextStyle,
@@ -715,6 +744,37 @@ class _MyHomePageState extends State<MyHomePage> {
           ]),
     );
   }
+}
+
+Future<void> _showLogDialog(final BuildContext context, final String log) async {
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Event Log', style: dialogButtonStyle),
+        content: SingleChildScrollView(
+            child: SizedBox(
+          height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
+          width: MediaQuery.of(context).size.width,
+          child: Markdown(
+            data: log,
+            selectable: true,
+            shrinkWrap: true,
+            styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
+          ),
+        )),
+        actions: <Widget>[
+          TextButton(
+            child: const Text('OK', style: dialogButtonStyle),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
 }
 
 Future<void> _showSearchDialog(final BuildContext context, final List<String> prevList, final Function(String) onSelect) async {

@@ -49,7 +49,8 @@ class DetailIconButton extends StatefulWidget {
   final Icon icon;
   final String tooltip;
   final AppColours appColours;
-  const DetailIconButton({super.key, this.show = true, required this.onPressed, this.timerMs = 100, required this.icon, this.tooltip = "", required this.appColours});
+  final EdgeInsetsGeometry padding;
+  const DetailIconButton({super.key, this.show = true, required this.onPressed, this.timerMs = 100, required this.icon, this.tooltip = "", required this.appColours,  this.padding = const EdgeInsets.fromLTRB(1, 12, 1, 0)});
   @override
   State<DetailIconButton> createState() => _DetailIconButton();
 }
@@ -61,7 +62,7 @@ class _DetailIconButton extends State<DetailIconButton> {
   Widget build(BuildContext context) {
     if (widget.show) {
       return IconButton(
-        padding: const EdgeInsets.fromLTRB(1, 12, 1, 0),
+        padding: widget.padding,
         color: grey ? widget.appColours.primary.shade200 : widget.appColours.primary.shade900,
         icon: widget.icon,
         tooltip: widget.tooltip,

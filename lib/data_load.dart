@@ -1,4 +1,6 @@
 import 'dart:ui';
+import 'package:data_repo/main.dart';
+
 import "path.dart";
 import 'package:http/http.dart' as http;
 import 'package:http_status_code/http_status_code.dart';
@@ -24,8 +26,21 @@ class SuccessState {
   final String value;
   final bool _isSuccess;
   late final Exception? _exception;
-  SuccessState(this._isSuccess, {this.message = "", this.value = "", Exception? exception}) {
+  SuccessState(this._isSuccess, {this.message = "", this.value = "", Exception? exception, void Function(String)? log}) {
     _exception = exception;
+    if (log != null) {
+      if (_exception != null) {
+        log("__EXCEPTION:__ ${_exception.toString()}");
+      } else {
+        if (!_isSuccess) {
+          log("__FAIL:__ '$message'");
+        } else {
+          if (message.isNotEmpty) {
+            log("__OK:__ $message");
+          }
+        }
+      }
+    }
   }
 
   bool get hasException {
@@ -37,6 +52,10 @@ class SuccessState {
       return false;
     }
     return _isSuccess;
+  }
+
+  bool get isFail {
+    return !isSuccess;
   }
 
   String get status {
@@ -73,7 +92,7 @@ class SuccessState {
 }
 
 class DataLoad {
-  static Future<String> fromHttpGet(String url) async {
+  static Future<SuccessState> fromHttpGet(String url, {void Function(String)? log}) async {
     final uri = Uri.parse(url);
     final response = await http.get(uri).timeout(
       const Duration(seconds: 2),
@@ -82,9 +101,9 @@ class DataLoad {
       },
     );
     if (response.statusCode != StatusCode.OK) {
-      throw http.ClientException("Failed to GET data from server. Status:${response.statusCode} Msg:${getStatusMessage(response.statusCode)}.", uri);
+      return SuccessState(false, message: "Remote Data loaded Failed. Status:${response.statusCode} Msg:${getStatusMessage(response.statusCode)}", log: log);
     }
-    return response.body;
+    return SuccessState(true, value: response.body, message: "Remote Data loaded OK", log: log);
   }
 
   static void pathsForMapNodes(Map<String, dynamic> json, Function(String) callBack) {
@@ -121,13 +140,15 @@ class DataLoad {
     return jsonEncode(contents);
   }
 
-  static SuccessState loadFromFile(String fileName) {
+  static SuccessState loadFromFile(String fileName, {void Function(String)? log}) {
     try {
       final contents = File(fileName).readAsStringSync();
-      return SuccessState(true, value: contents, message: "Data loaded OK");
+      return SuccessState(true, value: contents, message: "Local Data loaded OK", log: log);
     } catch (e, s) {
-      stderr.write("DataLoad:loadFromFile: $e\n$s");
-      return SuccessState(false, message: "Failed to load Data file", value: "", exception: e as Exception);
+      if (e is PathNotFoundException) {
+        return SuccessState(false, message: "Local Data file not found", value: "", exception: e, log: log);
+      }
+      return SuccessState(false, message: "Exception loading Local Data file", value: "", exception: e as Exception, log: log);
     }
   }
 
@@ -141,7 +162,7 @@ class DataLoad {
     return jsonFromString(json.value);
   }
 
-  static dynamic _nodeFromJson(Map<String, dynamic> json, Path path, String type) {
+  static dynamic _nodeFromJson(Map<String, dynamic> json, Path path) {
     if (path.isEmpty()) {
       throw JsonException(message: "_nodeFromJson: Empty Path", path);
     }
@@ -152,11 +173,17 @@ class DataLoad {
         return node;
       }
     }
-    throw JsonException(message: "_nodeFromJson: $type Node was NOT found", path);
+    return null;
   }
 
-  static String stringFromJson(Map<String, dynamic> json, Path path) {
-    final node = _nodeFromJson(json, path, "String");
+  static String stringFromJson(Map<String, dynamic> json, Path path, {String fallback = ""}) {
+    final node = _nodeFromJson(json, path);
+    if (node == null) {
+      if (fallback.isNotEmpty) {
+        return fallback;
+      }
+      throw JsonException(message: "stringFromJson: String Node was NOT found", path);
+    }
     if (node is String) {
       return node;
     }
@@ -164,7 +191,10 @@ class DataLoad {
   }
 
   static num numFromJson(Map<String, dynamic> json, Path path) {
-    final node = _nodeFromJson(json, path, "number");
+    final node = _nodeFromJson(json, path);
+    if (node == null) {
+      throw JsonException(message: "numFromJson: number Node was NOT found", path);
+    }
     if (node is num) {
       return node;
     }
@@ -172,7 +202,10 @@ class DataLoad {
   }
 
   static Color colorFromHexJson(Map<String, dynamic> json, Path path) {
-    final node = _nodeFromJson(json, path, "Hex:Color");
+    final node = _nodeFromJson(json, path);
+    if (node == null) {
+      throw JsonException(message: "colorFromHexJson: Hex:Color Node was NOT found", path);
+    }
     if (node is String) {
       var hexColor = node.replaceAll("#", "");
       if (hexColor.length == 6) {
@@ -190,7 +223,10 @@ class DataLoad {
   }
 
   static bool boolFromJson(Map<String, dynamic> json, Path path) {
-    final node = _nodeFromJson(json, path, "bool");
+    final node = _nodeFromJson(json, path);
+    if (node == null) {
+      throw JsonException(message: "boolFromJson: bool Node was NOT found", path);
+    }
     if (node is bool) {
       return node;
     }
@@ -198,7 +234,10 @@ class DataLoad {
   }
 
   static Map<String, dynamic> mapFromJson(Map<String, dynamic> json, Path path) {
-    final node = _nodeFromJson(json, path, "Map");
+    final node = _nodeFromJson(json, path);
+    if (node == null) {
+      throw JsonException(message: "mapFromJson: Map Node was NOT found", path);
+    }
     if (node is Map<String, dynamic>) {
       return node;
     }
@@ -233,7 +272,10 @@ class DataLoad {
   }
 
   static List<dynamic> listFromJson(Map<String, dynamic> json, Path path) {
-    final node = _nodeFromJson(json, path, "List");
+    final node = _nodeFromJson(json, path);
+    if (node == null) {
+      throw JsonException(message: "mapFromJson: List Node was NOT found", path);
+    }
     if (node is List<dynamic>) {
       return node;
     }

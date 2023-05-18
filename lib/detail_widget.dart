@@ -48,7 +48,7 @@ class DataValueDisplayRow {
   }
 
   String get value {
-    if (_type.key == "bool") {
+    if (_type.elementType == bool) {
       if (_value == "true") {
         return "Yes";
       }

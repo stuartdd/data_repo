@@ -42,13 +42,15 @@ DisplayData createSplitView(
     final Function(String) onSelect, // Called when a tree node in selected
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final Function(int) onSearchComplete, // Called when the search is complete
-    final bool Function(DetailAction) onDataAction) {
+    final bool Function(DetailAction) onDataAction,
+    final void Function(String) log) {
   // Called when one of the detail buttons is pressed
   /// Left right or Top bottom
   final SplitViewMode splitViewMode = horizontal ? SplitViewMode.Horizontal : SplitViewMode.Vertical;
   final SplitViewController splitViewController = SplitViewController(weights: [initPos, 1 - initPos], limits: [WeightLimit(min: splitMinTree, max: 1.0), WeightLimit(min: splitMinDetail, max: 1.0)]);
 
   if (originalData.isEmpty) {
+    log("__DATA:__ No data loaded");
     return DisplayData.error(Colors.red, ("No data has been loaded"));
   }
 
