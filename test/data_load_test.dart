@@ -4,23 +4,32 @@ import 'package:flutter_test/flutter_test.dart';
 import 'test_tools.dart';
 import 'package:data_repo/path.dart';
 
-import 'package:http/http.dart' as http;
-import 'dart:io';
-
 void log(String text) {
   debugPrint(text);
 }
 
 void main() {
-  // test('Test Get From Server', () async {
-  //   var resp = await DataLoad.fromHttpGet("http://192.168.1.243:8080/files/user/stuart/loc/mydb/named/mydb.data", log: log);
-  //   var v = await DataLoad.fromHttpGet("http://192.168.1.243:8080/files/user/stuart/loc/mydb/name/mydb.data", log: log);
-  //   expect(v.value.length > 100, true, reason: "Length of response from server is less than 100");
-  // });
+  test('Test Get From Server', () async {
+    await startTestServer();
+    final r = await DataLoad.fromHttpGet("http://localhost:$serverPort/files/data01.json");
+    if (r.isFail) {
+      fail(r.exception.toString());
+    }
+    if (!r.value.contains("\"Stuart\": {")) {
+      fail("Response does not contain \"Stuart\": {");
+    }
+    final f = await DataLoad.fromHttpGet("http://localhost:$serverPort/files/data0.xxx");
+    if (f.isSuccess) {
+      fail(r.message);
+    }
+    if (!f.message.contains("Status:404")) {
+      fail("Message does not contain \"Status:404\"");
+    }
+  });
 
   test('Test Get From File', () async {
     var state = DataLoad.loadFromFile("abc.txt", log: log);
-    assertContainsAll(["Failed to load Data file"], state.message);
+    assertContainsAll(["Local Data file not found"], state.message);
     assertContainsAll(["PathNotFoundException", "No such file or directory"], state.exception.toString());
     expect(state.isSuccess, false);
 
