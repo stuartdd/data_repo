@@ -1,11 +1,12 @@
 import 'package:data_repo/data_load.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'dart:convert' as json_tools;
 
 void main() {
   test('Test Search Filtered', () async {
     final StringBuffer sb = StringBuffer();
     try {
-      final s = DataLoad.jsonLoadFromFile("test/data/data02.json");
+      final s = json_tools.jsonDecode(DataLoad.loadFromFile("test/data/data02.json").value);
       DataLoad.pathsForMapNodes(
         s,
         (key) {
@@ -24,7 +25,7 @@ void main() {
   test('Test Search Basic', () async {
     final StringBuffer sb = StringBuffer();
     try {
-      final s = DataLoad.jsonLoadFromFile("test/data/data01.json");
+      final s = json_tools.jsonDecode(DataLoad.loadFromFile("test/data/data01.json").value);
       DataLoad.pathsForMapNodes(
         s,
         (key) {

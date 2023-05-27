@@ -4,7 +4,8 @@
             "title": "Data Repository",
             "colours": {
                 "primary": "blue"
-            }
+            },
+            "dataFetchTimeoutMillis": 500
         },
         "user" : {
             "name" : "Stuart",

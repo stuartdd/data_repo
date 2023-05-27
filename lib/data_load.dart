@@ -1,11 +1,11 @@
 import 'dart:ui';
-import 'package:data_repo/main.dart';
 
 import "path.dart";
 import 'package:http/http.dart' as http;
 import 'package:http_status_code/http_status_code.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'encrypt.dart';
 
 class JsonException implements Exception {
   final String message;
@@ -21,6 +21,77 @@ class JsonException implements Exception {
   }
 }
 
+class DataLoadException implements Exception {
+  final String message;
+  DataLoadException(this.message);
+  @override
+  String toString() {
+    return "JsonException: $message";
+  }
+}
+
+class DataContainer {
+  final String _fileContents;
+  final String _filePrefixMagic;
+  late final String _password;
+  late final bool _isEncrypted;
+  late final Map<String, dynamic> _dataMap;
+
+  factory DataContainer.empty() {
+    return DataContainer("", "");
+  }
+
+  DataContainer(this._fileContents, this._filePrefixMagic, {String password = ""}) {
+    if (_fileContents.isEmpty) {
+      _password = "";
+      _dataMap = <String, dynamic>{};
+      _isEncrypted = false;
+      return;
+    }
+    _password = password;
+    if (_fileContents.startsWith(_filePrefixMagic)) {
+      if (password.isEmpty) {
+        throw DataLoadException("Decrypt: Required password was not provided");
+      }
+      final temp = EncryptData.decrypt(_fileContents.substring(_filePrefixMagic.length), password);
+      _dataMap = jsonDecode(temp);
+      _isEncrypted = true;
+    } else {
+      _dataMap = jsonDecode(_fileContents);
+      _isEncrypted = false;
+    }
+  }
+
+  String get dataAsString {
+    JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+    final text = encoder.convert(_dataMap);
+
+    if (_isEncrypted) {
+      if (_password.isEmpty) {
+        throw DataLoadException("Encrypt: Required password was not provided");
+      }
+      return _filePrefixMagic + EncryptData.encryptAES(text, _password).base64;
+    }
+    return text;
+  }
+
+  Iterable<String> get keys {
+    return _dataMap.keys;
+  }
+
+  bool get isEmpty {
+    return _fileContents.isEmpty;
+  }
+
+  bool get hasData {
+    return _dataMap.isNotEmpty;
+  }
+
+  Map<String, dynamic> get dataMap {
+    return _dataMap;
+  }
+}
+
 class SuccessState {
   final String message;
   final String value;
@@ -30,7 +101,11 @@ class SuccessState {
     _exception = exception;
     if (log != null) {
       if (_exception != null) {
-        log("__EXCEPTION:__ ${_exception.toString()}");
+        if (message.isEmpty) {
+          log("__EXCEPTION:__ ${_exception.toString()}");
+        } else {
+          log("__EXCEPTION:__ $message. ${_exception.toString()}");
+        }
       } else {
         if (!_isSuccess) {
           log("__FAIL:__ '$message'");
@@ -92,18 +167,36 @@ class SuccessState {
 }
 
 class DataLoad {
-  static Future<SuccessState> fromHttpGet(String url, {void Function(String)? log}) async {
-    final uri = Uri.parse(url);
-    final response = await http.get(uri).timeout(
-      const Duration(seconds: 2),
-      onTimeout: () {
-        return http.Response('Error:', StatusCode.REQUEST_TIMEOUT);
-      },
-    );
-    if (response.statusCode != StatusCode.OK) {
-      return SuccessState(false, message: "Remote Data loaded Failed. Status:${response.statusCode} Msg:${getStatusMessage(response.statusCode)}", log: log);
+  static Future<SuccessState> fromHttpGet(String url, {void Function(String)? log, int timeoutMillis = 2000,String prefix = ""}) async {
+    try {
+      final uri = Uri.parse(url);
+      final response = await http.get(uri).timeout(
+        Duration(milliseconds: timeoutMillis),
+        onTimeout: () {
+          return http.Response('Error:', StatusCode.REQUEST_TIMEOUT);
+        },
+      );
+      if (response.statusCode != StatusCode.OK) {
+        return SuccessState(false, message: "Remote Data loaded Failed. Status:${response.statusCode} Msg:${getStatusMessage(response.statusCode)}", log: log);
+      }
+      final body = response.body.trim();
+      if (body.isEmpty) {
+        return SuccessState(false, message: "Remote Data was empty:", log: log);
+      }
+      if (prefix.isNotEmpty && body.startsWith(prefix)) {
+        return SuccessState(true, value: body.substring(prefix.length), message: "Remote Data loaded OK", log: log);
+      }
+      final body100 = body.length>100 ? body.substring(0,100).toLowerCase(): body;
+      if (body100.contains("<html>") || body100.contains("<!DOCTYPE")) {
+        return SuccessState(false, message: "Remote Data Load contains html:", log: log);
+      }
+      if (body.startsWith('{') || body.startsWith('[')) {
+        return SuccessState(true, value: body, message: "Remote Data loaded OK", log: log);
+      }
+      return SuccessState(false, message: "Remote Data Load was not JSON:", log: log);
+    } catch (e) {
+      return SuccessState(false, message: "Remote Data Load:", exception: e as Exception, log: log);
     }
-    return SuccessState(true, value: response.body, message: "Remote Data loaded OK", log: log);
   }
 
   static void pathsForMapNodes(Map<String, dynamic> json, Function(String) callBack) {
@@ -125,10 +218,9 @@ class DataLoad {
     });
   }
 
-  static SuccessState saveToFile(final String fileName, final Map<String, dynamic> contents) {
+  static SuccessState saveToFile(final String fileName, final String contents) {
     try {
-      JsonEncoder encoder = const JsonEncoder.withIndent('  ');
-      File(fileName).writeAsStringSync(encoder.convert(contents));
+      File(fileName).writeAsStringSync(contents);
       return SuccessState(true, message: "Data Saved OK");
     } catch (e, s) {
       stderr.write("DataLoad:saveToFile: $e\n$s");
@@ -144,22 +236,12 @@ class DataLoad {
     try {
       final contents = File(fileName).readAsStringSync();
       return SuccessState(true, value: contents, message: "Local Data loaded OK", log: log);
-    } catch (e, s) {
+    } catch (e) {
       if (e is PathNotFoundException) {
         return SuccessState(false, message: "Local Data file not found", value: "", exception: e, log: log);
       }
       return SuccessState(false, message: "Exception loading Local Data file", value: "", exception: e as Exception, log: log);
     }
-  }
-
-  static Map<String, dynamic> jsonFromString(String json) {
-    final parsedJson = jsonDecode(json);
-    return parsedJson;
-  }
-
-  static Map<String, dynamic> jsonLoadFromFile(String fileName) {
-    final json = DataLoad.loadFromFile(fileName);
-    return jsonFromString(json.value);
   }
 
   static dynamic _nodeFromJson(Map<String, dynamic> json, Path path) {
@@ -190,9 +272,12 @@ class DataLoad {
     throw JsonException(message: "stringFromJson: Node found was NOT a String node", path);
   }
 
-  static num numFromJson(Map<String, dynamic> json, Path path) {
+  static num numFromJson(Map<String, dynamic> json, Path path, {num? fallback}) {
     final node = _nodeFromJson(json, path);
     if (node == null) {
+      if (fallback != null) {
+        return fallback;
+      }
       throw JsonException(message: "numFromJson: number Node was NOT found", path);
     }
     if (node is num) {

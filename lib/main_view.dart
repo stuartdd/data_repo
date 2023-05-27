@@ -1,5 +1,6 @@
 import 'package:data_repo/config.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:split_view/split_view.dart';
 import 'package:flutter_treeview/flutter_treeview.dart';
 import 'data_load.dart';
@@ -76,10 +77,10 @@ DisplayData createSplitView(
   );
 
   /// Create the detail.
-  final Container detailContainer;
+  final Widget detailContainer;
   final node = DataLoad.findLastMapNodeForPath(originalData, selectedNode);
   if (node != null) {
-    detailContainer = _createDetailContainer(node, selectedNode, isEditDataDisplay, hiLightedPath, appColours, onDataAction);
+    detailContainer = _createDetailContainer(node, selectedNode, isEditDataDisplay, horizontal, hiLightedPath, appColours, onDataAction);
   } else {
     detailContainer = Container(
       color: Colors.red,
@@ -99,7 +100,10 @@ DisplayData createSplitView(
       viewMode: splitViewMode,
       isActive: true,
     ),
-    children: [SingleChildScrollView(child: treeView), SingleChildScrollView(child: detailContainer)],
+    children: [
+      treeView,
+      detailContainer,
+    ],
   );
   return DisplayData(splitView, treeViewController);
 }
@@ -120,32 +124,28 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
   return lm;
 }
 
-Container _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final bool isEditDataDisplay, PathList hiLightedPaths, final AppColours appColours, final bool Function(DetailAction) dataAction) {
+ListView _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathList hiLightedPaths, final AppColours appColours, final bool Function(DetailAction) dataAction) {
   List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath);
   properties.sort(
     (a, b) {
       return a.name.compareTo(b.name);
     },
   );
-  return Container(
-    color: appColours.primary.shade500,
-    child: Scrollbar(
-      child: ListView(
-        shrinkWrap: true,
-        restorationId: 'list_demo_list_view',
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          for (int index = 0; index < properties.length; index++)
-            DetailWidget(
-              dataValueRow: properties[index],
-              appColours: appColours,
-              hiLightedPaths: hiLightedPaths,
-              dataAction: dataAction,
-              isEditDataDisplay: isEditDataDisplay,
-            )
-        ],
-      ),
-    ),
+  return ListView(
+    shrinkWrap: true,
+    restorationId: 'list_demo_list_view',
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    children: [
+      for (int index = 0; index < properties.length; index++)
+        DetailWidget(
+          dataValueRow: properties[index],
+          appColours: appColours,
+          hiLightedPaths: hiLightedPaths,
+          dataAction: dataAction,
+          isEditDataDisplay: isEditDataDisplay,
+          isHorizontal: isHorizontal,
+        )
+    ],
   );
 }
 

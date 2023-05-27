@@ -87,7 +87,7 @@ class ApplicationState {
         return ApplicationState(ApplicationScreen(0, 0, -1, -1, 0.4), ["Mobile"], appStateConfigFileName, isDesktop, log);
       }
     }
-    final json = DataLoad.jsonFromString(content);
+    final json = jsonDecode(content);
     log("__APP STATE__ Parsed OK");
     return ApplicationState.fromJson(json, appStateConfigFileName, isDesktop, log);
   }

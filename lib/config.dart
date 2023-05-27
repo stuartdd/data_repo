@@ -30,7 +30,7 @@ const defaultConfig = """  {
                 "max": 10
             },
             "postDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
-            "getDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
+            "getDataUrl": "http://172.17.0.1:3000/files/data01.json",
             "datafile": "data03.json",
             "datafilePath": "test/data"
         }
@@ -123,6 +123,7 @@ class ConfigData {
   late final String _userName;
   late final String _userId;
   late final AppColours _appColours;
+  late final int _dataFetchTimeoutMillis;
 
   ConfigData(this._defaultPath, this._configFileName, this._isDesktop, this.log) {
     final fullName = _pathFromStrings(_defaultPath, _configFileName);
@@ -138,7 +139,7 @@ class ConfigData {
     } else {
       log("__CONFIG:__ Loaded: $fullName");
     }
-    final json = DataLoad.jsonFromString(resp.value);
+    final json = jsonDecode(resp.value);
     _getDataFileUrl = DataLoad.stringFromJson(json, Path.fromList(["file", "getDataUrl"]));
     _dataFileName = DataLoad.stringFromJson(json, Path.fromList(["file", "datafile"]));
     _dataFilePath = DataLoad.stringFromJson(json, Path.fromList(["file", "datafilePath"]), fallback: "");
@@ -148,6 +149,7 @@ class ConfigData {
     _userId = DataLoad.stringFromJson(json, Path.fromList(["user", "id"]));
     _title = DataLoad.stringFromJson(json, Path.fromList(["application", "title"]));
     _appColours = AppColours(json, Path.fromList(["application", "colours"]));
+    _dataFetchTimeoutMillis = DataLoad.numFromJson(json, Path.fromList(["application","dataFetchTimeoutMillis"]), fallback: 2000) as int;
     log("__CONFIG LOCAL DATA FILE:__ ${getDataFileLocal()}");
     log("__CONFIG REMOTE DATA FILE:__ ${getDataFileUrl()}");
     log("__CONFIG USER:__ ID(${getUserId()}) ${getUserName()}");
@@ -170,6 +172,10 @@ class ConfigData {
 
   String getDataFileUrl() {
     return "$_getDataFileUrl/$_dataFileName";
+  }
+
+  int getDataFetchTimeoutMillis() {
+    return _dataFetchTimeoutMillis;
   }
 
   String getDataFileLocal() {

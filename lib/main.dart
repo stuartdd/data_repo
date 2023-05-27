@@ -1,11 +1,10 @@
 import 'dart:io';
 import 'package:data_repo/data_load.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
 import 'package:window_size/window_size.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
-import 'encrypt.dart';
+
 import 'path.dart';
 import 'data_types.dart';
 import 'config.dart';
@@ -26,6 +25,7 @@ bool _inExitProcess = false;
 final PathList _hiLightedPaths = PathList();
 final TextEditingController textEditingController = TextEditingController(text: "");
 
+const encDataPrefixMagic = "4rg7:";
 const appBarHeight = 50.0;
 const statusBarHeight = 35.0;
 const inputTextTitleStyleHeight = 35.0;
@@ -159,18 +159,17 @@ class _MyHomePageState extends State<MyHomePage> {
   String _search = "";
   String _previousSearch = "";
   Path _selected = Path.empty();
-  bool _isPasswordInput = true;
+  bool _beforeDataLoaded = true;
   bool _dataWasUpdated = false;
-  bool _isEditDataDisplay = true;
+  bool _isEditDataDisplay = false;
   SuccessState _globalSuccessState = SuccessState(true);
-  Map<String, dynamic> _loadedData = {};
+  DataContainer _loadedData = DataContainer.empty();
 
   void _setSearchExpressionState(String st) {
     if (st == _search) {
       return;
     }
     setState(() {
-      debugPrint("SS:_setSearchExpressionState");
       textEditingController.text = st;
       _search = st;
     });
@@ -178,8 +177,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _saveDataState(String pw) {
     setState(() {
-      debugPrint("SS:_saveDataState");
-      final ss = DataLoad.saveToFile(_configData.getDataFileLocal(), _loadedData);
+      final ss = DataLoad.saveToFile(_configData.getDataFileLocal(), _loadedData.dataAsString);
       if (ss.isSuccess) {
         _dataWasUpdated = false;
         _hiLightedPaths.clean();
@@ -195,7 +193,7 @@ class _MyHomePageState extends State<MyHomePage> {
         return;
       });
     }
-    var ss = await DataLoad.fromHttpGet(_configData.getDataFileUrl(), log: log);
+    var ss = await DataLoad.fromHttpGet(_configData.getDataFileUrl(), timeoutMillis: _configData.getDataFetchTimeoutMillis(), log: log);
     if (ss.isFail) {
       ss = DataLoad.loadFromFile(_configData.getDataFileLocal(), log: log);
       if (ss.isFail) {
@@ -206,9 +204,9 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
     setState(() {
-      final Map<String, dynamic> data;
+      final DataContainer data;
       try {
-        data = DataLoad.jsonFromString(ss.value);
+        data = DataContainer(ss.value, encDataPrefixMagic, password: _password);
       } catch (r) {
         _globalSuccessState = SuccessState(false, message: "Data file could not be parsed", exception: r as Exception, log: log);
         return;
@@ -219,7 +217,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
       _password = pw;
       _dataWasUpdated = false;
-      _isPasswordInput = false;
+      _beforeDataLoaded = false;
       _loadedData = data;
       _selected = Path.fromDotPath(_loadedData.keys.first);
       _hiLightedPaths.clean();
@@ -233,7 +231,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _globalSuccessState = SuccessState(false, message: "Name is too short");
       return;
     }
-    final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, path);
+    final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, path);
     if (mapNode == null) {
       _globalSuccessState = SuccessState(false, message: "Path not found");
       return;
@@ -280,7 +278,7 @@ class _MyHomePageState extends State<MyHomePage> {
       if (newName.isEmpty) {
         return "Cannot be empty";
       }
-      final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
+      final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, detailActionData.path);
       if (mapNode == null) {
         return "Path not found";
       }
@@ -290,7 +288,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       } else {
         final pp = detailActionData.path.parentPath();
-        final parentNode = DataLoad.findLastMapNodeForPath(_loadedData, pp);
+        final parentNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, pp);
         if (parentNode == null) {
           return "Parent not found";
         }
@@ -306,7 +304,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (detailActionData.oldValue != newName) {
       setState(() {
         debugPrint("SS:_handleRenameSubmit");
-        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
+        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, detailActionData.path);
         if (mapNode == null) {
           _globalSuccessState = SuccessState(false, message: "Path not found");
         }
@@ -330,7 +328,7 @@ class _MyHomePageState extends State<MyHomePage> {
             _globalSuccessState = SuccessState(false, message: "New Name is too short");
           }
           final pp = detailActionData.path.parentPath();
-          final parentNode = DataLoad.findLastMapNodeForPath(_loadedData, pp);
+          final parentNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, pp);
           if (parentNode == null) {
             _globalSuccessState = SuccessState(false, message: "Parent not found");
           }
@@ -353,12 +351,12 @@ class _MyHomePageState extends State<MyHomePage> {
   void _handleDelete(Path path, String value, String response) async {
     if (response == "OK") {
       setState(() {
-        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, path);
+        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, path);
         if (mapNode == null) {
           _globalSuccessState = SuccessState(false, message: "Path not found");
         } else {
           final pp = path.parentPath();
-          final parentNode = DataLoad.findLastMapNodeForPath(_loadedData, pp);
+          final parentNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, pp);
           if (parentNode == null) {
             _globalSuccessState = SuccessState(false, message: "Parent not found");
           }
@@ -375,7 +373,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (detailActionData.oldValue != newValue || detailActionData.oldValueType != type) {
       setState(() {
         debugPrint("SS:_handleEditSubmit (${detailActionData.oldValueType})");
-        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData, detailActionData.path);
+        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, detailActionData.path);
         if (mapNode == null) {
           _globalSuccessState = SuccessState(false, message: "Path not found");
         }
@@ -444,7 +442,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     final DisplayData displayData = createSplitView(
-      _loadedData,
+      _loadedData.dataMap,
       _configData.getUserId(),
       _search,
       _expand,
@@ -454,15 +452,15 @@ class _MyHomePageState extends State<MyHomePage> {
       _applicationState.screen.hDiv,
       _appColours,
       _hiLightedPaths,
-      _handleTreeSelect,
+      _handleTreeSelect, // On tree selection
       (divPos) {
-        //
+        // On divider change
         if (_applicationState.updateDividerPos(divPos)) {
           _applicationState.writeAppStateConfigFile(false);
         }
       },
       (searchCount) {
-        // On Search complete
+        // On search complete.
         if (searchCount > 0 && _previousSearch != _search) {
           _previousSearch = _search;
           _applicationState.addLastFind(_search, 5);
@@ -470,7 +468,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       },
       (detailActionData) {
-        // On action
+        // On selected detail page action
         debugPrint(detailActionData.toString());
         switch (detailActionData.action) {
           case ActionType.none:
@@ -541,6 +539,174 @@ class _MyHomePageState extends State<MyHomePage> {
       log,
     );
 
+    final List<Widget> toolBarItems = List.empty(growable: true);
+    toolBarItems.add(
+      DetailIconButton(
+        icon: const Icon(Icons.close_outlined),
+        tooltip: 'Exit application',
+        onPressed: () async {
+          final close = await _shouldExitHandler();
+          if (close) {
+            closer(0);
+          }
+        },
+        appColours: _appColours,
+      ),
+    );
+
+    if (_beforeDataLoaded) {
+      toolBarItems.add(Container(
+        color: _appColours.primary.shade400,
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width / 3,
+          child: TextField(
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Password',
+            ),
+            autofocus: true,
+            onSubmitted: (value) {
+              _loadDataState(value);
+            },
+            obscureText: true,
+            controller: textEditingController,
+            cursorColor: const Color(0xff000000),
+          ),
+        ),
+      ));
+      toolBarItems.add(DetailIconButton(
+        appColours: _appColours,
+        icon: const Icon(iconDataFileLoad),
+        tooltip: 'Load Data',
+        timerMs: 5000,
+        onPressed: () {
+          _loadDataState("to-do ${textEditingController.text}");
+        },
+      ));
+    } else {
+      //
+      // Data is loaded
+      //
+      if (_dataWasUpdated) {
+        toolBarItems.add(
+          DetailIconButton(
+            icon: const Icon(Icons.save),
+            tooltip: 'Save Data',
+            onPressed: () {
+              _saveDataState(_password);
+            },
+            appColours: _appColours,
+          ),
+        );
+        toolBarItems.add(
+          DetailIconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Reload Data',
+            onPressed: () {
+              _loadDataState(_password);
+            },
+            appColours: _appColours,
+          ),
+        );
+      }
+      toolBarItems.add(
+        DetailIconButton(
+          show: !_beforeDataLoaded,
+          appColours: _appColours,
+          icon: _isEditDataDisplay ? const Icon(Icons.remove_red_eye) : const Icon(Icons.edit),
+          tooltip: 'Editing',
+          onPressed: () {
+            setState(() {
+              _isEditDataDisplay = !_isEditDataDisplay;
+            });
+          },
+        ),
+      );
+      if (_isEditDataDisplay) {
+        toolBarItems.add(DetailIconButton(
+          appColours: _appColours,
+          icon: const Icon(Icons.add_box_outlined),
+          tooltip: 'Add',
+          onPressed: () {
+            _showModalInputDialog(
+              context,
+              "Add To: '${_selected.getLast()}'",
+              "",
+              optionsForAddElement,
+              optionTypeDataValue,
+              (action, text, type) {
+                if (action == "OK") {
+                  _handleAdd(_selected, text, type);
+                }
+              },
+              (initial, value, initialType, valueType) {
+                return value.trim().isEmpty ? "Cannot be empty" : "";
+              },
+            );
+          },
+        ));
+      } else {
+        toolBarItems.add(
+          Container(
+            color: _appColours.primary.shade400,
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width / 3,
+              child: TextField(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Search',
+                ),
+                autofocus: true,
+                onSubmitted: (value) {
+                  _setSearchExpressionState(value);
+                },
+                controller: textEditingController,
+                cursorColor: const Color(0xff000000),
+              ),
+            ),
+          ),
+        );
+        toolBarItems.add(
+          DetailIconButton(
+            appColours: _appColours,
+            icon: const Icon(Icons.search),
+            tooltip: 'Search',
+            onPressed: () {
+              _setSearchExpressionState(textEditingController.text);
+            },
+          ),
+        );
+        toolBarItems.add(
+          DetailIconButton(
+            appColours: _appColours,
+            icon: const Icon(Icons.youtube_searched_for),
+            tooltip: 'Previous Searches',
+            onPressed: () async {
+              await _showSearchDialog(
+                context,
+                _applicationState.getLastFindList(),
+                (selected) {
+                  if (selected.isNotEmpty) {
+                    _setSearchExpressionState(selected);
+                  }
+                },
+              );
+            },
+          ),
+        );
+        toolBarItems.add(
+          DetailIconButton(
+            appColours: _appColours,
+            icon: const Icon(Icons.search_off),
+            tooltip: 'Clear Search',
+            onPressed: () {
+              _setSearchExpressionState("");
+            },
+          ),
+        );
+      }
+    }
+
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -548,200 +714,47 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
-      body: Column(
-          // Center is a layout widget. It takes a single child and positions it
-          // in the middle of the parent.
-          children: [
-            SizedBox(
-              height: appBarHeight,
-              child: Container(
-                color: _appColours.primary.shade500,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    DetailIconButton(
-                      icon: const Icon(Icons.close_outlined),
-                      tooltip: 'Exit application',
-                      onPressed: () async {
-                        final close = await _shouldExitHandler();
-                        if (close) {
-                          closer(0);
-                        }
-                      },
-                      appColours: _appColours,
-                    ),
-                    DetailIconButton(
-                      show: _dataWasUpdated,
-                      icon: const Icon(Icons.save),
-                      tooltip: 'Save Data',
-                      onPressed: () {
-                        _saveDataState(_password);
-                      },
-                      appColours: _appColours,
-                    ),
-                    DetailIconButton(
-                      show: _dataWasUpdated,
-                      icon: const Icon(Icons.refresh),
-                      tooltip: 'Reload Data',
-                      onPressed: () {
-                        _loadDataState(_password);
-                      },
-                      appColours: _appColours,
-                    ),
-                    Container(
-                      color: _appColours.primary.shade400,
-                      child: SizedBox(
-                        // <-- SEE HERE
-                        width: MediaQuery.of(context).size.width / 3,
-                        child: TextField(
-                          decoration: InputDecoration(
-                            border: const OutlineInputBorder(),
-                            hintText: _isPasswordInput ? 'Password' : 'Search',
-                          ),
-                          autofocus: true,
-                          onSubmitted: (value) {
-                            if (_isPasswordInput) {
-                              _loadDataState(value);
-                            } else {
-                              _setSearchExpressionState(value);
-                            }
-                          },
-                          obscureText: _isPasswordInput,
-                          controller: textEditingController,
-                          cursorColor: const Color(0xff000000),
+      body: SingleChildScrollView(
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              // Center is a layout widget. It takes a single child and positions it
+              // in the middle of the parent.
+              children: [
+                Container(
+                  height: appBarHeight,
+                  color: _appColours.primary.shade500,
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: toolBarItems),
+                ),
+                Container(
+                  height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight),
+                  color: _appColours.primary.shade500,
+                  child: displayData.splitView,
+                ),
+                Container(
+                  height: statusBarHeight,
+                  color: _globalSuccessState.isSuccess ? _appColours.primary.shade500 : _appColours.error.shade900,
+                  child: Row(
+                    children: [
+                      DetailIconButton(
+                        appColours: _appColours,
+                        icon: const Icon(
+                          Icons.view_timeline,
+                          size: statusBarHeight,
                         ),
+                        tooltip: 'Log',
+                        padding: const EdgeInsets.fromLTRB(1, 1, 1, 0),
+                        onPressed: () {
+                          _showLogDialog(context, eventLog.toString());
+                        },
                       ),
-                    ),
-                    DetailIconButton(
-                      show: _isPasswordInput,
-                      appColours: _appColours,
-                      icon: const Icon(iconDataFileLoad),
-                      tooltip: 'Load Data',
-                      timerMs: 5000,
-                      onPressed: () {
-                        _loadDataState("to-do ${textEditingController.text}");
-                      },
-                    ),
-                    DetailIconButton(
-                      show: !_isPasswordInput,
-                      appColours: _appColours,
-                      icon: const Icon(Icons.search),
-                      tooltip: 'Search',
-                      onPressed: () {
-                        _setSearchExpressionState(textEditingController.text);
-                      },
-                    ),
-                    DetailIconButton(
-                      show: !_isPasswordInput,
-                      appColours: _appColours,
-                      icon: const Icon(Icons.youtube_searched_for),
-                      tooltip: 'Previous Searches',
-                      onPressed: () async {
-                        await _showSearchDialog(
-                          context,
-                          _applicationState.getLastFindList(),
-                          (selected) {
-                            if (selected.isNotEmpty) {
-                              _setSearchExpressionState(selected);
-                            }
-                          },
-                        );
-                      },
-                    ),
-                    DetailIconButton(
-                      show: !_isPasswordInput,
-                      appColours: _appColours,
-                      icon: const Icon(Icons.search_off),
-                      tooltip: 'Clear Search',
-                      onPressed: () {
-                        _setSearchExpressionState("");
-                      },
-                    ),
-                    !_isPasswordInput
-                        ? Container(
-                            height: appBarHeight,
-                            color: _appColours.primary.shade400,
-                            padding: const EdgeInsets.fromLTRB(1, 12, 1, 1),
-                            child: const Text(
-                              " EDIT: ",
-                              style: headingTextStyle,
-                            ),
-                          )
-                        : const SizedBox(
-                            width: 0,
-                          ),
-                    DetailIconButton(
-                      show: !_isPasswordInput,
-                      appColours: _appColours,
-                      icon: _isEditDataDisplay ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
-                      tooltip: 'Editing',
-                      onPressed: () {
-                        setState(() {
-                          _isEditDataDisplay = !_isEditDataDisplay;
-                        });
-                      },
-                    ),
-                    DetailIconButton(
-                      show: _isEditDataDisplay && !_isPasswordInput,
-                      appColours: _appColours,
-                      icon: const Icon(Icons.add_box_outlined),
-                      tooltip: 'Add',
-                      onPressed: () {
-                        _showModalInputDialog(
-                          context,
-                          "Add To: '${_selected.getLast()}'",
-                          "",
-                          optionsForAddElement,
-                          optionTypeDataValue,
-                          (action, text, type) {
-                            if (action == "OK") {
-                              _handleAdd(_selected, text, type);
-                            }
-                          },
-                          (initial, value, initialType, valueType) {
-                            return value.trim().isEmpty ? "Cannot be empty" : "";
-                          },
-                        );
-                      },
-                    ),
-                  ],
+                      Text(
+                        _globalSuccessState.toString(),
+                        style: statusTextStyle,
+                      )
+                    ],
+                  ),
                 ),
-              ),
-            ),
-            Container(
-              color: _appColours.primary.shade400,
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight),
-                child: displayData.splitView,
-              ),
-            ),
-            Container(
-              color: _globalSuccessState.isSuccess ? _appColours.primary.shade500 : _appColours.error.shade900,
-              child: SizedBox(
-                height: statusBarHeight,
-                child: Row(
-                  children: [
-                    DetailIconButton(
-                      appColours: _appColours,
-                      icon: const Icon(
-                        Icons.view_timeline,
-                        size: statusBarHeight,
-                      ),
-                      tooltip: 'Log',
-                      padding: const EdgeInsets.fromLTRB(1, 1, 1, 0),
-                      onPressed: () {
-                        _showLogDialog(context, eventLog.toString());
-                      },
-                    ),
-                    Text(
-                      _globalSuccessState.toString(),
-                      style: statusTextStyle,
-                    )
-                  ],
-                ),
-              ),
-            ),
-          ]),
+              ])),
     );
   }
 }

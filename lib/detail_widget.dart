@@ -81,11 +81,12 @@ class DataValueDisplayRow {
 }
 
 class DetailWidget extends StatefulWidget {
-  const DetailWidget({super.key, required this.dataValueRow, required this.appColours, required this.dataAction, required this.hiLightedPaths, required this.isEditDataDisplay});
+  const DetailWidget({super.key, required this.dataValueRow, required this.appColours, required this.dataAction, required this.hiLightedPaths, required this.isEditDataDisplay, required this.isHorizontal});
   final DataValueDisplayRow dataValueRow;
   final AppColours appColours;
   final PathList hiLightedPaths;
   final bool isEditDataDisplay;
+  final bool isHorizontal;
   final bool Function(DetailAction) dataAction;
 
   @override
@@ -114,9 +115,9 @@ class _DetailWidgetState extends State<DetailWidget> {
   Widget build(BuildContext context) {
     final hiLight = widget.hiLightedPaths.contains(widget.dataValueRow.pathString);
     if (widget.dataValueRow.isValue) {
-      return _detailForValue(widget.appColours, hiLight);
+      return _detailForValue(widget.appColours, hiLight, widget.isHorizontal);
     }
-    return _dataForMap(widget.appColours, hiLight);
+    return _dataForMap(widget.appColours, hiLight, widget.isHorizontal);
   }
 
   Widget _rowForString(final String value, final MaterialColor materialColor) {
@@ -200,7 +201,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _detailForValue(final AppColours appColours, final bool hiLight) {
+  Widget _detailForValue(final AppColours appColours, final bool hiLight, final bool horizontal) {
     return SizedBox(
       child: Card(
           color: appColours.primary.shade600,
@@ -208,7 +209,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ListTile(
               leading: hiLight ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
               title: Text(widget.dataValueRow.getName(widget.isEditDataDisplay), style: _styleSmall),
-              subtitle: Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: _styleSubTitle),
+              subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: _styleSubTitle) : null,
             ),
             SizedBox(
               width: double.infinity,
@@ -262,7 +263,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _dataForMap(AppColours appColours, bool hiLight) {
+  Widget _dataForMap(AppColours appColours, bool hiLight, bool horizontal) {
     return SizedBox(
       child: Card(
           color: appColours.primary.shade300,
@@ -270,7 +271,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ListTile(
               leading: hiLight ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
               title: Text(widget.dataValueRow.name, style: _styleSmall),
-              subtitle: Text("Group is Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: _styleSubTitle),
+              subtitle: horizontal ? Text("Group is Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: _styleSubTitle) : null,
               onTap: () {
                 widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathString, widget.dataValueRow.name, optionTypeDataGroup, _onCompleteAction));
               },
