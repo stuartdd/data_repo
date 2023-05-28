@@ -23,13 +23,9 @@ class DataValueDisplayRow {
   DisplayTypeData _displayTypeData = simpleDisplayData;
 
   DataValueDisplayRow(this._name, this._value, this._type, this._isValue, this._path, this._mapSize) {
-    if (_type.key == "String") {
-      displayTypeMap.forEach((key, value) {
-        if (name.toLowerCase().endsWith(key)) {
-          _displayTypeData = value;
-        }
-      });
-      debugPrint("Found $_name is ${_displayTypeData.description}");
+    final t = displayTypeMap[type.key];
+    if (t != null) {
+      _displayTypeData = t;
     }
   }
 
@@ -40,13 +36,13 @@ class DataValueDisplayRow {
   int get mapSize => _mapSize;
   DisplayTypeData get displayTypeData => _displayTypeData;
 
-  String getName(bool editMode) {
+  String getDisplayName(bool editMode) {
     if (editMode) {
       return name;
     }
     return name.substring(0, (_name.length - displayTypeData.markerLength));
   }
-
+  
   String get value {
     if (_type.elementType == bool) {
       if (_value == "true") {
@@ -117,7 +113,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     if (widget.dataValueRow.isValue) {
       return _detailForValue(widget.appColours, hiLight, widget.isHorizontal);
     }
-    return _dataForMap(widget.appColours, hiLight, widget.isHorizontal);
+    return _detailForMap(widget.appColours, hiLight, widget.isHorizontal);
   }
 
   Widget _rowForString(final String value, final MaterialColor materialColor) {
@@ -202,13 +198,12 @@ class _DetailWidgetState extends State<DetailWidget> {
   }
 
   Widget _detailForValue(final AppColours appColours, final bool hiLight, final bool horizontal) {
-    return SizedBox(
-      child: Card(
+    return Card(
           color: appColours.primary.shade600,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ListTile(
               leading: hiLight ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
-              title: Text(widget.dataValueRow.getName(widget.isEditDataDisplay), style: _styleSmall),
+              title: Text(widget.dataValueRow.getDisplayName(widget.isEditDataDisplay), style: _styleSmall),
               subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: _styleSubTitle) : null,
             ),
             SizedBox(
@@ -229,7 +224,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   show: widget.isEditDataDisplay,
                   text: 'Re-Name',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.renameStart, true, widget.dataValueRow.pathString, widget.dataValueRow.name, optionTypeDataString, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.renameStart, true, widget.dataValueRow.pathString, widget.dataValueRow.getDisplayName(false), widget.dataValueRow.type, _onCompleteAction, additional: widget.dataValueRow.value));
                   },
                 ),
                 DetailButton(
@@ -259,11 +254,11 @@ class _DetailWidgetState extends State<DetailWidget> {
                 ),
               ],
             ),
-          ])),
+          ]),
     );
   }
 
-  Widget _dataForMap(AppColours appColours, bool hiLight, bool horizontal) {
+  Widget _detailForMap(AppColours appColours, bool hiLight, bool horizontal) {
     return SizedBox(
       child: Card(
           color: appColours.primary.shade300,

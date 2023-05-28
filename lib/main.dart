@@ -273,8 +273,18 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  String _checkRenameOk(DetailAction detailActionData, String newName) {
-    if (detailActionData.oldValue != newName) {
+  String _checkRenameOk(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
+    if (detailActionData.oldValueType != newType) {
+      if (detailActionData.oldValueType == optionTypeDataMarkDown) {
+        if (detailActionData.additional.contains('\n')) {
+          return "Remove multiple lines";
+        }
+      }
+    }
+    final newName = "$newNameNoSuffix${newType.suffix}";
+    final oldName = "${detailActionData.oldValue}${detailActionData.oldValueType.suffix}";
+
+    if (oldName != newName) {
       if (newName.isEmpty) {
         return "Cannot be empty";
       }
@@ -300,8 +310,10 @@ class _MyHomePageState extends State<MyHomePage> {
     return "";
   }
 
-  void _handleRenameSubmit(DetailAction detailActionData, String newName) {
-    if (detailActionData.oldValue != newName) {
+  void _handleRenameSubmit(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
+    final newName = "$newNameNoSuffix${newType.suffix}";
+    final oldName = "${detailActionData.oldValue}${detailActionData.oldValueType.suffix}";
+    if (oldName != newName) {
       setState(() {
         debugPrint("SS:_handleRenameSubmit");
         final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, detailActionData.path);
@@ -312,12 +324,12 @@ class _MyHomePageState extends State<MyHomePage> {
           if (mapNode![newName] != null) {
             _globalSuccessState = SuccessState(false, message: "Name already exists");
           }
-          final renameNode = mapNode[detailActionData.oldValue];
+          final renameNode = mapNode[oldName];
           if (renameNode == null) {
             _globalSuccessState = SuccessState(false, message: "Name not found");
           }
 
-          mapNode.remove(detailActionData.oldValue);
+          mapNode.remove(oldName);
           mapNode[newName] = renameNode;
           _dataWasUpdated = true;
           detailActionData.path.pop();
@@ -335,7 +347,7 @@ class _MyHomePageState extends State<MyHomePage> {
           if (parentNode![newName] != null) {
             _globalSuccessState = SuccessState(false, message: "Name already exists");
           }
-          parentNode.remove(detailActionData.oldValue);
+          parentNode.remove(oldName);
           parentNode[newName] = mapNode;
           _dataWasUpdated = true;
           detailActionData.path.pop();
@@ -343,7 +355,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _hiLightedPaths.add(detailActionData.path);
           _globalSuccessState = SuccessState(true, message: "Item renamed");
         }
-        _globalSuccessState = SuccessState(true, message: "Node '${detailActionData.oldValue}' renamed $newName", log: log);
+        _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: log);
       });
     }
   }
@@ -495,14 +507,18 @@ class _MyHomePageState extends State<MyHomePage> {
                 "Re-Name $title '${detailActionData.getLastPathElement()}'",
                 detailActionData.oldValue,
                 detailActionData.value ? optionsForRenameElement : [],
-                detailActionData.oldValueType,
+                OptionsTypeData.locateTypeInOptionsList(detailActionData.oldValueType.key, optionsForRenameElement, optionTypeDataString),
+                true,
                 (action, text, type) {
                   if (action == "OK") {
-                    _handleRenameSubmit(detailActionData, text);
+                    _handleRenameSubmit(detailActionData, text, type);
                   }
                 },
                 (initial, value, initialType, valueType) {
-                  return _checkRenameOk(detailActionData, value);
+                  //
+                  // Validate a re-name
+                  //
+                  return _checkRenameOk(detailActionData, value, valueType);
                 },
               );
               return true;
@@ -515,13 +531,51 @@ class _MyHomePageState extends State<MyHomePage> {
                 detailActionData.oldValue,
                 optionsForUpdateElement,
                 detailActionData.oldValueType,
+                false,
                 (action, text, type) {
                   if (action == "OK") {
                     _handleEditSubmit(detailActionData, text, type);
                   }
                 },
-                (initial, value, initialType, valueType) {
-                  return value.trim().isEmpty ? "Cannot be empty" : "";
+                (initialTrimmed, valueTrimmed, initialType, valueType) {
+                  //
+                  // Validate a value type for Edit function
+                  //
+                  if (valueType.elementType == bool) {
+                    final valueTrimmedLc = valueTrimmed.toLowerCase();
+                    if (valueTrimmedLc == "yes" || valueTrimmedLc == "no" || valueTrimmedLc == "true" || valueTrimmedLc == "false") {
+                      return "";
+                    } else {
+                      return "Must be 'Yes' or 'No";
+                    }
+                  }
+                  if (valueType.elementType == String) {
+                    if (valueTrimmed == initialTrimmed && initialTrimmed != "") {
+                      return "";
+                    }
+                    final m = valueType.inRangeInt("Length", valueTrimmed.length);
+                    if (m.isNotEmpty) {
+                      return m;
+                    }
+                    return "";
+                  }
+                  if (valueType.elementType == double) {
+                    try {
+                      final d = double.parse(valueTrimmed);
+                      return valueType.inRangeDouble("Value ", d);
+                    } catch (e) {
+                      return "That is not a ${valueType.description}";
+                    }
+                  }
+                  if (valueType.elementType == int) {
+                    try {
+                      final i = int.parse(valueTrimmed);
+                      return valueType.inRangeInt("Value ", i);
+                    } catch (e) {
+                      return "That is not a ${valueType.description}";
+                    }
+                  }
+                  return "";
                 },
               );
               return true;
@@ -614,7 +668,7 @@ class _MyHomePageState extends State<MyHomePage> {
           show: !_beforeDataLoaded,
           appColours: _appColours,
           icon: _isEditDataDisplay ? const Icon(Icons.remove_red_eye) : const Icon(Icons.edit),
-          tooltip: 'Editing',
+          tooltip: _isEditDataDisplay ? 'Stop Editing' : "Start Editing",
           onPressed: () {
             setState(() {
               _isEditDataDisplay = !_isEditDataDisplay;
@@ -634,6 +688,7 @@ class _MyHomePageState extends State<MyHomePage> {
               "",
               optionsForAddElement,
               optionTypeDataValue,
+              true,
               (action, text, type) {
                 if (action == "OK") {
                   _handleAdd(_selected, text, type);
@@ -720,41 +775,41 @@ class _MyHomePageState extends State<MyHomePage> {
               // Center is a layout widget. It takes a single child and positions it
               // in the middle of the parent.
               children: [
-                Container(
-                  height: appBarHeight,
-                  color: _appColours.primary.shade500,
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: toolBarItems),
-                ),
-                Container(
-                  height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight),
-                  color: _appColours.primary.shade500,
-                  child: displayData.splitView,
-                ),
-                Container(
-                  height: statusBarHeight,
-                  color: _globalSuccessState.isSuccess ? _appColours.primary.shade500 : _appColours.error.shade900,
-                  child: Row(
-                    children: [
-                      DetailIconButton(
-                        appColours: _appColours,
-                        icon: const Icon(
-                          Icons.view_timeline,
-                          size: statusBarHeight,
-                        ),
-                        tooltip: 'Log',
-                        padding: const EdgeInsets.fromLTRB(1, 1, 1, 0),
-                        onPressed: () {
-                          _showLogDialog(context, eventLog.toString());
-                        },
-                      ),
-                      Text(
-                        _globalSuccessState.toString(),
-                        style: statusTextStyle,
-                      )
-                    ],
+            Container(
+              height: appBarHeight,
+              color: _appColours.primary.shade500,
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: toolBarItems),
+            ),
+            Container(
+              height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight),
+              color: _appColours.primary.shade500,
+              child: displayData.splitView,
+            ),
+            Container(
+              height: statusBarHeight,
+              color: _globalSuccessState.isSuccess ? _appColours.primary.shade500 : _appColours.error.shade900,
+              child: Row(
+                children: [
+                  DetailIconButton(
+                    appColours: _appColours,
+                    icon: const Icon(
+                      Icons.view_timeline,
+                      size: statusBarHeight,
+                    ),
+                    tooltip: 'Log',
+                    padding: const EdgeInsets.fromLTRB(1, 1, 1, 0),
+                    onPressed: () {
+                      _showLogDialog(context, eventLog.toString());
+                    },
                   ),
-                ),
-              ])),
+                  Text(
+                    _globalSuccessState.toString(),
+                    style: statusTextStyle,
+                  )
+                ],
+              ),
+            ),
+          ])),
     );
   }
 }
@@ -867,7 +922,7 @@ Future<void> _showModalDialog(final BuildContext context, final String title, fi
   );
 }
 
-Future<void> _showModalInputDialog(final BuildContext context, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final void Function(String, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
+Future<void> _showModalInputDialog(final BuildContext context, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final void Function(String, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -878,7 +933,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
         content: SingleChildScrollView(
           child: ListBody(
             children: [
-              currentOption == optionTypeDataMarkDown
+              (currentOption == optionTypeDataMarkDown && !isRename)
                   ? MarkDownInputField(
                       initialText: currentValue,
                       onClose: (action, text, type) {
@@ -913,7 +968,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                   : ValidatedInputField(
                       options: options,
                       initialOption: currentOption,
-                      prompt: "Input: \$",
+                      prompt: "Input: ${isRename?"New Name":"[type]"}",
                       initialValue: currentValue,
                       appColours: _appColours,
                       onClose: (action, text, type) {
@@ -921,43 +976,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                         Navigator.of(context).pop();
                       },
                       onValidate: (ix, vx, it, vt) {
-                        final trimV = vx.trim();
-                        final trimI = ix.trim();
-                        if (vt.elementType == bool) {
-                          final trimLcV = trimV.toLowerCase();
-                          if (trimLcV == "yes" || trimLcV == "no" || trimLcV == "true" || trimLcV == "false" || trimLcV == "1" || trimLcV == "0") {
-                            return "";
-                          } else {
-                            return "Must be 'Yes' or 'No";
-                          }
-                        }
-                        if (vt.elementType == String) {
-                          if (trimV == trimI && trimI != "") {
-                            return "";
-                          }
-                          final m = vt.inRangeInt("Length", trimV.length);
-                          if (m.isNotEmpty) {
-                            return m;
-                          }
-                          return externalValidate(trimI, trimV, it, vt);
-                        }
-                        if (vt.elementType == double) {
-                          try {
-                            final d = double.parse(trimV);
-                            return vt.inRangeDouble("Value ", d);
-                          } catch (e) {
-                            return "That is not a ${vt.description}";
-                          }
-                        }
-                        if (vt.elementType == int) {
-                          try {
-                            final i = int.parse(trimV);
-                            return vt.inRangeInt("Value ", i);
-                          } catch (e) {
-                            return "That is not a ${vt.description}";
-                          }
-                        }
-                        return externalValidate(trimI, trimV, it, vt);
+                        return externalValidate(ix.trim(), vx.trim(), it, vt);
                       },
                     ),
             ],

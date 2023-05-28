@@ -392,7 +392,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
             }),
         Container(
           alignment: Alignment.centerLeft,
-          child: Text(widget.prompt.replaceAll("\$", currentOption.description), style: _inputTextStyle),
+          child: Text(widget.prompt.replaceAll("[type]", currentOption.description), style: _inputTextStyle),
         ),
         (help.isEmpty)
             ? const SizedBox(

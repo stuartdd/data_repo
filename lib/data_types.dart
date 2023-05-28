@@ -45,9 +45,19 @@ class OptionsTypeData {
   final int max;
   const OptionsTypeData(this.elementType, this.key, this.description, {this.suffix = "", this.min = -maxIntValue, this.max = maxIntValue});
 
+  static OptionsTypeData locateTypeInOptionsList(String key, List<OptionsTypeData> l, OptionsTypeData fallback) {
+    for (int i = 0; i< l.length; i++) {
+      if (l[i].key == key) {
+        return l[i];
+      }
+    }
+    return fallback;
+  }
+
   bool notEqual(OptionsTypeData other) {
     return key != other.key;
   }
+
   bool equal(OptionsTypeData other) {
     return key == other.key;
   }
@@ -174,7 +184,8 @@ class DetailAction {
   final String oldValue;
   final OptionsTypeData oldValueType;
   final bool Function(String, String, String) onCompleteAction;
-  DetailAction(this.action, this.value, this.path, this.oldValue, this.oldValueType, this.onCompleteAction);
+  final String additional;
+  DetailAction(this.action, this.value, this.path, this.oldValue, this.oldValueType, this.onCompleteAction, {this.additional = ""});
 
   String getLastPathElement() {
     return path.getLast();
