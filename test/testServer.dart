@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 //
-// Run:
-//     dart run lib/testServer.dart
+// Run from project root:
+//     dart run test/testServer.dart
 //
 // Config Data
 //            "postDataUrl": "http://localhost:4040/file",

@@ -695,18 +695,18 @@ class _MyHomePageState extends State<MyHomePage> {
       //
       // Data is loaded
       //
-      toolBarItems.add(
-        DetailIconButton(
-          icon: const Icon(Icons.save),
-          tooltip: 'Save Data',
-          onPressed: () {
-            _saveDataState(_password);
-          },
-          appColours: _appColours,
-        ),
-      );
 
       if (_dataWasUpdated) {
+        toolBarItems.add(
+          DetailIconButton(
+            icon: const Icon(Icons.save),
+            tooltip: 'Save Data',
+            onPressed: () {
+              _saveDataState(_password);
+            },
+            appColours: _appColours,
+          ),
+        );
         toolBarItems.add(
           DetailIconButton(
             icon: const Icon(Icons.refresh),
