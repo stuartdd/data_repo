@@ -7,6 +7,9 @@ import 'dart:io';
 import 'dart:convert';
 import 'encrypt.dart';
 
+const timeStampId = "timeStamp";
+const timeStampIdMarker = '"$timeStampId": ';
+
 class JsonException implements Exception {
   final String message;
   final Path? path;
@@ -33,15 +36,21 @@ class DataLoadException implements Exception {
 class DataContainer {
   final String _fileContents;
   final String _filePrefixMagic;
+  final int timeStamp;
+  final String source;
   late final String _password;
   late final bool _isEncrypted;
   late final Map<String, dynamic> _dataMap;
 
   factory DataContainer.empty() {
-    return DataContainer("", "");
+    return DataContainer("", "", -1, "");
   }
 
-  DataContainer(this._fileContents, this._filePrefixMagic, {String password = ""}) {
+  String timeStampToString() {
+    return DateTime.fromMillisecondsSinceEpoch(timeStamp).toString();
+  }
+
+  DataContainer(this._fileContents, this._filePrefixMagic, this.timeStamp, this.source, {String password = ""}) {
     if (_fileContents.isEmpty) {
       _password = "";
       _dataMap = <String, dynamic>{};
@@ -64,6 +73,8 @@ class DataContainer {
 
   String get dataAsString {
     JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+    _dataMap.remove("timeStamp");
+    _dataMap["timeStamp"] = DateTime.now().millisecondsSinceEpoch;
     final text = encoder.convert(_dataMap);
 
     if (_isEncrypted) {
@@ -133,23 +144,36 @@ class SuccessState {
     return !isSuccess;
   }
 
-  String get status {
-    if (hasException) {
-      return "Exception:";
-    }
-    if (isSuccess) {
-      return "OK:";
-    }
-    return "Error:";
-  }
-
   Exception? get exception {
     return _exception;
   }
 
+  String toLogString({bool bold = true}) {
+    final bb = bold ? "__" : "";
+    if (_exception != null) {
+      if (message.isEmpty) {
+        return "${bb}EXCEPTION:$bb ${_exception.toString()}";
+      } else {
+        return "${bb}EXCEPTION:$bb $message. ${_exception.toString()}";
+      }
+    } else {
+      if (isFail) {
+        if (message.isNotEmpty) {
+          return "${bb}FAIL:$bb $message";
+        }
+        return "${bb}FAIL$bb";
+      } else {
+        if (message.isNotEmpty) {
+          return "${bb}OK:$bb $message";
+        }
+        return "${bb}OK$bb";
+      }
+    }
+  }
+
   @override
   String toString() {
-    return '$status $message';
+    return toLogString(bold: false);
   }
 
   bool isDifferentFrom(SuccessState other) {
@@ -167,7 +191,21 @@ class SuccessState {
 }
 
 class DataLoad {
-  static Future<SuccessState> fromHttpGet(String url, {void Function(String)? log, int timeoutMillis = 2000,String prefix = ""}) async {
+  static Future<SuccessState> toHttpPost(String url, String body, {void Function(String)? log}) async {
+    try {
+      final uri = Uri.parse(url);
+      var response = await http.post(uri, headers: {"Content-Type": "application/json"}, body: body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return SuccessState(true, message: "Remote file sent: Status:${response.statusCode} [${response.body}]",  log: log);
+      } else {
+        return SuccessState(false, message: "Remote file send:${response.statusCode} [${response.body}]",  log: log);
+      }
+    } catch (e) {
+      return SuccessState(false, message: "Remote file send", exception: e as Exception, log: log);
+    }
+  }
+
+  static Future<SuccessState> fromHttpGet(String url, {void Function(String)? log, int timeoutMillis = 2000, String prefix = ""}) async {
     try {
       final uri = Uri.parse(url);
       final response = await http.get(uri).timeout(
@@ -186,7 +224,7 @@ class DataLoad {
       if (prefix.isNotEmpty && body.startsWith(prefix)) {
         return SuccessState(true, value: body.substring(prefix.length), message: "Remote Data loaded OK", log: log);
       }
-      final body100 = body.length>100 ? body.substring(0,100).toLowerCase(): body;
+      final body100 = body.length > 100 ? body.substring(0, 100).toLowerCase() : body;
       if (body100.contains("<html>") || body100.contains("<!DOCTYPE")) {
         return SuccessState(false, message: "Remote Data Load contains html:", log: log);
       }
@@ -197,6 +235,26 @@ class DataLoad {
     } catch (e) {
       return SuccessState(false, message: "Remote Data Load:", exception: e as Exception, log: log);
     }
+  }
+
+  static int timeStampFromString(String s) {
+    final p = s.indexOf(timeStampIdMarker);
+    if (p >= 0) {
+      final sb = StringBuffer();
+      var p1 = p + timeStampIdMarker.length;
+      var cp = s.codeUnits[p1];
+      while (cp >= 48 && cp <= 57) {
+        sb.writeCharCode(cp);
+        p1++;
+        cp = s.codeUnits[p1];
+      }
+      try {
+        return int.parse(sb.toString());
+      } catch (e) {
+        return -1;
+      }
+    }
+    return -1;
   }
 
   static void pathsForMapNodes(Map<String, dynamic> json, Function(String) callBack) {

@@ -115,6 +115,7 @@ class ConfigData {
   final bool _isDesktop;
   final Function(String) log;
   late final String _getDataFileUrl;
+  late final String _postDataFileUrl;
   late final String _dataFileName;
   late final String _dataFilePath;
   late final String _appStatePath;
@@ -141,6 +142,7 @@ class ConfigData {
     }
     final json = jsonDecode(resp.value);
     _getDataFileUrl = DataLoad.stringFromJson(json, Path.fromList(["file", "getDataUrl"]));
+    _postDataFileUrl = DataLoad.stringFromJson(json, Path.fromList(["file", "postDataUrl"]));
     _dataFileName = DataLoad.stringFromJson(json, Path.fromList(["file", "datafile"]));
     _dataFilePath = DataLoad.stringFromJson(json, Path.fromList(["file", "datafilePath"]), fallback: "");
     _appStateFileName = DataLoad.stringFromJson(json, Path.fromList(["user", "appStateFile"]));
@@ -172,6 +174,10 @@ class ConfigData {
 
   String getDataFileUrl() {
     return "$_getDataFileUrl/$_dataFileName";
+  }
+
+  String getPostDataFileUrl() {
+    return "$_postDataFileUrl/$_dataFileName";
   }
 
   int getDataFetchTimeoutMillis() {

@@ -175,14 +175,36 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _saveDataState(String pw) {
+  Future<void> _saveDataState(String pw) async {
+    final String content = _loadedData.dataAsString;
+    final ss = DataLoad.saveToFile(_configData.getDataFileLocal(), content);
+    if (ss.isSuccess) {
+      log("__OK:__ Local Data saved");
+    }
+    final pp = await DataLoad.toHttpPost(_configData.getPostDataFileUrl(), content, log: log);
+    if (pp.isSuccess) {
+      log("__OK:__ Remote Data saved");
+    }
+    String m = "Remote Save";
+    bool success = true;
+    if (pp.isSuccess) {
+      m = "$m OK. Local Save";
+    } else {
+      success = false;
+      m = "$m FAIL. Local Save";
+    }
+    if (ss.isSuccess) {
+      m = "$m OK";
+    } else {
+      success = false;
+      m = "$m FAIL";
+    }
     setState(() {
-      final ss = DataLoad.saveToFile(_configData.getDataFileLocal(), _loadedData.dataAsString);
-      if (ss.isSuccess) {
+      if (success) {
         _dataWasUpdated = false;
         _hiLightedPaths.clean();
       }
-      _globalSuccessState = ss;
+      _globalSuccessState = SuccessState(success, message: m);
     });
   }
 
@@ -190,38 +212,70 @@ class _MyHomePageState extends State<MyHomePage> {
     if (pw == "") {
       setState(() {
         _globalSuccessState = SuccessState(false, message: "Password was not provided", log: log);
-        return;
       });
+      return;
     }
-    var ss = await DataLoad.fromHttpGet(_configData.getDataFileUrl(), timeoutMillis: _configData.getDataFetchTimeoutMillis(), log: log);
-    if (ss.isFail) {
-      ss = DataLoad.loadFromFile(_configData.getDataFileLocal(), log: log);
-      if (ss.isFail) {
-        setState(() {
-          _globalSuccessState = ss;
-          return;
-        });
+
+    String source = "";
+    int ts = -1;
+    int tsRemote = -1;
+    int tsLocal = -1;
+    String fileData = "";
+    final ssRemote = await DataLoad.fromHttpGet(_configData.getDataFileUrl(), timeoutMillis: _configData.getDataFetchTimeoutMillis());
+    if (ssRemote.isSuccess) {
+      tsRemote = DataLoad.timeStampFromString(ssRemote.value);
+      log("__INFO:__ Remote __TS:__ ${DateTime.fromMillisecondsSinceEpoch(tsRemote)}");
+      fileData = ssRemote.value;
+      source = "Remote";
+      ts = tsRemote;
+    } else {
+      log(ssRemote.toLogString());
+    }
+
+    final ssLocal = DataLoad.loadFromFile(_configData.getDataFileLocal());
+    if (ssLocal.isSuccess) {
+      tsLocal = DataLoad.timeStampFromString(ssLocal.value);
+      log("__INFO:__ Local __TS:__ ${DateTime.fromMillisecondsSinceEpoch(tsLocal)}");
+      if (tsLocal > tsRemote) {
+        fileData = ssLocal.value;
+        source = "Local";
+        ts = tsLocal;
       }
+    } else {
+      log(ssLocal.toLogString());
     }
-    setState(() {
-      final DataContainer data;
-      try {
-        data = DataContainer(ss.value, encDataPrefixMagic, password: _password);
-      } catch (r) {
+
+    if (fileData.isEmpty) {
+      setState(() {
+        _globalSuccessState = SuccessState(false, message: "No Data Available", log: log);
+      });
+      return;
+    }
+
+    final DataContainer data;
+    try {
+      data = DataContainer(fileData, encDataPrefixMagic, ts, source, password: _password);
+    } catch (r) {
+      setState(() {
         _globalSuccessState = SuccessState(false, message: "Data file could not be parsed", exception: r as Exception, log: log);
-        return;
-      }
-      if (data.isEmpty) {
+      });
+      return;
+    }
+    if (data.isEmpty) {
+      setState(() {
         _globalSuccessState = SuccessState(false, message: "Data file does not contain any data", log: log);
-        return;
-      }
+      });
+      return;
+    }
+    data.dataMap.remove(timeStampId);
+    _loadedData = data;
+    setState(() {
       _password = pw;
       _dataWasUpdated = false;
       _beforeDataLoaded = false;
-      _loadedData = data;
       _selected = Path.fromDotPath(_loadedData.keys.first);
       _hiLightedPaths.clean();
-      _globalSuccessState = SuccessState(true, message: "Data File loaded and parsed", log: log);
+      _globalSuccessState = SuccessState(true, message: "${_loadedData.source} File loaded: ${_loadedData.timeStampToString()}", log: log);
     });
   }
 
@@ -431,7 +485,7 @@ class _MyHomePageState extends State<MyHomePage> {
       if (_dataWasUpdated) {
         await _showModalDialog(context, "Alert", ["Data has been updated", "Press OK to SAVE before Exit", "Press CANCEL remain in the App", "Press EXIT to leave without saving"], ["OK", "CANCEL", "EXIT"], null, null);
         if (_okCancelDialogResult == "OK") {
-          _saveDataState(_password);
+          await _saveDataState(_password);
           return _globalSuccessState.isSuccess;
         }
         if (_okCancelDialogResult == "CANCEL") {
@@ -641,17 +695,18 @@ class _MyHomePageState extends State<MyHomePage> {
       //
       // Data is loaded
       //
+      toolBarItems.add(
+        DetailIconButton(
+          icon: const Icon(Icons.save),
+          tooltip: 'Save Data',
+          onPressed: () {
+            _saveDataState(_password);
+          },
+          appColours: _appColours,
+        ),
+      );
+
       if (_dataWasUpdated) {
-        toolBarItems.add(
-          DetailIconButton(
-            icon: const Icon(Icons.save),
-            tooltip: 'Save Data',
-            onPressed: () {
-              _saveDataState(_password);
-            },
-            appColours: _appColours,
-          ),
-        );
         toolBarItems.add(
           DetailIconButton(
             icon: const Icon(Icons.refresh),
@@ -968,7 +1023,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                   : ValidatedInputField(
                       options: options,
                       initialOption: currentOption,
-                      prompt: "Input: ${isRename?"New Name":"[type]"}",
+                      prompt: "Input: ${isRename ? "New Name" : "[type]"}",
                       initialValue: currentValue,
                       appColours: _appColours,
                       onClose: (action, text, type) {
