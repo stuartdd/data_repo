@@ -25,7 +25,6 @@ bool _inExitProcess = false;
 final PathList _hiLightedPaths = PathList();
 final TextEditingController textEditingController = TextEditingController(text: "");
 
-const encDataPrefixMagic = "4rg7:";
 const appBarHeight = 50.0;
 const statusBarHeight = 35.0;
 const inputTextTitleStyleHeight = 35.0;
@@ -175,8 +174,8 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  Future<void> _saveDataState(String pw) async {
-    final String content = _loadedData.dataAsString;
+  Future<void> _saveDataState() async {
+    final String content = _loadedData.dataAsString();
     final ss = DataLoad.saveToFile(_configData.getDataFileLocal(), content);
     if (ss.isSuccess) {
       log("__OK:__ Local Data saved");
@@ -208,24 +207,17 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _loadDataState(String pw) async {
-    if (pw == "") {
-      setState(() {
-        _globalSuccessState = SuccessState(false, message: "Password was not provided", log: log);
-      });
-      return;
-    }
-
+  void _loadDataState() async {
     String source = "";
-    int ts = -1;
-    int tsRemote = -1;
-    int tsLocal = -1;
+    FilePrefixData ts = FilePrefixData.empty();
+    FilePrefixData tsRemote = FilePrefixData.empty();
+    FilePrefixData tsLocal = FilePrefixData.empty();
     String fileData = "";
     final ssRemote = await DataLoad.fromHttpGet(_configData.getDataFileUrl(), timeoutMillis: _configData.getDataFetchTimeoutMillis());
     if (ssRemote.isSuccess) {
-      tsRemote = DataLoad.timeStampFromString(ssRemote.value);
-      log("__INFO:__ Remote __TS:__ ${DateTime.fromMillisecondsSinceEpoch(tsRemote)}");
-      fileData = ssRemote.value;
+      tsRemote = DataLoad.readFilePrefixData(ssRemote.value);
+      log("__INFO:__ Remote __TS:__ ${tsRemote.getTimeStamp()}");
+      fileData = ssRemote.value.substring(tsRemote.startPos);
       source = "Remote";
       ts = tsRemote;
     } else {
@@ -234,15 +226,23 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final ssLocal = DataLoad.loadFromFile(_configData.getDataFileLocal());
     if (ssLocal.isSuccess) {
-      tsLocal = DataLoad.timeStampFromString(ssLocal.value);
-      log("__INFO:__ Local __TS:__ ${DateTime.fromMillisecondsSinceEpoch(tsLocal)}");
-      if (tsLocal > tsRemote) {
-        fileData = ssLocal.value;
+      tsLocal = DataLoad.readFilePrefixData(ssLocal.value);
+      log("__INFO:__ Local __TS:__ ${tsLocal.getTimeStamp()}");
+      if (ssRemote.isFail || tsLocal.isLaterThan(tsRemote)) {
+        fileData = ssLocal.value.substring(tsLocal.startPos);
+        ;
         source = "Local";
         ts = tsLocal;
       }
     } else {
       log(ssLocal.toLogString());
+    }
+
+    if (ts.encrypted && _password.isEmpty) {
+      setState(() {
+        _globalSuccessState = SuccessState(false, message: "No Password Provided", log: log);
+      });
+      return;
     }
 
     if (fileData.isEmpty) {
@@ -254,7 +254,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final DataContainer data;
     try {
-      data = DataContainer(fileData, encDataPrefixMagic, ts, source, password: _password);
+      data = DataContainer(fileData, ts, source, _password);
     } catch (r) {
       setState(() {
         _globalSuccessState = SuccessState(false, message: "Data file could not be parsed", exception: r as Exception, log: log);
@@ -267,15 +267,13 @@ class _MyHomePageState extends State<MyHomePage> {
       });
       return;
     }
-    data.dataMap.remove(timeStampId);
     _loadedData = data;
     setState(() {
-      _password = pw;
       _dataWasUpdated = false;
       _beforeDataLoaded = false;
       _selected = Path.fromDotPath(_loadedData.keys.first);
       _hiLightedPaths.clean();
-      _globalSuccessState = SuccessState(true, message: "${_loadedData.source} File loaded: ${_loadedData.timeStampToString()}", log: log);
+      _globalSuccessState = SuccessState(true, message: "${ts.encrypted ? "Encrypted " : ""} ${_loadedData.source} File loaded: ${_loadedData.filePrefixData.getTimeStamp()}", log: log);
     });
   }
 
@@ -366,7 +364,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _handleRenameSubmit(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
     final newName = "$newNameNoSuffix${newType.suffix}";
-    final oldName = "${detailActionData.oldValue}${detailActionData.oldValueType.suffix}";
+    final oldName = detailActionData.oldValue;
     if (oldName != newName) {
       setState(() {
         debugPrint("SS:_handleRenameSubmit");
@@ -485,7 +483,7 @@ class _MyHomePageState extends State<MyHomePage> {
       if (_dataWasUpdated) {
         await _showModalDialog(context, "Alert", ["Data has been updated", "Press OK to SAVE before Exit", "Press CANCEL remain in the App", "Press EXIT to leave without saving"], ["OK", "CANCEL", "EXIT"], null, null);
         if (_okCancelDialogResult == "OK") {
-          await _saveDataState(_password);
+          await _saveDataState();
           return _globalSuccessState.isSuccess;
         }
         if (_okCancelDialogResult == "CANCEL") {
@@ -559,7 +557,7 @@ class _MyHomePageState extends State<MyHomePage> {
               _showModalInputDialog(
                 context,
                 "Re-Name $title '${detailActionData.getLastPathElement()}'",
-                detailActionData.oldValue,
+                detailActionData.getDisplayValue(false),
                 detailActionData.value ? optionsForRenameElement : [],
                 OptionsTypeData.locateTypeInOptionsList(detailActionData.oldValueType.key, optionsForRenameElement, optionTypeDataString),
                 true,
@@ -674,7 +672,9 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             autofocus: true,
             onSubmitted: (value) {
-              _loadDataState(value);
+              _password = value;
+              textEditingController.text = "";
+              _loadDataState();
             },
             obscureText: true,
             controller: textEditingController,
@@ -688,36 +688,15 @@ class _MyHomePageState extends State<MyHomePage> {
         tooltip: 'Load Data',
         timerMs: 5000,
         onPressed: () {
-          _loadDataState("to-do ${textEditingController.text}");
+          _password = textEditingController.text;
+          textEditingController.text = "";
+          _loadDataState();
         },
       ));
     } else {
       //
       // Data is loaded
       //
-
-      if (_dataWasUpdated) {
-        toolBarItems.add(
-          DetailIconButton(
-            icon: const Icon(Icons.save),
-            tooltip: 'Save Data',
-            onPressed: () {
-              _saveDataState(_password);
-            },
-            appColours: _appColours,
-          ),
-        );
-        toolBarItems.add(
-          DetailIconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Reload Data',
-            onPressed: () {
-              _loadDataState(_password);
-            },
-            appColours: _appColours,
-          ),
-        );
-      }
       toolBarItems.add(
         DetailIconButton(
           show: !_beforeDataLoaded,
@@ -731,11 +710,33 @@ class _MyHomePageState extends State<MyHomePage> {
           },
         ),
       );
+      if (_dataWasUpdated || _isEditDataDisplay) {
+        toolBarItems.add(
+          DetailIconButton(
+            icon: const Icon(Icons.save),
+            tooltip: _loadedData.hasPassword ? "Save ENCRYPTED" : 'Save Data',
+            onPressed: () {
+              _saveDataState();
+            },
+            appColours: _appColours,
+          ),
+        );
+        toolBarItems.add(
+          DetailIconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Reload Data',
+            onPressed: () {
+              _loadDataState();
+            },
+            appColours: _appColours,
+          ),
+        );
+      }
       if (_isEditDataDisplay) {
         toolBarItems.add(DetailIconButton(
           appColours: _appColours,
           icon: const Icon(Icons.add_box_outlined),
-          tooltip: 'Add',
+          tooltip: 'Add Value or Group',
           onPressed: () {
             _showModalInputDialog(
               context,

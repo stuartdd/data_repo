@@ -122,8 +122,8 @@ const OptionsTypeData optionTypeDataInt = OptionsTypeData(int, "int", "Integer n
 const OptionsTypeData optionTypeDataPositional = OptionsTypeData(String, positionalStringMarker, "Positional List", suffix: positionalStringMarker);
 const OptionsTypeData optionTypeDataMarkDown = OptionsTypeData(String, markDownMarker, "Multi Line Markdown", suffix: markDownMarker);
 // Values for adding elements as groups or values
-const OptionsTypeData optionTypeDataGroup = OptionsTypeData(String, "Group", "A Group Name", suffix: markDownMarker, min: 2, max: 30);
-const OptionsTypeData optionTypeDataValue = OptionsTypeData(String, "Value", "A Value Name", suffix: markDownMarker, min: 2, max: 30);
+const OptionsTypeData optionTypeDataGroup = OptionsTypeData(String, "Group", "A Group Name", suffix: "", min: 2, max: 30);
+const OptionsTypeData optionTypeDataValue = OptionsTypeData(String, "Value", "A Value Name", suffix: "", min: 2, max: 30);
 // Value for function 'forTypeOrName(Type type, String name)' if no match found
 const OptionsTypeData optionTypeDataNotFound = OptionsTypeData(String, "String", "Type Not Found");
 
@@ -189,6 +189,10 @@ class DetailAction {
 
   String getLastPathElement() {
     return path.getLast();
+  }
+
+  String getDisplayValue(bool editMode) {
+    return oldValue.substring(0, oldValue.length - oldValueType.suffix.length);
   }
 
   String get valueName {

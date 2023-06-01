@@ -7,8 +7,38 @@ import 'dart:io';
 import 'dart:convert';
 import 'encrypt.dart';
 
-const timeStampId = "timeStamp";
-const timeStampIdMarker = '"$timeStampId": ';
+const timeStampPrefix = "TS:";
+const timeStampPrefixClear = "${timeStampPrefix}C:";
+const timeStampPrefixEnc = "${timeStampPrefix}E:";
+
+class FilePrefixData {
+  final bool hasData;
+  final int timeStamp;
+  final int startPos;
+  final bool encrypted;
+  FilePrefixData(this.hasData, this.timeStamp, this.startPos, this.encrypted);
+
+  factory FilePrefixData.empty() {
+    return FilePrefixData(false, -1, 0, false);
+  }
+
+  String getTimeStamp() {
+    if (timeStamp == -1) {
+      return "None";
+    }
+    return DateTime.fromMillisecondsSinceEpoch(timeStamp).toString();
+  }
+
+  bool isLaterThan(FilePrefixData other) {
+    if (timeStamp == -1) {
+      return false;
+    }
+    if (other.timeStamp == -1) {
+      return true;
+    }
+    return timeStamp > other.timeStamp;
+  }
+}
 
 class JsonException implements Exception {
   final String message;
@@ -35,55 +65,42 @@ class DataLoadException implements Exception {
 
 class DataContainer {
   final String _fileContents;
-  final String _filePrefixMagic;
-  final int timeStamp;
+  final FilePrefixData filePrefixData;
   final String source;
   late final String _password;
-  late final bool _isEncrypted;
   late final Map<String, dynamic> _dataMap;
 
   factory DataContainer.empty() {
-    return DataContainer("", "", -1, "");
+    return DataContainer("", FilePrefixData.empty(), "","");
   }
 
-  String timeStampToString() {
-    return DateTime.fromMillisecondsSinceEpoch(timeStamp).toString();
-  }
-
-  DataContainer(this._fileContents, this._filePrefixMagic, this.timeStamp, this.source, {String password = ""}) {
+  DataContainer(this._fileContents, this.filePrefixData, this.source, String pw) {
     if (_fileContents.isEmpty) {
       _password = "";
       _dataMap = <String, dynamic>{};
-      _isEncrypted = false;
       return;
     }
-    _password = password;
-    if (_fileContents.startsWith(_filePrefixMagic)) {
-      if (password.isEmpty) {
-        throw DataLoadException("Decrypt: Required password was not provided");
-      }
-      final temp = EncryptData.decrypt(_fileContents.substring(_filePrefixMagic.length), password);
+    _password = pw;
+    if (_password.isNotEmpty && filePrefixData.encrypted) {
+      final temp = EncryptData.decrypt(_fileContents, _password);
       _dataMap = jsonDecode(temp);
-      _isEncrypted = true;
     } else {
       _dataMap = jsonDecode(_fileContents);
-      _isEncrypted = false;
     }
   }
 
-  String get dataAsString {
+  String dataAsString() {
     JsonEncoder encoder = const JsonEncoder.withIndent('  ');
-    _dataMap.remove("timeStamp");
-    _dataMap["timeStamp"] = DateTime.now().millisecondsSinceEpoch;
+    final ts = DateTime.timestamp().millisecondsSinceEpoch;
     final text = encoder.convert(_dataMap);
-
-    if (_isEncrypted) {
-      if (_password.isEmpty) {
-        throw DataLoadException("Encrypt: Required password was not provided");
-      }
-      return _filePrefixMagic + EncryptData.encryptAES(text, _password).base64;
+    if (_password.isNotEmpty) {
+      return "$timeStampPrefixEnc$ts:${EncryptData.encryptAES(text, _password).base64}";
     }
-    return text;
+    return "$timeStampPrefixClear$ts:$text";
+  }
+
+  bool get hasPassword {
+    return _password.isNotEmpty;
   }
 
   Iterable<String> get keys {
@@ -196,9 +213,9 @@ class DataLoad {
       final uri = Uri.parse(url);
       var response = await http.post(uri, headers: {"Content-Type": "application/json"}, body: body);
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return SuccessState(true, message: "Remote file sent: Status:${response.statusCode} [${response.body}]",  log: log);
+        return SuccessState(true, message: "Remote file sent: Status:${response.statusCode} [${response.body}]", log: log);
       } else {
-        return SuccessState(false, message: "Remote file send:${response.statusCode} [${response.body}]",  log: log);
+        return SuccessState(false, message: "Remote file send:${response.statusCode} [${response.body}]", log: log);
       }
     } catch (e) {
       return SuccessState(false, message: "Remote file send", exception: e as Exception, log: log);
@@ -221,6 +238,7 @@ class DataLoad {
       if (body.isEmpty) {
         return SuccessState(false, message: "Remote Data was empty:", log: log);
       }
+
       if (prefix.isNotEmpty && body.startsWith(prefix)) {
         return SuccessState(true, value: body.substring(prefix.length), message: "Remote Data loaded OK", log: log);
       }
@@ -228,7 +246,7 @@ class DataLoad {
       if (body100.contains("<html>") || body100.contains("<!DOCTYPE")) {
         return SuccessState(false, message: "Remote Data Load contains html:", log: log);
       }
-      if (body.startsWith('{') || body.startsWith('[')) {
+      if (body.startsWith('{') || body.startsWith('[') || body.startsWith(timeStampPrefix)) {
         return SuccessState(true, value: body, message: "Remote Data loaded OK", log: log);
       }
       return SuccessState(false, message: "Remote Data Load was not JSON:", log: log);
@@ -237,11 +255,26 @@ class DataLoad {
     }
   }
 
-  static int timeStampFromString(String s) {
-    final p = s.indexOf(timeStampIdMarker);
-    if (p >= 0) {
+  static FilePrefixData readFilePrefixData(String s) {
+    bool hasData = false;
+    bool enc = false;
+    int pos = 0;
+    int ts = -1;
+    if (s.startsWith(timeStampPrefixClear)) {
+      hasData = true;
+      enc = false;
+      pos = timeStampPrefixClear.length;
+    } else {
+      if (s.startsWith(timeStampPrefixEnc)) {
+        hasData = true;
+        enc = true;
+        pos = timeStampPrefixEnc.length;
+      }
+    }
+
+    if (hasData) {
       final sb = StringBuffer();
-      var p1 = p + timeStampIdMarker.length;
+      var p1 = pos;
       var cp = s.codeUnits[p1];
       while (cp >= 48 && cp <= 57) {
         sb.writeCharCode(cp);
@@ -249,12 +282,13 @@ class DataLoad {
         cp = s.codeUnits[p1];
       }
       try {
-        return int.parse(sb.toString());
+        ts = int.parse(sb.toString());
+        return FilePrefixData(true, ts, p1+1, enc);
       } catch (e) {
-        return -1;
+        return FilePrefixData.empty();
       }
     }
-    return -1;
+    return FilePrefixData.empty();
   }
 
   static void pathsForMapNodes(Map<String, dynamic> json, Function(String) callBack) {
