@@ -35,6 +35,7 @@ dependencies:
   http_status_code:
   split_view:
   flutter_treeview: ^1.0.7+1
+  url_launcher: ^6.0.3
   window_size:
     git:
       url: https://github.com/google/flutter-desktop-embedding.git

@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:data_repo/data_load.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_size/window_size.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'path.dart';
 import 'data_types.dart';
@@ -40,11 +42,6 @@ bool _shouldDisplayMarkdownPreview = false;
 
 void closer(int returnCode) async {
   exit(returnCode);
-}
-
-bool implementLink(String href) {
-  debugPrint("LINK to $href. Simples!");
-  return true;
 }
 
 void log(String text) {
@@ -163,6 +160,32 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isEditDataDisplay = false;
   SuccessState _globalSuccessState = SuccessState(true);
   DataContainer _loadedData = DataContainer.empty();
+
+  Future<String> _implementLink(String href) async {
+    var urlCanLaunch = await canLaunchUrlString(href); //canLaunch is from url_launcher package
+    if (urlCanLaunch) {
+      log("__LINK:__ Url:$href");
+      await launchUrlString(href); //launch is from url_launcher package to launch URL
+      return "";
+    } else {
+      log("Url:$href Cannot be opened");
+      return "__LINK ERROR:__ Url cannot be launched";
+    }
+  }
+
+  Future<void> implementLinkState(final String href, final String from) async {
+    var urlCanLaunch = await canLaunchUrlString(href); //canLaunch is from url_launcher package
+    if (urlCanLaunch) {
+      await launchUrlString(href); //launch is from url_launcher package to launch URL
+      setState(() {
+        _globalSuccessState = SuccessState(true, message: "Link submitted from $from", log: log);
+      });
+    } else {
+      setState(() {
+        _globalSuccessState = SuccessState(false, message: "Link could not be launched", log: log);
+      });
+    }
+  }
 
   void _setSearchExpressionState(String st) {
     if (st == _search) {
@@ -587,6 +610,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 (action, text, type) {
                   if (action == "OK") {
                     _handleEditSubmit(detailActionData, text, type);
+                  } else {
+                    if (action == "link") {
+                      implementLinkState(text, detailActionData.path.getLast());
+                    }
                   }
                 },
                 (initialTrimmed, valueTrimmed, initialType, valueType) {
@@ -634,7 +661,8 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.link:
             {
-              return implementLink(detailActionData.oldValue);
+              implementLinkState(detailActionData.oldValue, detailActionData.path.getLast());
+              return true;
             }
           default:
             {
@@ -1016,8 +1044,9 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                         }
                         return _shouldDisplayMarkdownPreview;
                       },
-                      dataAction: (action) {
-                        return implementLink(action.oldValue);
+                      dataAction: (detailAction) {
+                        onAction(detailAction.action.name, detailAction.oldValue, OptionsTypeData.forTypeOrName(String, "link"));
+                        return true;
                       },
                       appColours: _appColours,
                     )
