@@ -48,9 +48,9 @@ class DetailIconButton extends StatefulWidget {
   final int timerMs;
   final Icon icon;
   final String tooltip;
-  final AppColours appColours;
+  final AppThemeData appColours;
   final EdgeInsetsGeometry padding;
-  const DetailIconButton({super.key, this.show = true, required this.onPressed, this.timerMs = 100, required this.icon, this.tooltip = "", required this.appColours,  this.padding = const EdgeInsets.fromLTRB(1, 12, 1, 0)});
+  const DetailIconButton({super.key, this.show = true, required this.onPressed, this.timerMs = 100, required this.icon, this.tooltip = "", required this.appColours,  this.padding = const EdgeInsets.fromLTRB(1, 1, 1, 0)});
   @override
   State<DetailIconButton> createState() => _DetailIconButton();
 }
@@ -215,7 +215,7 @@ class MarkDownInputField extends StatefulWidget {
   final void Function(String, String, OptionsTypeData) onClose;
   final double height;
   final double width;
-  final AppColours appColours;
+  final AppThemeData appColours;
   final bool Function(bool) shouldDisplayHelp;
   final bool Function(bool) shouldDisplayPreview;
   final bool Function(DetailAction) dataAction;
@@ -340,7 +340,7 @@ class ValidatedInputField extends StatefulWidget {
   final void Function(String, String, OptionsTypeData) onClose;
   final String Function(String, String, OptionsTypeData, OptionsTypeData) onValidate;
   final controller = TextEditingController();
-  final AppColours appColours;
+  final AppThemeData appColours;
 
   @override
   State<ValidatedInputField> createState() => _ValidatedInputFieldState();

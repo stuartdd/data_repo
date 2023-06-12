@@ -2,9 +2,6 @@
     {
         "application" : {
             "title": "Data Repository",
-            "colours": {
-                "primary": "blue"
-            },
             "dataFetchTimeoutMillis": 500
         },
         "user" : {
@@ -14,17 +11,8 @@
             "appStateFile": "appState.json"
         },
         "file": {
-            "backupfile": {
-                "path": "test",
-                "sep": "/",
-                "pre": "mydb-",
-                "mask": "%d-%h%m",
-                "post": ".data",
-                "max": 10
-            },
             "postDataUrl": "http://localhost:4040/file",
             "getDataUrl": "http://localhost:4040/file",
-            "datafile": "data03.json",
-            "datafilePath": "test/data"
+            "datafile": "data03.json"
         }
     }

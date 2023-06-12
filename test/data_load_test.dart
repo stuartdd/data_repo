@@ -15,6 +15,45 @@ void main() {
   //     fail(r.exception.toString());
   //   }
   // });
+  test('Test Set Node', () async {
+    final appTitle = Path.fromDotPath("application.title");
+    final appAdd1 = Path.fromDotPath("application.added1");
+    final appAdd2 = Path.fromDotPath("application.added2.add");
+    final appAdd3 = Path.fromDotPath("application.added2.add3");
+    var s = json_tools.jsonDecode(DataLoad.loadFromFile("test/data/config.json").value);
+    expect(DataLoad.setValueForJsonPath(s, Path.empty(), "abc"), "Path is empty");
+    expect(DataLoad.stringFromJson(s, appTitle), "Data Repository");
+    expect(DataLoad.setValueForJsonPath(s, appTitle, "title"), "");
+    expect(DataLoad.stringFromJson(s, appTitle), "title");
+
+    expect(DataLoad.setValueForJsonPath(s, appAdd1, "appAdd1"), "");
+    expect(DataLoad.stringFromJson(s, appTitle), "title");
+    expect(DataLoad.stringFromJson(s, appAdd1), "appAdd1");
+
+    expect(DataLoad.setValueForJsonPath(s, appAdd2, "appAdd2add"), "");
+    expect(DataLoad.stringFromJson(s, appTitle), "title");
+    expect(DataLoad.stringFromJson(s, appAdd1), "appAdd1");
+    expect(DataLoad.stringFromJson(s, appAdd2), "appAdd2add");
+
+    expect(DataLoad.setValueForJsonPath(s, appAdd2, "appAdd2add"), "");
+    expect(DataLoad.stringFromJson(s, appTitle), "title");
+    expect(DataLoad.stringFromJson(s, appAdd1), "appAdd1");
+    expect(DataLoad.stringFromJson(s, appAdd2), "appAdd2add");
+
+    expect(DataLoad.setValueForJsonPath(s, appAdd3, true), "");
+    expect(DataLoad.boolFromJson(s, appAdd3), true);
+    expect(DataLoad.stringFromJson(s, appTitle), "title");
+    expect(DataLoad.stringFromJson(s, appAdd1), "appAdd1");
+    expect(DataLoad.stringFromJson(s, appAdd2), "appAdd2add");
+    expect(DataLoad.setValueForJsonPath(s, appAdd3, false), "");
+    expect(DataLoad.boolFromJson(s, appAdd3), false);
+    expect(DataLoad.setValueForJsonPath(s, appAdd3, 99), "");
+    expect(DataLoad.numFromJson(s, appAdd3), 99);
+    expect(DataLoad.setValueForJsonPath(s, appAdd3, 99.9), "");
+    expect(DataLoad.numFromJson(s, appAdd3), 99.9);
+    expect(DataLoad.setValueForJsonPath(s, appAdd3, "String"), "");
+    expect(DataLoad.stringFromJson(s, appAdd3), "String");
+  });
 
   test('Test Get From Server', () async {
     await startTestServer();

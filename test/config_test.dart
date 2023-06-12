@@ -36,7 +36,7 @@ void main() {
   test('Test Get From Server', () async {
     final cfg = ConfigData("test/data", "config.json", true, log);
     expect(cfg.toString(), "Url:http://192.168.1.1:8080/files/user/stuart/loc/mydb/name/mydb.data File:test/mydb.data");
-    expect(cfg.getDataFileUrl(), "http://192.168.1.1:8080/files/user/stuart/loc/mydb/name/mydb.data");
+    expect(cfg.getGetDataFileUrl(), "http://192.168.1.1:8080/files/user/stuart/loc/mydb/name/mydb.data");
     expect(cfg.getDataFileLocal(), "test/mydb.data");
     expect(cfg.getAppStateFileLocal(), "test/data/appState.json.tmp");
   });

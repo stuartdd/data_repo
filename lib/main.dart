@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_size/window_size.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'path.dart';
 import 'data_types.dart';
@@ -16,7 +15,6 @@ import 'detail_buttons.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
 late final ConfigData _configData;
-late final AppColours _appColours;
 late final ApplicationState _applicationState;
 
 StringBuffer eventLog = StringBuffer();
@@ -31,11 +29,6 @@ const appBarHeight = 50.0;
 const statusBarHeight = 35.0;
 const inputTextTitleStyleHeight = 35.0;
 const iconDataFileLoad = Icons.file_open;
-const dialogTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.black);
-const dialogButtonStyle = TextStyle(fontFamily: 'Code128', fontSize: 25.0, color: Colors.blue);
-const statusTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.black);
-const headingTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.black);
-const inputTextTitleStyle = TextStyle(fontFamily: 'Code128', fontSize: 30.0, color: Colors.black);
 
 bool _shouldDisplayMarkdownHelp = false;
 bool _shouldDisplayMarkdownPreview = false;
@@ -62,7 +55,6 @@ void main() async {
     log("__PATH:__ $path");
     _configData = ConfigData(path, "config.json", isDesktop, log);
     _applicationState = await ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), log);
-    _appColours = _configData.getAppColours();
     if (isDesktop) {
       setWindowTitle("${_configData.getTitle()}: ${_configData.getUserName()}");
       const WindowOptions(
@@ -72,7 +64,7 @@ void main() async {
       setWindowFrame(Rect.fromLTWH(_applicationState.screen.x, _applicationState.screen.y, _applicationState.screen.w, _applicationState.screen.h));
     }
   } catch (e) {
-    stderr.writeln(e);
+    print(e);
     closer(1);
   }
   runApp(MyApp());
@@ -125,7 +117,7 @@ class MyApp extends StatelessWidget with WindowListener {
     }
     return MaterialApp(
       title: 'data_repo',
-      theme: ThemeData(primarySwatch: _appColours.primary),
+      theme: ThemeData(primarySwatch: _configData.getPrimaryColour()),
       home: MyHomePage(
         title: _configData.getTitle(),
       ),
@@ -160,18 +152,6 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isEditDataDisplay = false;
   SuccessState _globalSuccessState = SuccessState(true);
   DataContainer _loadedData = DataContainer.empty();
-
-  Future<String> _implementLink(String href) async {
-    var urlCanLaunch = await canLaunchUrlString(href); //canLaunch is from url_launcher package
-    if (urlCanLaunch) {
-      log("__LINK:__ Url:$href");
-      await launchUrlString(href); //launch is from url_launcher package to launch URL
-      return "";
-    } else {
-      log("Url:$href Cannot be opened");
-      return "__LINK ERROR:__ Url cannot be launched";
-    }
-  }
 
   Future<void> implementLinkState(final String href, final String from) async {
     var urlCanLaunch = await canLaunchUrlString(href); //canLaunch is from url_launcher package
@@ -236,7 +216,7 @@ class _MyHomePageState extends State<MyHomePage> {
     FilePrefixData tsRemote = FilePrefixData.empty();
     FilePrefixData tsLocal = FilePrefixData.empty();
     String fileData = "";
-    final ssRemote = await DataLoad.fromHttpGet(_configData.getDataFileUrl(), timeoutMillis: _configData.getDataFetchTimeoutMillis());
+    final ssRemote = await DataLoad.fromHttpGet(_configData.getGetDataFileUrl(), timeoutMillis: _configData.getDataFetchTimeoutMillis());
     if (ssRemote.isSuccess) {
       tsRemote = DataLoad.readFilePrefixData(ssRemote.value);
       log("__INFO:__ Remote __TS:__ ${tsRemote.getTimeStamp()}");
@@ -253,7 +233,6 @@ class _MyHomePageState extends State<MyHomePage> {
       log("__INFO:__ Local __TS:__ ${tsLocal.getTimeStamp()}");
       if (ssRemote.isFail || tsLocal.isLaterThan(tsRemote)) {
         fileData = ssLocal.value.substring(tsLocal.startPos);
-        ;
         source = "Local";
         ts = tsLocal;
       }
@@ -527,7 +506,6 @@ class _MyHomePageState extends State<MyHomePage> {
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
       return await _shouldExitHandler();
     });
-
     final DisplayData displayData = createSplitView(
       _loadedData.dataMap,
       _configData.getUserId(),
@@ -537,7 +515,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _isEditDataDisplay,
       _configData.isDesktop(),
       _applicationState.screen.hDiv,
-      _appColours,
+      _configData.getAppThemeData(),
       _hiLightedPaths,
       _handleTreeSelect, // On tree selection
       (divPos) {
@@ -684,18 +662,18 @@ class _MyHomePageState extends State<MyHomePage> {
             closer(0);
           }
         },
-        appColours: _appColours,
+        appColours: _configData.getAppThemeData(),
       ),
     );
 
     if (_beforeDataLoaded) {
       toolBarItems.add(Container(
-        color: _appColours.primary.shade400,
+        color: _configData.getAppThemeData().primary.shade400,
         child: SizedBox(
           width: MediaQuery.of(context).size.width / 3,
           child: TextField(
+            style: _configData.getAppThemeData().tsLarge,
             decoration: const InputDecoration(
-              border: OutlineInputBorder(),
               hintText: 'Password',
             ),
             autofocus: true,
@@ -711,7 +689,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ));
       toolBarItems.add(DetailIconButton(
-        appColours: _appColours,
+        appColours: _configData.getAppThemeData(),
         icon: const Icon(iconDataFileLoad),
         tooltip: 'Load Data',
         timerMs: 5000,
@@ -728,7 +706,7 @@ class _MyHomePageState extends State<MyHomePage> {
       toolBarItems.add(
         DetailIconButton(
           show: !_beforeDataLoaded,
-          appColours: _appColours,
+          appColours: _configData.getAppThemeData(),
           icon: _isEditDataDisplay ? const Icon(Icons.remove_red_eye) : const Icon(Icons.edit),
           tooltip: _isEditDataDisplay ? 'Stop Editing' : "Start Editing",
           onPressed: () {
@@ -746,7 +724,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               _saveDataState();
             },
-            appColours: _appColours,
+            appColours: _configData.getAppThemeData(),
           ),
         );
         toolBarItems.add(
@@ -756,13 +734,13 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               _loadDataState();
             },
-            appColours: _appColours,
+            appColours: _configData.getAppThemeData(),
           ),
         );
       }
       if (_isEditDataDisplay) {
         toolBarItems.add(DetailIconButton(
-          appColours: _appColours,
+          appColours: _configData.getAppThemeData(),
           icon: const Icon(Icons.add_box_outlined),
           tooltip: 'Add Value or Group',
           onPressed: () {
@@ -787,7 +765,7 @@ class _MyHomePageState extends State<MyHomePage> {
       } else {
         toolBarItems.add(
           Container(
-            color: _appColours.primary.shade400,
+            color: _configData.getAppThemeData().primary.shade400,
             child: SizedBox(
               width: MediaQuery.of(context).size.width / 3,
               child: TextField(
@@ -807,7 +785,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         toolBarItems.add(
           DetailIconButton(
-            appColours: _appColours,
+            appColours: _configData.getAppThemeData(),
             icon: const Icon(Icons.search),
             tooltip: 'Search',
             onPressed: () {
@@ -817,7 +795,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         toolBarItems.add(
           DetailIconButton(
-            appColours: _appColours,
+            appColours: _configData.getAppThemeData(),
             icon: const Icon(Icons.youtube_searched_for),
             tooltip: 'Previous Searches',
             onPressed: () async {
@@ -835,7 +813,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         toolBarItems.add(
           DetailIconButton(
-            appColours: _appColours,
+            appColours: _configData.getAppThemeData(),
             icon: const Icon(Icons.search_off),
             tooltip: 'Clear Search',
             onPressed: () {
@@ -845,7 +823,32 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       }
     }
-
+    final settings = Positioned(
+        left: MediaQuery.of(context).size.width - appBarHeight,
+        top: 0,
+        child: DetailIconButton(
+          icon: const Icon(Icons.settings),
+          tooltip: 'Settings',
+          onPressed: () {
+            _showConfigDialog(
+              context,
+              _configData.getAppThemeData(),
+              _configData.getConfigFileName(),
+              (validValue, detail) {
+                return "";
+              },
+              (settingsControl) {
+                log("__SETTINGS:__ ${settingsControl.detail.path} Type:${settingsControl.detail.valueType} Value:'${settingsControl.value}'");
+                final msg = DataLoad.setValueForJsonPath(_configData.getJson(), settingsControl.detail.path, settingsControl.value);
+                setState(() {
+                  _configData.update();
+                });
+                return msg;
+              },
+            );
+          },
+          appColours: _configData.getAppThemeData(),
+        ));
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -854,48 +857,104 @@ class _MyHomePageState extends State<MyHomePage> {
     // than having to individually change instances of widgets.
     return Scaffold(
       body: SingleChildScrollView(
-          child: Column(
+          child: Stack(
+        children: [
+          Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               // Center is a layout widget. It takes a single child and positions it
               // in the middle of the parent.
               children: [
-            Container(
-              height: appBarHeight,
-              color: _appColours.primary.shade500,
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: toolBarItems),
-            ),
-            Container(
-              height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight),
-              color: _appColours.primary.shade500,
-              child: displayData.splitView,
-            ),
-            Container(
-              height: statusBarHeight,
-              color: _globalSuccessState.isSuccess ? _appColours.primary.shade500 : _appColours.error.shade900,
-              child: Row(
-                children: [
-                  DetailIconButton(
-                    appColours: _appColours,
-                    icon: const Icon(
-                      Icons.view_timeline,
-                      size: statusBarHeight,
-                    ),
-                    tooltip: 'Log',
-                    padding: const EdgeInsets.fromLTRB(1, 1, 1, 0),
-                    onPressed: () {
-                      _showLogDialog(context, eventLog.toString());
-                    },
+                Container(
+                  height: appBarHeight,
+                  color: _configData.getAppThemeData().primary.shade500,
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: toolBarItems),
+                ),
+                Container(
+                  height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight),
+                  color: _configData.getAppThemeData().primary.shade500,
+                  child: displayData.splitView,
+                ),
+                Container(
+                  height: 1,
+                  color: Colors.black,
+                ),
+                Container(
+                  height: statusBarHeight,
+                  color: _globalSuccessState.isSuccess ? _configData.getAppThemeData().primary.shade500 : _configData.getAppThemeData().error.shade500,
+                  child: Row(
+                    children: [
+                      DetailIconButton(
+                        appColours: _configData.getAppThemeData(),
+                        icon: const Icon(
+                          Icons.view_timeline,
+                          size: statusBarHeight,
+                        ),
+                        tooltip: 'Log',
+                        padding: const EdgeInsets.fromLTRB(1, 1, 1, 0),
+                        onPressed: () {
+                          _showLogDialog(context, eventLog.toString());
+                        },
+                      ),
+                      Text(
+                        _globalSuccessState.toString(),
+                        style: _configData.getAppThemeData().tsMedium,
+                      )
+                    ],
                   ),
-                  Text(
-                    _globalSuccessState.toString(),
-                    style: statusTextStyle,
-                  )
-                ],
-              ),
-            ),
-          ])),
+                ),
+              ]),
+          settings,
+        ],
+      )),
     );
   }
+}
+
+Future<void> _showConfigDialog(final BuildContext context, AppThemeData appThemeData, final String fileName, final String Function(dynamic, SettingDetail) validate, final String Function(SettingControl) commit) async {
+  List<SettingControl>? controlList = _configData.createSettingsControlList();
+  return showDialog<void>(
+    context: context,
+    barrierColor: _configData.getPrimaryColour().shade300,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: _configData.getPrimaryColour().shade600,
+        title: Text("Settings:", style: appThemeData.tsLarge),
+        content: SizedBox(
+          height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
+          width: MediaQuery.of(context).size.width,
+          child: SingleChildScrollView(
+              child: Column(
+            children: _configData.getSettingsWidgets(null, appThemeData, controlList, (value, detail) {
+              return "";
+            }),
+          )),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Save', style: _configData.getAppThemeData().tsMedium),
+            onPressed: () {
+              if (controlList != null) {}
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: Text('Close', style: _configData.getAppThemeData().tsMedium),
+            onPressed: () {
+              if (controlList != null) {
+                for (final c in controlList!) {
+                  if (c.changed) {
+                    commit(c);
+                  }
+                }
+              }
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
 }
 
 Future<void> _showLogDialog(final BuildContext context, final String log) async {
@@ -904,7 +963,7 @@ Future<void> _showLogDialog(final BuildContext context, final String log) async 
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        title: const Text('Event Log', style: dialogButtonStyle),
+        title: Text('Event Log', style: _configData.getAppThemeData().tsMedium),
         content: SingleChildScrollView(
             child: SizedBox(
           height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
@@ -918,7 +977,7 @@ Future<void> _showLogDialog(final BuildContext context, final String log) async 
         )),
         actions: <Widget>[
           TextButton(
-            child: const Text('OK', style: dialogButtonStyle),
+            child: Text('OK', style: _configData.getAppThemeData().tsMedium),
             onPressed: () {
               Navigator.of(context).pop();
             },
@@ -935,13 +994,13 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        title: const Text('Previous Searches', style: dialogButtonStyle),
+        title: Text('Previous Searches', style: _configData.getAppThemeData().tsMedium),
         content: SingleChildScrollView(
           child: ListBody(
             children: [
               for (int i = 0; i < prevList.length; i++) ...[
                 TextButton(
-                  child: Text(prevList[i], style: dialogTextStyle),
+                  child: Text(prevList[i], style: _configData.getAppThemeData().tsMedium),
                   onPressed: () {
                     onSelect(prevList[i]);
                     Navigator.of(context).pop();
@@ -953,7 +1012,7 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
         ),
         actions: <Widget>[
           TextButton(
-            child: const Text('Cancel', style: dialogButtonStyle),
+            child: Text('Cancel', style: _configData.getAppThemeData().tsMedium),
             onPressed: () {
               onSelect("");
               Navigator.of(context).pop();
@@ -971,13 +1030,13 @@ Future<void> _showModalDialog(final BuildContext context, final String title, fi
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        backgroundColor: _appColours.primary.shade300,
-        title: Text(title, style: dialogTextStyle),
+        backgroundColor: _configData.getPrimaryColour().shade300,
+        title: Text(title, style: _configData.getAppThemeData().tsMedium),
         content: SingleChildScrollView(
           child: ListBody(
             children: [
               for (int i = 0; i < texts.length; i++) ...[
-                (texts[i].startsWith('#')) ? Container(alignment: Alignment.center, color: _appColours.primary.shade500, child: Text(texts[i].substring(1), style: dialogTextStyle)) : Text(texts[i], style: dialogTextStyle),
+                (texts[i].startsWith('#')) ? Container(alignment: Alignment.center, color: _configData.getPrimaryColour().shade500, child: Text(texts[i].substring(1), style: _configData.getAppThemeData().tsMedium)) : Text(texts[i], style: _configData.getAppThemeData().tsMedium),
               ]
             ],
           ),
@@ -1012,8 +1071,8 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        backgroundColor: _appColours.primary.shade300,
-        title: SizedBox(height: inputTextTitleStyleHeight, child: Text(title, style: inputTextTitleStyle)),
+        backgroundColor: _configData.getPrimaryColour().shade300,
+        title: SizedBox(height: inputTextTitleStyleHeight, child: Text(title, style: _configData.getAppThemeData().tsMedium)),
         content: SingleChildScrollView(
           child: ListBody(
             children: [
@@ -1048,14 +1107,14 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                         onAction(detailAction.action.name, detailAction.oldValue, OptionsTypeData.forTypeOrName(String, "link"));
                         return true;
                       },
-                      appColours: _appColours,
+                      appColours: _configData.getAppThemeData(),
                     )
                   : ValidatedInputField(
                       options: options,
                       initialOption: currentOption,
                       prompt: "Input: ${isRename ? "New Name" : "[type]"}",
                       initialValue: currentValue,
-                      appColours: _appColours,
+                      appColours: _configData.getAppThemeData(),
                       onClose: (action, text, type) {
                         onAction(action, text, type);
                         Navigator.of(context).pop();

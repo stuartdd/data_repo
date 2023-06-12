@@ -71,7 +71,7 @@ class DataContainer {
   late final Map<String, dynamic> _dataMap;
 
   factory DataContainer.empty() {
-    return DataContainer("", FilePrefixData.empty(), "","");
+    return DataContainer("", FilePrefixData.empty(), "", "");
   }
 
   DataContainer(this._fileContents, this.filePrefixData, this.source, String pw) {
@@ -283,7 +283,7 @@ class DataLoad {
       }
       try {
         ts = int.parse(sb.toString());
-        return FilePrefixData(true, ts, p1+1, enc);
+        return FilePrefixData(true, ts, p1 + 1, enc);
       } catch (e) {
         return FilePrefixData.empty();
       }
@@ -342,19 +342,28 @@ class DataLoad {
     }
     dynamic node = json;
     for (var i = 0; i < path.length(); i++) {
-      node = node[path.peek(i)];
-      if (node != null && i == (path.length() - 1)) {
+      final name = path.peek(i);
+      node = node[name];
+      if (node == null) {
+        return null;
+      }
+      if (i == (path.length() - 1)) {
         return node;
       }
     }
     return null;
   }
 
-  static String stringFromJson(Map<String, dynamic> json, Path path, {String fallback = ""}) {
+  static String stringFromJson(Map<String, dynamic> json, Path path, {String fallback = "", bool create = false}) {
     final node = _nodeFromJson(json, path);
     if (node == null) {
-      if (fallback.isNotEmpty) {
+      if (create) {
+        setValueForJsonPath(json, path, fallback);
         return fallback;
+      } else {
+        if (fallback.isNotEmpty) {
+          return fallback;
+        }
       }
       throw JsonException(message: "stringFromJson: String Node was NOT found", path);
     }
@@ -362,6 +371,34 @@ class DataLoad {
       return node;
     }
     throw JsonException(message: "stringFromJson: Node found was NOT a String node", path);
+  }
+
+  static String setValueForJsonPath(Map<String, dynamic> json, Path path, dynamic value) {
+    if (path.isEmpty()) {
+      return "Path is empty";
+    }
+    dynamic node = json;
+    dynamic parent = json;
+    for (int i = 0; i < path.length(); i++) {
+      final name = path.peek(i);
+      parent = node;
+      node = parent[name];
+      if (node == null) {
+        parent[name] = {};
+        if (i == path.length() - 1) {
+          parent[name] = value;
+          return "";
+        } else {
+          node = parent[name];
+        }
+      } else {
+        if (i == path.length() - 1) {
+          parent[name] = value;
+          return "";
+        }
+      }
+    }
+    return "";
   }
 
   static num numFromJson(Map<String, dynamic> json, Path path, {num? fallback}) {

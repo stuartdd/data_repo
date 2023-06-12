@@ -7,12 +7,6 @@ import 'data_types.dart';
 import 'detail_buttons.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
-const _styleLarge = TextStyle(fontFamily: 'Code128', fontWeight: FontWeight.w500, fontSize: 30.0, color: Colors.black);
-const _styleList = TextStyle(fontFamily: 'Code128', fontWeight: FontWeight.w500, fontSize: 25.0, color: Colors.black);
-const _styleSmall = TextStyle(fontFamily: 'Code128', fontWeight: FontWeight.w500, fontSize: 25.0, color: Colors.black);
-const _styleSubTitle = TextStyle(fontFamily: 'Code128', fontSize: 17.0, color: Colors.black);
-//
-
 class DataValueDisplayRow {
   final String _name;
   final String _value;
@@ -77,9 +71,9 @@ class DataValueDisplayRow {
 }
 
 class DetailWidget extends StatefulWidget {
-  const DetailWidget({super.key, required this.dataValueRow, required this.appColours, required this.dataAction, required this.hiLightedPaths, required this.isEditDataDisplay, required this.isHorizontal});
+  const DetailWidget({super.key, required this.dataValueRow, required this.appThemeData, required this.dataAction, required this.hiLightedPaths, required this.isEditDataDisplay, required this.isHorizontal});
   final DataValueDisplayRow dataValueRow;
-  final AppColours appColours;
+  final AppThemeData appThemeData;
   final PathList hiLightedPaths;
   final bool isEditDataDisplay;
   final bool isHorizontal;
@@ -111,12 +105,12 @@ class _DetailWidgetState extends State<DetailWidget> {
   Widget build(BuildContext context) {
     final hiLight = widget.hiLightedPaths.contains(widget.dataValueRow.pathString);
     if (widget.dataValueRow.isValue) {
-      return _detailForValue(widget.appColours, hiLight, widget.isHorizontal);
+      return _detailForValue(widget.appThemeData, hiLight, widget.isHorizontal);
     }
-    return _detailForMap(widget.appColours, hiLight, widget.isHorizontal);
+    return _detailForMap(widget.appThemeData, hiLight, widget.isHorizontal);
   }
 
-  Widget _rowForString(final String value, final MaterialColor materialColor) {
+  Widget _rowForString(final String value, final materialColor, final TextStyle ts) {
     return Row(
       children: [
         for (int i = 0; i < value.length; i++) ...[
@@ -125,7 +119,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             width: (i < 9) ? 20 : 32,
             child: Text(
               (i < 9) ? value[i] : " ${value[i]}",
-              style: _styleList,
+              style: ts,
             ),
           ),
           Container(
@@ -137,7 +131,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _rowForPosition(final int last, final MaterialColor materialColor) {
+  Widget _rowForPosition(final int last, final MaterialColor materialColor, final TextStyle ts) {
     return Row(
       children: [
         for (int i = 0; i < last; i++) ...[
@@ -146,7 +140,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             width: (i < 9) ? 20 : 32,
             child: Text(
               "${i + 1}",
-              style: _styleList,
+              style: ts,
             ),
           ),
           Container(
@@ -158,19 +152,19 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _cardForValue(final DataValueDisplayRow dataValueRow, final AppColours appColours, final bool hiLight) {
+  Widget _cardForValue(final DataValueDisplayRow dataValueRow, final AppThemeData appThemeData, final bool hiLight) {
     if (dataValueRow.type.equal(optionTypeDataPositional)) {
       return Card(
         margin: EdgeInsetsGeometry.lerp(null, null, 5),
-        color: appColours.hiLowColor(hiLight).shade700,
+        color: appThemeData.hiLowColor(hiLight).shade700,
         child: Column(
           children: [
-            _rowForPosition(dataValueRow.value.length, appColours.hiLowColor(hiLight)),
+            _rowForPosition(dataValueRow.value.length, appThemeData.hiLowColor(hiLight), appThemeData.tsMedium),
             Container(
               color: Colors.black,
               height: 2,
             ),
-            _rowForString(dataValueRow.value, appColours.hiLowColor(hiLight)),
+            _rowForString(dataValueRow.value, appThemeData.hiLowColor(hiLight), appThemeData.tsMedium),
           ],
         ),
       );
@@ -178,7 +172,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     if (dataValueRow.type.equal(optionTypeDataMarkDown)) {
       return Card(
         margin: EdgeInsetsGeometry.lerp(null, null, 5),
-        color: appColours.hiLowColor(hiLight).shade200,
+        color: appThemeData.hiLowColor(hiLight).shade200,
         child: SizedBox(
           child: Markdown(
             data: dataValueRow.value,
@@ -192,23 +186,23 @@ class _DetailWidgetState extends State<DetailWidget> {
     }
     return Card(
       margin: EdgeInsetsGeometry.lerp(null, null, 5),
-      color: appColours.hiLowColor(hiLight).shade200,
-      child: Padding(padding: const EdgeInsets.only(left: 20.0), child: Text(dataValueRow.value, style: _styleLarge)),
+      color: appThemeData.hiLowColor(hiLight).shade200,
+      child: Padding(padding: const EdgeInsets.only(left: 20.0), child: Text(dataValueRow.value, style: appThemeData.tsLarge)),
     );
   }
 
-  Widget _detailForValue(final AppColours appColours, final bool hiLight, final bool horizontal) {
+  Widget _detailForValue(final AppThemeData appThemeData, final bool hiLight, final bool horizontal) {
     return Card(
-          color: appColours.primary.shade600,
+          color: appThemeData.primary.shade600,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ListTile(
               leading: hiLight ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
-              title: Text(widget.dataValueRow.getDisplayName(widget.isEditDataDisplay), style: _styleSmall),
-              subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: _styleSubTitle) : null,
+              title: Text(widget.dataValueRow.getDisplayName(widget.isEditDataDisplay), style: appThemeData.tsMedium),
+              subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: appThemeData.tsSmall) : null,
             ),
             SizedBox(
               width: double.infinity,
-              child: _cardForValue(widget.dataValueRow, appColours, hiLight),
+              child: _cardForValue(widget.dataValueRow, appThemeData, hiLight),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -258,15 +252,15 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _detailForMap(AppColours appColours, bool hiLight, bool horizontal) {
+  Widget _detailForMap(AppThemeData appThemeData, bool hiLight, bool horizontal) {
     return SizedBox(
       child: Card(
-          color: appColours.primary.shade300,
+          color: appThemeData.primary.shade300,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ListTile(
               leading: hiLight ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
-              title: Text(widget.dataValueRow.name, style: _styleSmall),
-              subtitle: horizontal ? Text("Group is Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: _styleSubTitle) : null,
+              title: Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
+              subtitle: horizontal ? Text("Group is Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: appThemeData.tsSmall) : null,
               onTap: () {
                 widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathString, widget.dataValueRow.name, optionTypeDataGroup, _onCompleteAction));
               },
