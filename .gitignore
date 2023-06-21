@@ -1,6 +1,7 @@
 # Miscellaneous
 gitpush
 .localauthentication.data
+*.data
 *.class
 *.log
 *.pyc

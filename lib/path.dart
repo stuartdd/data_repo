@@ -53,6 +53,14 @@ class Path {
     return Path(l);
   }
 
+  Path cloneReversed() {
+    final p = Path.empty();
+    for (int i = count-1; i >=0; i--) {
+      p.push(pathList[i]);
+    }
+    return p;
+  }
+
   Path parentPath() {
     final List<String> l = List.empty(growable: true);
     for (int i = 0; i<count-1; i++) {

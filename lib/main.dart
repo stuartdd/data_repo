@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:data_repo/data_load.dart';
+import 'package:data_repo/treeNode.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_treeview/flutter_treeview.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_size/window_size.dart';
 import 'package:window_manager/window_manager.dart';
@@ -49,11 +51,9 @@ void log(String text) {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    final path = await ApplicationState.getAppPath();
+    final applicationDefaultDir = await ApplicationState.getApplicationDefaultDir();
     final isDesktop = ApplicationState.appIsDesktop();
-    log("${isDesktop ? "__START:__ Desktop" : "__Mobile__"} App");
-    log("__PATH:__ $path");
-    _configData = ConfigData(path, "config.json", isDesktop, log);
+    _configData = ConfigData(applicationDefaultDir, "config.json", isDesktop, log);
     _applicationState = await ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), log);
     if (isDesktop) {
       setWindowTitle("${_configData.getTitle()}: ${_configData.getUserName()}");
@@ -96,7 +96,7 @@ class MyApp extends StatelessWidget with WindowListener {
         {
           if (_configData.isDesktop()) {
             final info = await getWindowInfo();
-            if (_applicationState.updateScreen(info.frame.left, info.frame.top, info.frame.width, info.frame.height)) {
+            if (_applicationState.updateScreenState(info.frame.left, info.frame.top, info.frame.width, info.frame.height)) {
               await _applicationState.writeAppStateConfigFile(false);
             }
           }
@@ -143,15 +143,19 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String _password = "";
-  String _expand = _configData.getUserName();
   String _search = "";
   String _previousSearch = "";
-  Path _selected = Path.empty();
   bool _beforeDataLoaded = true;
   bool _dataWasUpdated = false;
   bool _isEditDataDisplay = false;
   SuccessState _globalSuccessState = SuccessState(true);
   DataContainer _loadedData = DataContainer.empty();
+  ScrollController _treeViewScrollController = ScrollController();
+  MyTreeNode _treeNodeDataRoot = MyTreeNode.empty();
+  Path _selectedPath = Path.empty();
+  MyTreeNode _selectedTreeNode = MyTreeNode.empty();
+
+  Map<String, BuildContext> nodeContextList = {};
 
   Future<void> implementLinkState(final String href, final String from) async {
     var urlCanLaunch = await canLaunchUrlString(href); //canLaunch is from url_launcher package
@@ -273,14 +277,16 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _dataWasUpdated = false;
       _beforeDataLoaded = false;
-      _selected = Path.fromDotPath(_loadedData.keys.first);
+      _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+      _treeNodeDataRoot.expandAll(true);
+      _selectedPath = Path.fromDotPath(_loadedData.keys.first);
+      _selectedTreeNode = _treeNodeDataRoot.findByPath(_selectedPath)!;
       _hiLightedPaths.clean();
       _globalSuccessState = SuccessState(true, message: "${ts.encrypted ? "Encrypted " : ""} ${_loadedData.source} File loaded: ${_loadedData.filePrefixData.getTimeStamp()}", log: log);
     });
   }
 
   void _handleAdd(Path path, String name, OptionsTypeData type) async {
-    debugPrint("SS:_handleAdd");
     if (name.length < 2) {
       _globalSuccessState = SuccessState(false, message: "Name is too short");
       return;
@@ -297,33 +303,35 @@ class _MyHomePageState extends State<MyHomePage> {
     switch (type) {
       case optionTypeDataValue:
         setState(() {
-          debugPrint("SS:_handleAdd:value");
           mapNode[name] = "undefined";
           _hiLightedPaths.add(path);
           _dataWasUpdated = true;
+          _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
         });
         break;
       case optionTypeDataGroup:
         setState(() {
-          debugPrint("SS:_handleAdd:group");
           final Map<String, dynamic> m = {};
           mapNode[name] = m;
           _hiLightedPaths.add(path);
           _dataWasUpdated = true;
+          _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
         });
         break;
     }
     _globalSuccessState = SuccessState(true, message: "Node '$name' added", log: log);
   }
 
-  void _handleTreeSelect(String dotPath) {
-    final path = Path.fromDotPath(dotPath);
+  void _handleTreeSelect(Path path) {
     setState(() {
-      debugPrint("SS:_handleTreeSelect");
-      if (path.isNotEmpty()) {
-        _expand = path.getRoot();
+      final n = _treeNodeDataRoot.findByPath(path);
+      if (n == null) {
+        _selectedPath = Path.fromDotPath(_loadedData.keys.first);
+        _selectedTreeNode = _treeNodeDataRoot.findByPath(_selectedPath)!;
+      } else {
+        _selectedTreeNode = n;
+        _selectedPath = path;
       }
-      _selected = path;
     });
   }
 
@@ -369,46 +377,46 @@ class _MyHomePageState extends State<MyHomePage> {
     final oldName = detailActionData.oldValue;
     if (oldName != newName) {
       setState(() {
-        debugPrint("SS:_handleRenameSubmit");
         final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, detailActionData.path);
         if (mapNode == null) {
           _globalSuccessState = SuccessState(false, message: "Path not found");
+          return;
         }
         if (detailActionData.value) {
-          if (mapNode![newName] != null) {
+          if (mapNode[newName] != null) {
             _globalSuccessState = SuccessState(false, message: "Name already exists");
+            return;
           }
           final renameNode = mapNode[oldName];
           if (renameNode == null) {
             _globalSuccessState = SuccessState(false, message: "Name not found");
+            return;
           }
-
           mapNode.remove(oldName);
           mapNode[newName] = renameNode;
-          _dataWasUpdated = true;
-          detailActionData.path.pop();
-          detailActionData.path.push(newName);
-          _hiLightedPaths.add(detailActionData.path);
         } else {
           if (newName.length <= 2) {
             _globalSuccessState = SuccessState(false, message: "New Name is too short");
+            return;
           }
           final pp = detailActionData.path.parentPath();
           final parentNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, pp);
           if (parentNode == null) {
             _globalSuccessState = SuccessState(false, message: "Parent not found");
+            return;
           }
-          if (parentNode![newName] != null) {
+          if (parentNode[newName] != null) {
             _globalSuccessState = SuccessState(false, message: "Name already exists");
+            return;
           }
           parentNode.remove(oldName);
           parentNode[newName] = mapNode;
-          _dataWasUpdated = true;
-          detailActionData.path.pop();
-          detailActionData.path.push(newName);
-          _hiLightedPaths.add(detailActionData.path);
-          _globalSuccessState = SuccessState(true, message: "Item renamed");
         }
+        detailActionData.path.pop();
+        detailActionData.path.push(newName);
+        _hiLightedPaths.add(detailActionData.path);
+        _dataWasUpdated = true;
+        _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
         _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: log);
       });
     }
@@ -420,17 +428,19 @@ class _MyHomePageState extends State<MyHomePage> {
         final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, path);
         if (mapNode == null) {
           _globalSuccessState = SuccessState(false, message: "Path not found");
+          return;
         } else {
           final pp = path.parentPath();
           final parentNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, pp);
           if (parentNode == null) {
             _globalSuccessState = SuccessState(false, message: "Parent not found");
+            return;
           }
-          parentNode?.remove(path.getLast());
+          parentNode.remove(path.getLast());
           _dataWasUpdated = true;
+          _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
           _globalSuccessState = SuccessState(true, message: "Removed: '${path.getLast()}'");
         }
-        _globalSuccessState = SuccessState(true, message: "Node '${path.getLast()}' removed", log: log);
       });
     }
   }
@@ -438,39 +448,40 @@ class _MyHomePageState extends State<MyHomePage> {
   void _handleEditSubmit(DetailAction detailActionData, String newValue, OptionsTypeData type) {
     if (detailActionData.oldValue != newValue || detailActionData.oldValueType != type) {
       setState(() {
-        debugPrint("SS:_handleEditSubmit (${detailActionData.oldValueType})");
         final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, detailActionData.path);
         if (mapNode == null) {
           _globalSuccessState = SuccessState(false, message: "Path not found");
+          return;
         }
         final key = detailActionData.getLastPathElement();
         if (key == "") {
           _globalSuccessState = SuccessState(false, message: "Last element of Path was not found");
+          return;
         }
-        debugPrint("SS:_handleEditSubmit (${detailActionData.oldValueType})");
         _dataWasUpdated = true;
         final nvTrim = newValue.trim();
         if (type.elementType == bool) {
           final lvTrimLc = nvTrim.toLowerCase();
-          mapNode![key] = (lvTrimLc == "true" || lvTrimLc == "yes" || nvTrim == "1");
+          mapNode[key] = (lvTrimLc == "true" || lvTrimLc == "yes" || nvTrim == "1");
         } else {
           if (type.elementType == double || type.elementType == int) {
             try {
               final iv = int.parse(nvTrim);
-              mapNode![key] = iv;
+              mapNode[key] = iv;
             } catch (e) {
               try {
                 final dv = double.parse(nvTrim);
-                mapNode![key] = dv;
+                mapNode[key] = dv;
               } catch (e) {
-                mapNode![key] = nvTrim;
+                mapNode[key] = nvTrim;
               }
             }
           } else {
-            mapNode![key] = nvTrim;
+            mapNode[key] = nvTrim;
           }
         }
         _hiLightedPaths.add(detailActionData.path);
+        _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
         _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.getLastPathElement()} updated");
       });
     }
@@ -508,10 +519,10 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     final DisplayData displayData = createSplitView(
       _loadedData.dataMap,
+      _treeNodeDataRoot,
       _configData.getUserId(),
       _search,
-      _expand,
-      _selected,
+      _selectedPath,
       _isEditDataDisplay,
       _configData.isDesktop(),
       _applicationState.screen.hDiv,
@@ -520,7 +531,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _handleTreeSelect, // On tree selection
       (divPos) {
         // On divider change
-        if (_applicationState.updateDividerPos(divPos)) {
+        if (_applicationState.updateDividerPosState(divPos)) {
           _applicationState.writeAppStateConfigFile(false);
         }
       },
@@ -547,9 +558,16 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.select:
             {
-              setState(() {
-                _selected = detailActionData.path;
-              });
+              _handleTreeSelect(detailActionData.path);
+              Future.delayed(
+                const Duration(milliseconds: 300),
+                () {
+                  if (_selectedTreeNode != null) {
+                    final index = (_selectedTreeNode.index -2) * _configData.getAppThemeData().treeNodeHeight;
+                    _treeViewScrollController.animateTo(index, duration: const Duration(milliseconds: 400), curve: Curves.ease);
+                  }
+                },
+              );
               return true;
             }
           case ActionType.renameStart:
@@ -648,8 +666,14 @@ class _MyHomePageState extends State<MyHomePage> {
             }
         }
       },
+      (buildContext, node) {
+        // BuildNode
+        nodeContextList[node.key] = buildContext;
+        return MyTreeWidget(node.key, node.label, buildContext);
+      },
       log,
     );
+    _treeViewScrollController = displayData.scrollController;
 
     final List<Widget> toolBarItems = List.empty(growable: true);
     toolBarItems.add(
@@ -662,7 +686,7 @@ class _MyHomePageState extends State<MyHomePage> {
             closer(0);
           }
         },
-        appColours: _configData.getAppThemeData(),
+        appThemeData: _configData.getAppThemeData(),
       ),
     );
 
@@ -689,7 +713,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ));
       toolBarItems.add(DetailIconButton(
-        appColours: _configData.getAppThemeData(),
+        appThemeData: _configData.getAppThemeData(),
         icon: const Icon(iconDataFileLoad),
         tooltip: 'Load Data',
         timerMs: 5000,
@@ -706,7 +730,7 @@ class _MyHomePageState extends State<MyHomePage> {
       toolBarItems.add(
         DetailIconButton(
           show: !_beforeDataLoaded,
-          appColours: _configData.getAppThemeData(),
+          appThemeData: _configData.getAppThemeData(),
           icon: _isEditDataDisplay ? const Icon(Icons.remove_red_eye) : const Icon(Icons.edit),
           tooltip: _isEditDataDisplay ? 'Stop Editing' : "Start Editing",
           onPressed: () {
@@ -724,7 +748,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               _saveDataState();
             },
-            appColours: _configData.getAppThemeData(),
+            appThemeData: _configData.getAppThemeData(),
           ),
         );
         toolBarItems.add(
@@ -734,26 +758,26 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               _loadDataState();
             },
-            appColours: _configData.getAppThemeData(),
+            appThemeData: _configData.getAppThemeData(),
           ),
         );
       }
       if (_isEditDataDisplay) {
         toolBarItems.add(DetailIconButton(
-          appColours: _configData.getAppThemeData(),
+          appThemeData: _configData.getAppThemeData(),
           icon: const Icon(Icons.add_box_outlined),
           tooltip: 'Add Value or Group',
           onPressed: () {
             _showModalInputDialog(
               context,
-              "Add To: '${_selected.getLast()}'",
+              "Add To: '${_selectedPath.getLast()}'",
               "",
               optionsForAddElement,
               optionTypeDataValue,
               true,
               (action, text, type) {
                 if (action == "OK") {
-                  _handleAdd(_selected, text, type);
+                  _handleAdd(_selectedPath, text, type);
                 }
               },
               (initial, value, initialType, valueType) {
@@ -785,7 +809,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         toolBarItems.add(
           DetailIconButton(
-            appColours: _configData.getAppThemeData(),
+            appThemeData: _configData.getAppThemeData(),
             icon: const Icon(Icons.search),
             tooltip: 'Search',
             onPressed: () {
@@ -795,7 +819,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         toolBarItems.add(
           DetailIconButton(
-            appColours: _configData.getAppThemeData(),
+            appThemeData: _configData.getAppThemeData(),
             icon: const Icon(Icons.youtube_searched_for),
             tooltip: 'Previous Searches',
             onPressed: () async {
@@ -813,7 +837,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         toolBarItems.add(
           DetailIconButton(
-            appColours: _configData.getAppThemeData(),
+            appThemeData: _configData.getAppThemeData(),
             icon: const Icon(Icons.search_off),
             tooltip: 'Clear Search',
             onPressed: () {
@@ -823,6 +847,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       }
     }
+
     final settings = Positioned(
         left: MediaQuery.of(context).size.width - appBarHeight,
         top: 0,
@@ -835,9 +860,11 @@ class _MyHomePageState extends State<MyHomePage> {
               _configData.getAppThemeData(),
               _configData.getConfigFileName(),
               (validValue, detail) {
+                // Validate
                 return "";
               },
               (settingsControl) {
+                // Commit
                 log("__SETTINGS:__ ${settingsControl.detail.path} Type:${settingsControl.detail.valueType} Value:'${settingsControl.value}'");
                 final msg = DataLoad.setValueForJsonPath(_configData.getJson(), settingsControl.detail.path, settingsControl.value);
                 setState(() {
@@ -845,9 +872,15 @@ class _MyHomePageState extends State<MyHomePage> {
                 });
                 return msg;
               },
+              () {
+                // Save
+                setState(() {
+                  _globalSuccessState = _configData.save(log);
+                });
+              },
             );
           },
-          appColours: _configData.getAppThemeData(),
+          appThemeData: _configData.getAppThemeData(),
         ));
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
@@ -855,6 +888,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
+    //
     return Scaffold(
       body: SingleChildScrollView(
           child: Stack(
@@ -884,7 +918,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Row(
                     children: [
                       DetailIconButton(
-                        appColours: _configData.getAppThemeData(),
+                        appThemeData: _configData.getAppThemeData(),
                         icon: const Icon(
                           Icons.view_timeline,
                           size: statusBarHeight,
@@ -910,7 +944,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Future<void> _showConfigDialog(final BuildContext context, AppThemeData appThemeData, final String fileName, final String Function(dynamic, SettingDetail) validate, final String Function(SettingControl) commit) async {
+Future<void> _showConfigDialog(final BuildContext context, AppThemeData appThemeData, final String fileName, final String Function(dynamic, SettingDetail) validate, final String Function(SettingControl) commit, final Function() saveConfig) async {
   List<SettingControl>? controlList = _configData.createSettingsControlList();
   return showDialog<void>(
     context: context,
@@ -934,15 +968,26 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
           TextButton(
             child: Text('Save', style: _configData.getAppThemeData().tsMedium),
             onPressed: () {
-              if (controlList != null) {}
+              if (controlList.isNotEmpty) {
+                int count = 0;
+                for (final c in controlList) {
+                  if (c.changed) {
+                    commit(c);
+                    count++;
+                  }
+                }
+                if (count > 0) {
+                  saveConfig();
+                }
+              }
               Navigator.of(context).pop();
             },
           ),
           TextButton(
             child: Text('Close', style: _configData.getAppThemeData().tsMedium),
             onPressed: () {
-              if (controlList != null) {
-                for (final c in controlList!) {
+              if (controlList.isNotEmpty) {
+                for (final c in controlList) {
                   if (c.changed) {
                     commit(c);
                   }
@@ -958,17 +1003,28 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
 }
 
 Future<void> _showLogDialog(final BuildContext context, final String log) async {
+  final scrollController = ScrollController();
+  Future.delayed(
+    const Duration(milliseconds: 400),
+    () {
+      scrollController.animateTo(scrollController.position.maxScrollExtent, duration: const Duration(milliseconds: 400), curve: Curves.ease);
+    },
+  );
+
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
+        backgroundColor: _configData.getAppThemeData().primary.shade300,
         title: Text('Event Log', style: _configData.getAppThemeData().tsMedium),
         content: SingleChildScrollView(
-            child: SizedBox(
+            child: Container(
+          color: _configData.getAppThemeData().primary.shade100,
           height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
           width: MediaQuery.of(context).size.width,
           child: Markdown(
+            controller: scrollController,
             data: log,
             selectable: true,
             shrinkWrap: true,
@@ -976,12 +1032,31 @@ Future<void> _showLogDialog(final BuildContext context, final String log) async 
           ),
         )),
         actions: <Widget>[
-          TextButton(
-            child: Text('OK', style: _configData.getAppThemeData().tsMedium),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
+          Row(
+            children: [
+              DetailButton(
+                appThemeData: _configData.getAppThemeData(),
+                text: "TOP",
+                onPressed: () {
+                  scrollController.animateTo(scrollController.position.minScrollExtent, duration: const Duration(milliseconds: 400), curve: Curves.ease);
+                },
+              ),
+              DetailButton(
+                appThemeData: _configData.getAppThemeData(),
+                text: "BOTTOM",
+                onPressed: () {
+                  scrollController.animateTo(scrollController.position.maxScrollExtent, duration: const Duration(milliseconds: 400), curve: Curves.ease);
+                },
+              ),
+              DetailButton(
+                appThemeData: _configData.getAppThemeData(),
+                text: "DONE",
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          )
         ],
       );
     },
@@ -994,10 +1069,15 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
+        backgroundColor: _configData.getPrimaryColour().shade300,
         title: Text('Previous Searches', style: _configData.getAppThemeData().tsMedium),
         content: SingleChildScrollView(
           child: ListBody(
             children: [
+              Container(
+                height: 1,
+                color: Colors.black,
+              ),
               for (int i = 0; i < prevList.length; i++) ...[
                 TextButton(
                   child: Text(prevList[i], style: _configData.getAppThemeData().tsMedium),
@@ -1006,13 +1086,18 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
                     Navigator.of(context).pop();
                   },
                 ),
+                Container(
+                  height: 1,
+                  color: Colors.black,
+                ),
               ]
             ],
           ),
         ),
         actions: <Widget>[
-          TextButton(
-            child: Text('Cancel', style: _configData.getAppThemeData().tsMedium),
+          DetailButton(
+            appThemeData: _configData.getAppThemeData(),
+            text: "Cancel",
             onPressed: () {
               onSelect("");
               Navigator.of(context).pop();
@@ -1046,6 +1131,7 @@ Future<void> _showModalDialog(final BuildContext context, final String title, fi
             children: [
               for (int i = 0; i < buttons.length; i++) ...[
                 DetailButton(
+                  appThemeData: _configData.getAppThemeData(),
                   text: buttons[i],
                   onPressed: () {
                     if (onAction != null && action != null) {
@@ -1078,6 +1164,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
             children: [
               (currentOption == optionTypeDataMarkDown && !isRename)
                   ? MarkDownInputField(
+                      appThemeData: _configData.getAppThemeData(),
                       initialText: currentValue,
                       onClose: (action, text, type) {
                         onAction(action, text, type);
@@ -1107,14 +1194,13 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                         onAction(detailAction.action.name, detailAction.oldValue, OptionsTypeData.forTypeOrName(String, "link"));
                         return true;
                       },
-                      appColours: _configData.getAppThemeData(),
                     )
                   : ValidatedInputField(
                       options: options,
                       initialOption: currentOption,
                       prompt: "Input: ${isRename ? "New Name" : "[type]"}",
                       initialValue: currentValue,
-                      appColours: _configData.getAppThemeData(),
+                      appThemeData: _configData.getAppThemeData(),
                       onClose: (action, text, type) {
                         onAction(action, text, type);
                         Navigator.of(context).pop();

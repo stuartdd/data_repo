@@ -208,6 +208,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: <Widget>[
                 DetailButton(
+                  appThemeData:  widget.appThemeData,
                   show: widget.isEditDataDisplay,
                   text: 'Edit',
                   onPressed: () {
@@ -215,6 +216,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   },
                 ),
                 DetailButton(
+                  appThemeData:  widget.appThemeData,
                   show: widget.isEditDataDisplay,
                   text: 'Re-Name',
                   onPressed: () {
@@ -222,6 +224,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   },
                 ),
                 DetailButton(
+                  appThemeData:  widget.appThemeData,
                   show: !widget.isEditDataDisplay && (widget.dataValueRow.displayTypeData.displayType != DisplayType.positionalString),
                   timerMs: 500,
                   text: 'Copy',
@@ -231,6 +234,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   },
                 ),
                 DetailButton(
+                  appThemeData:  widget.appThemeData,
                   show: widget.dataValueRow.isLink && !widget.isEditDataDisplay && (widget.dataValueRow.displayTypeData.displayType != DisplayType.positionalString),
                   timerMs: 500,
                   text: 'Link',
@@ -239,6 +243,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   },
                 ),
                 DetailButton(
+                  appThemeData:  widget.appThemeData,
                   show: widget.isEditDataDisplay,
                   timerMs: 500,
                   text: 'Remove',
@@ -269,6 +274,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: <Widget>[
                 DetailButton(
+                  appThemeData:  widget.appThemeData,
                   show: widget.isEditDataDisplay,
                   text: 'Re-Name',
                   onPressed: () {
@@ -276,6 +282,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   },
                 ),
                 DetailButton(
+                  appThemeData:  widget.appThemeData,
                   show: widget.isEditDataDisplay,
                   text: 'Remove',
                   onPressed: () {

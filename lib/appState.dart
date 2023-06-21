@@ -30,8 +30,7 @@ class ApplicationScreen {
 }
 
 class ApplicationState {
-  ApplicationState(this.screen, this._lastFind, this._appStateConfigFileName, this._isDesktop, this.log);
-  final bool _isDesktop;
+  ApplicationState(this.screen, this._lastFind, this._appStateConfigFileName, this.log);
   final String _appStateConfigFileName;
   final Function(String) log;
   List<String> _lastFind;
@@ -44,7 +43,7 @@ class ApplicationState {
   // Called by main to locate the user file storage location
   //   On Android and IOS this is the only place we should store files.
   //   On Desktop this is the current path;
-  static Future<String> getAppPath() async {
+  static Future<String> getApplicationDefaultDir() async {
     if (ApplicationState.appIsDesktop()) {
       return Directory.current.path;
     }
@@ -80,11 +79,10 @@ class ApplicationState {
           ),
           ["Desktop"],
           appStateConfigFileName,
-          isDesktop,
           log,
         );
       } else {
-        return ApplicationState(ApplicationScreen(0, 0, -1, -1, 0.4), ["Mobile"], appStateConfigFileName, isDesktop, log);
+        return ApplicationState(ApplicationScreen(0, 0, -1, -1, 0.4), ["Mobile"], appStateConfigFileName, log);
       }
     }
     final json = jsonDecode(content);
@@ -114,7 +112,15 @@ class ApplicationState {
     return true;
   }
 
-  bool updateScreen(double x, y, w, h) {
+  bool updateDividerPosState(double hDiv) {
+    if (hDiv == screen.hDiv) {
+      return false;
+    }
+    screen = ApplicationScreen(screen.x, screen.y, screen.w, screen.h, hDiv);
+    return true;
+  }
+
+  bool updateScreenState(double x, y, w, h) {
     if (_shouldUpdateScreen) {
       if (x == screen.x && y == screen.y && w == screen.w && h == screen.h) {
         return false;
@@ -135,13 +141,6 @@ class ApplicationState {
     _shouldUpdateScreen = yes;
   }
 
-  bool updateDividerPos(double hDiv) {
-    if (hDiv == screen.hDiv) {
-      return false;
-    }
-    screen = ApplicationScreen(screen.x, screen.y, screen.w, screen.h, hDiv);
-    return true;
-  }
 
   void addLastFind(String find, int max) {
     if (find.isEmpty) {
@@ -185,6 +184,6 @@ class ApplicationState {
     }
     final as = ApplicationScreen.fromJson(ms);
 
-    return ApplicationState(as, ls, fileName, isDesktop, log);
+    return ApplicationState(as, ls, fileName, log);
   }
 }

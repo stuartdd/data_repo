@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart';
+
 import 'path.dart';
 
 //
@@ -46,7 +48,7 @@ class OptionsTypeData {
   const OptionsTypeData(this.elementType, this.key, this.description, {this.suffix = "", this.min = -maxIntValue, this.max = maxIntValue});
 
   static OptionsTypeData locateTypeInOptionsList(String key, List<OptionsTypeData> l, OptionsTypeData fallback) {
-    for (int i = 0; i< l.length; i++) {
+    for (int i = 0; i < l.length; i++) {
       if (l[i].key == key) {
         return l[i];
       }
@@ -234,3 +236,4 @@ class DetailAction {
     }
   }
 }
+

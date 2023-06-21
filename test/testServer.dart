@@ -5,23 +5,50 @@ import 'dart:io';
 // Run from project root:
 //     dart run test/testServer.dart
 //
-// Config Data
-//            "postDataUrl": "http://localhost:4040/file",
-//             "getDataUrl": "http://localhost:4040/file",
-//             "datafile": "data03.json",
+// Config Data Linux
+//             "postDataUrl": "http://localhost:3000/file",
+//             "getDataUrl": "http://localhost:3000/file",
+//             "datafile": "data.json",
 //             "datafilePath": "test/data"
+// Config Data Android Emulator
+//             "postDataUrl": "http://10.0.2.2:3000/file",
+//             "getDataUrl": "http://10.0.2.2:3000/file",
+//             "datafile": "data.json"
 //
-const String remoteDataDirectory = "test/remote";
-const String remoteConfigDirectory = "test/remote";
+const String remoteDataDirectory = "../data_repo_server/remote";
+const String remoteLocalDirectory = "../data_repo_server/local";
+const port = 3000;
+
 Future<void> main() async {
   final server = await createServer();
   print('Server started: ${server.address} port ${server.port}');
+  if (!_ensureExists(remoteDataDirectory)) {
+    exit(1);
+  }
+  if (!_ensureExists(remoteLocalDirectory)) {
+    exit(1);
+  }
   await handleRequests(server);
+}
+
+bool _ensureExists(String dir) {
+  Directory d = Directory(dir);
+  if (!d.existsSync()) {
+    d.createSync(recursive: true);
+    if (!d.existsSync()) {
+      print('Server dir could not be created:${d.absolute}');
+      return false;
+    } else {
+      print('Server dir created:${d.absolute}');
+      return true;
+    }
+  }
+  print('Server dir found:${d.absolute}');
+  return true;
 }
 
 Future<HttpServer> createServer() async {
   final address = InternetAddress.loopbackIPv4;
-  const port = 4040;
   return await HttpServer.bind(address, port);
 }
 
@@ -49,8 +76,8 @@ void handleGet(HttpRequest request) {
     case 'file':
       handleGetFile(request, remoteDataDirectory, urlParts);
       break;
-    case 'config':
-      handleGetFile(request, remoteConfigDirectory, urlParts);
+    case 'local':
+      handleGetFile(request, remoteLocalDirectory, urlParts);
       break;
     default:
       handleBadRequest(request);
@@ -88,7 +115,7 @@ Future<void> handlePost(HttpRequest request) async {
       handlePostFile(request, remoteDataDirectory, urlParts, body);
       break;
     case 'config':
-      handlePostFile(request, remoteConfigDirectory, urlParts, body);
+      handlePostFile(request, remoteLocalDirectory, urlParts, body);
       break;
     default:
       handleBadRequest(request);

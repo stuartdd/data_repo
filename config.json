@@ -1,18 +1,22 @@
-
-    {
-        "application" : {
-            "title": "Data Repository",
-            "dataFetchTimeoutMillis": 500
-        },
-        "user" : {
-            "name" : "Stuart",
-            "id" : "Stuart",
-            "appStatePath": "test",
-            "appStateFile": "appState.json"
-        },
-        "file": {
-            "postDataUrl": "http://localhost:4040/file",
-            "getDataUrl": "http://localhost:4040/file",
-            "datafile": "data03.json"
-        }
+{
+  "application": {
+    "title": "Data Repository",
+    "dataFetchTimeoutMillis": 500,
+    "colours": {
+      "primary": "blue",
+      "secondary": "green",
+      "hilight": "yellow",
+      "error": "red"
     }
+  },
+  "user": {
+    "name": "User",
+    "id": "user"
+  },
+  "file": {
+    "getDataUrl": "http://localhost:3000/file",
+    "postDataUrl": "http://localhost:3000/file",
+    "datafile": "data05.json",
+    "datafilePath": "../data_repo_server/local"
+  }
+}

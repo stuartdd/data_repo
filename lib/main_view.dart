@@ -5,15 +5,16 @@ import 'package:flutter_treeview/flutter_treeview.dart';
 import 'data_load.dart';
 import "data_types.dart";
 import "path.dart";
+import "treeNode.dart";
 import 'detail_widget.dart';
 
 const double splitMinTree = 0.2;
 const double splitMinDetail = 0.4;
 
 class DisplayData {
-  DisplayData(this.splitView, this.treeViewController, {this.isOk = true});
+  DisplayData(this.splitView, this.scrollController, {this.isOk = true});
   final Widget splitView;
-  final TreeViewController? treeViewController;
+  final ScrollController scrollController;
   final bool isOk;
 
   factory DisplayData.error(final AppThemeData appThemeData, final String message) {
@@ -22,27 +23,41 @@ class DisplayData {
           color: appThemeData.error,
           child: Center(child: Text(message, style: appThemeData.tsLarge)),
         ),
-        null,
+        ScrollController(),
         isOk: false);
+  }
+}
+
+class MyTreeWidget extends StatelessWidget {
+  final String path;
+  final String label;
+  final BuildContext context;
+  const MyTreeWidget(this.path, this.label, this.context, {super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [Text("MyTreeWidget:$label")],
+    );
   }
 }
 
 /// Creates both Left and Right panes.
 DisplayData createSplitView(
-    final Map<String, dynamic> originalData, // The original data from the file
+    final Map<String, dynamic> originalData, // The original data from the file TODO Remove originalData. Use rootTreeNode instead
+    final MyTreeNode rootTreeNode,
     final String user, // The user (The root node name)
     final String filter, // The search text
-    final String expand,
-    final Path selectedNode, // The first node in the root
+    final Path selectedPath, // The currently selected path
     final bool isEditDataDisplay,
     final bool horizontal, // Display horizontal or vertical split pane
     double initPos, // The split pane divider position
     AppThemeData appThemeData, // The colour scheme
     PathList hiLightedPath,
-    final Function(String) onSelect, // Called when a tree node in selected
+    final Function(Path) onSelect, // Called when a tree node in selected
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final Function(int) onSearchComplete, // Called when the search is complete
     final bool Function(DetailAction) onDataAction,
+    final Widget Function(BuildContext, Node<dynamic>) buildNode,
     final void Function(String) log) {
   // Called when one of the detail buttons is pressed
   /// Left right or Top bottom
@@ -54,38 +69,31 @@ DisplayData createSplitView(
     return DisplayData.error(appThemeData, ("No data has been loaded"));
   }
 
-  /// Create the tree
-  final treeViewController = _buildTreeViewController(originalData, selectedNode, filter, expand, onSearchComplete);
-  if (treeViewController.children.isEmpty) {
-    return DisplayData.error(appThemeData, ("Search did not find any data"));
-  }
-  treeViewController.expandAll();
-
-  final treeView = TreeView(
-    shrinkWrap: true,
-    controller: treeViewController,
-    allowParentSelect: true,
-    supportParentDoubleTap: true,
-    theme: buildTreeViewTheme(appThemeData),
-    onNodeDoubleTap: (key) {
-      onSelect(key);
-    },
-    onNodeTap: (key) {
-      onSelect(key);
-    },
-  );
-
   /// Create the detail.
   final Widget detailContainer;
-  final node = DataLoad.findLastMapNodeForPath(originalData, selectedNode);
+  final node = DataLoad.findLastMapNodeForPath(originalData, selectedPath);
   if (node != null) {
-    detailContainer = _createDetailContainer(node, selectedNode, isEditDataDisplay, horizontal, hiLightedPath, appThemeData, onDataAction);
+    detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, hiLightedPath, appThemeData, onDataAction);
   } else {
     detailContainer = Container(
       color: appThemeData.error.shade900,
       child: const Center(child: Text("Selected Node was not found in the data")),
     );
   }
+  final scrollController = ScrollController();
+  final scroller = SingleChildScrollView(
+    controller: scrollController,
+    child: MyTreeNodeWidgetList(
+      rootTreeNode,
+      selectedPath,
+      appThemeData,
+      appThemeData.treeNodeHeight,
+      (selectedNode) {
+        onSelect(selectedNode.path);
+      },
+    ),
+  );
+
   final splitView = SplitView(
     onWeightChanged: (value) {
       if (value.isNotEmpty) {
@@ -100,11 +108,12 @@ DisplayData createSplitView(
       isActive: true,
     ),
     children: [
-      treeView,
+      scroller,
       detailContainer,
     ],
   );
-  return DisplayData(splitView, treeViewController);
+
+  return DisplayData(splitView, scrollController);
 }
 
 List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> json, Path path) {
@@ -197,7 +206,6 @@ List<Node<dynamic>> _mapToNodeList(final Map<String, dynamic> data, final Path p
         } else {
           exp = true;
         }
-        debugPrint("AA:_mapToNodeList:$path");
         l.add(Node(key: path.toString(), label: " $k", expanded: exp, children: _mapToNodeList(v, path, filterList, expand, filter)));
       }
       path.pop();
@@ -222,17 +230,17 @@ void _buildMapFromPathList(final Map<String, dynamic> map, final List<String> pa
   }
 }
 
-TreeViewTheme buildTreeViewTheme(final AppThemeData appThemeData) {
-  return TreeViewTheme(
-    expanderTheme: const ExpanderThemeData(
-      type: ExpanderType.arrow,
-      modifier: ExpanderModifier.circleOutlined,
-      position: ExpanderPosition.start,
-      size: 20,
-    ),
-    labelStyle: appThemeData.tsTreeViewLabel,
-    parentLabelStyle: appThemeData.tsTreeViewParentLabel,
-    colorScheme: ColorScheme.fromSeed(seedColor: appThemeData.primary),
-    verticalSpacing: 5,
-  );
-}
+// TreeViewTheme buildTreeViewTheme(final AppThemeData appThemeData) {
+//   return TreeViewTheme(
+//     expanderTheme: const ExpanderThemeData(
+//       type: ExpanderType.arrow,
+//       modifier: ExpanderModifier.circleOutlined,
+//       position: ExpanderPosition.start,
+//       size: 20,
+//     ),
+//     labelStyle: appThemeData.tsTreeViewLabel,
+//     parentLabelStyle: appThemeData.tsTreeViewParentLabel,
+//     colorScheme: ColorScheme.fromSeed(seedColor: appThemeData.primary),
+//     verticalSpacing: 5,
+//   );
+// }

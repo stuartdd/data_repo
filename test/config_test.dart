@@ -12,7 +12,7 @@ void log(String text) {
 
 void main() {
   test('Test Write Application State', () async {
-    final sc1 = ApplicationState(ApplicationScreen(10, 20, 30, 40, 100), ["Last1", "Last2", "Last3"], "test/data/as.tmp", true, log);
+    final sc1 = ApplicationState(ApplicationScreen(10, 20, 30, 40, 100), ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
     try {
       await sc1.deleteAppStateConfigFile();
     } catch (e) {
@@ -65,7 +65,7 @@ void main() {
   });
 
   test('Test Application State', () async {
-    final sc1 = ApplicationState(ApplicationScreen(10, 20, 30, 40, 100), ["Last1", "Last2", "Last3"], "test/data/as.tmp", true, log);
+    final sc1 = ApplicationState(ApplicationScreen(10, 20, 30, 40, 100), ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
     final scStr1 = sc1.toString();
     expect(scStr1, '{"screen":{"x":10.0,"y":20.0,"w":30.0,"h":40.0,"hDiv":100.0},"lastFind":["Last1","Last2","Last3"]}');
     final map1 = json_tools.jsonDecode(scStr1);

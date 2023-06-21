@@ -9,6 +9,7 @@ import 'dart:io';
 const String defaultRemoteGetUrl = "http://localhost:8080/file";
 const String defaultRemotePostUrl = "http://localhost:8080/file";
 const String defaultDataFileName = "data.json";
+const String defaultAppStateFileName = "appState.json";
 const String defaultPrimaryColour = "blue";
 const String defaultSecondaryColour = "green";
 const String defaultHilightColour = "yellow";
@@ -20,25 +21,16 @@ const String defaultAppTitle = "Data Repo";
 const String defaultFontFamily = "Code128";
 const double defaultFontScaleDesktop = 1.0;
 const double defaultFontScaleMobile = 0.8;
+const double defaultTreeNodeHeight = 35.0;
 
 const defaultConfig = """  {
         "application" : {
-            "title": "Data Repository",
-            "colours": {
-                "primary": "blue"
-            }
-        },
-        "user" : {
-            "name" : "User",
-            "id" : "user",
-            "appStatePath": "test",
-            "appStateFile": "appState.json"
+            "title": "Data Repository"
         },
         "file": {
-            "postDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
-            "getDataUrl": "http://172.17.0.1:3000/files/data01.json",
-            "datafile": "data03.json",
-            "datafilePath": "test/data"
+            "postDataUrl": "http://10.0.2.2:3000/file",
+            "getDataUrl": "http://10.0.2.2:3000/file",
+            "datafile": "data.json"
         }
     } """;
 
@@ -68,6 +60,8 @@ final List<SettingDetail> _settingsData = [
   SettingDetail("Help Colour", "The Markdown 'Help' colour", _appColoursHiLightPath, "COLOUR", defaultHilightColour, true),
   SettingDetail("Error Colour", "The Error colour theme", _appColoursErrorPath, "COLOUR", defaultErrorColour, true),
 ];
+
+const List<IconData> defaultTreeNodeIconData = [Icons.density_medium, Icons.arrow_downward, Icons.arrow_forward];
 
 const Map<String, MaterialColor> _colourNames = <String, MaterialColor>{
   'red': Colors.red,
@@ -141,23 +135,38 @@ class AppThemeData {
   final MaterialColor hiLight;
   final MaterialColor error;
   late final TextStyle tsLarge;
+  late final TextStyle tsLargeDisabled;
   late final TextStyle tsMedium;
+  late final TextStyle tsMediumDisabled;
   late final TextStyle tsSmall;
+  late final TextStyle tsSmallDisabled;
   late final TextStyle tsTreeViewLabel;
   late final TextStyle tsTreeViewParentLabel;
   late final TextStyle tsLargeError;
   late final TextStyle tsMediumError;
   late final TextStyle tsSmallError;
+  late final double tsScale;
+  late final double treeNodeHeight;
+  late final List<Icon> treeNodeIcons;
 
   AppThemeData._(this.primary, this.secondary, this.hiLight, this.error, String font, double scale, Color col, Color errC) {
+    tsScale = scale;
     tsLarge = TextStyle(fontFamily: font, fontSize: (25.0 * scale), color: col);
-    tsMedium = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: col);
-    tsSmall = TextStyle(fontFamily: font, fontSize: (15.0 * scale), color: col);
-    tsTreeViewLabel = TextStyle(fontFamily: font, fontSize: (20.0 * scale), letterSpacing: 0.3, color: col);
-    tsTreeViewParentLabel = TextStyle(fontFamily: font, fontSize: (20.0 * scale), letterSpacing: 0.1, fontWeight: FontWeight.w900, color: col);
+    tsLargeDisabled = TextStyle(fontFamily: font, fontSize: (25.0 * scale), color: col.withAlpha(10));
     tsLargeError = TextStyle(fontFamily: font, fontSize: (25.0 * scale), color: errC);
+    tsMedium = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: col);
+    tsMediumDisabled = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: col.withAlpha(10));
     tsMediumError = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: errC);
+    tsSmall = TextStyle(fontFamily: font, fontSize: (15.0 * scale), color: col);
+    tsSmallDisabled = TextStyle(fontFamily: font, fontSize: (15.0 * scale), color: col.withAlpha(10));
     tsSmallError = TextStyle(fontFamily: font, fontSize: (15.0 * scale), color: errC);
+    tsTreeViewLabel = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: col);
+    tsTreeViewParentLabel = TextStyle(fontFamily: font, fontSize: (25.0 * scale), fontWeight: FontWeight.w600, color: col);
+    treeNodeHeight = defaultTreeNodeHeight;
+    treeNodeIcons = List.empty(growable: true);
+    for (int i=0; i<defaultTreeNodeIconData.length;i++) {
+      treeNodeIcons.add(Icon(defaultTreeNodeIconData[i], size: treeNodeHeight-11,));
+    }
     debugPrint("AppThemeData: Created!");
   }
 
@@ -167,10 +176,11 @@ class AppThemeData {
 }
 
 class ConfigData {
-  final String _configFileName;
-  final String _defaultPath;
+  final String _configFileName; // The file name for the config file
+  final String _applicationDefaultDir; // Desktop: current path, Mobile: defined by OS. Needs to be writeable.
   final bool _isDesktop;
   final Function(String) log;
+  late final String _fullFileName;
   late final dynamic _configJson;
   late final String _appStateFileName;
   late final String _appStateLocalDir;
@@ -182,36 +192,46 @@ class ConfigData {
   String _dataFileName = "";
   String _getDataFileUrl = "";
   String _postDataFileUrl = "";
-  String _dataFileLocalDir = "";
+  String _dataFileLocalDir = ""; // Where the data file is. Desktop: defined by config. Mobile: Always _applicationDefaultDir
   MaterialColor _appColoursPrimary = Colors.blue;
   MaterialColor _appColoursSecondary = Colors.green;
   MaterialColor _appColoursHiLight = Colors.yellow;
   MaterialColor _appColoursError = Colors.red;
 
-  ConfigData(this._defaultPath, this._configFileName, this._isDesktop, this.log) {
-    final fullName = _pathFromStrings(_defaultPath, _configFileName);
-    var resp = DataLoad.loadFromFile(fullName);
+  ConfigData(this._applicationDefaultDir, this._configFileName, this._isDesktop, this.log) {
+    log("__PLATFORM:__ ${_isDesktop ? 'DESKTOP' : 'MOBILE'}");
+    if (!_isDesktop) {
+      log("__DOCUMENTS DIR:__ $_applicationDefaultDir");
+    }
+    _fullFileName = _pathFromStrings(_applicationDefaultDir, _configFileName);
+    var resp = DataLoad.loadFromFile(_fullFileName);
     if (resp.hasException) {
       if (resp.exception is PathNotFoundException) {
         resp = SuccessState(true, message: "", value: defaultConfig);
-        log("__WARN:__ Config '$_configFileName' file not found");
-        log("__WARN:__ Config Using default config");
+        log("__WARN:__ Config '$_configFileName' file not found using defaults");
       } else {
         log("__EXCEPTION:__ ${resp.exception.toString()}");
         throw resp.exception as Object;
       }
     } else {
-      log("__CONFIG:__ Loaded: $fullName");
+      log("__CONFIG FILE:__ Loaded: $_fullFileName");
     }
     _configJson = jsonDecode(resp.value);
 
+    if (_isDesktop) {
+      _appStateLocalDir = DataLoad.stringFromJson(getJson(), _appStateLocalDirPath, fallback: _applicationDefaultDir);
+    } else {
+      _appStateLocalDir = _applicationDefaultDir;
+    }
+    _appStateFileName = DataLoad.stringFromJson(getJson(), _appStateFileNamePath, fallback: defaultAppStateFileName);
+
     update();
-    _appStateFileName = DataLoad.stringFromJson(getJson(), _appStateFileNamePath);
-    _appStateLocalDir = DataLoad.stringFromJson(getJson(), _appStateLocalDirPath, fallback: _defaultPath);
     _title = DataLoad.stringFromJson(getJson(), _titlePath, fallback: defaultAppTitle);
     _dataFetchTimeoutMillis = DataLoad.numFromJson(_configJson, _dataFetchTimeoutMillisPath, fallback: defaultFetchTimeoutMillis) as int;
     log("__LOCAL DATA FILE:__ ${getDataFileLocal()}");
-    log("__REMOTE DATA FILE:__ ${getGetDataFileUrl()}");
+    log("__REMOTE DATA GET:__ ${getGetDataFileUrl()}");
+    log("__REMOTE DATA POST:__ ${getPostDataFileUrl()}");
+    log("__LOCAL STATE FILE:__ ${getAppStateFileLocal()}");
     log("__USER:__ ID(${getUserId()}) ${getUserName()}");
   }
 
@@ -221,7 +241,11 @@ class ConfigData {
     _getDataFileUrl = DataLoad.stringFromJson(_configJson, _getDataUrlPath, fallback: defaultRemoteGetUrl, create: true);
     _postDataFileUrl = DataLoad.stringFromJson(_configJson, _postDataUrlPath, fallback: defaultRemotePostUrl, create: true);
     _dataFileName = DataLoad.stringFromJson(_configJson, _dataFileLocalNamePath, fallback: defaultDataFileName, create: true);
-    _dataFileLocalDir = DataLoad.stringFromJson(_configJson, _dataFileLocalDirPath, fallback: _defaultPath, create: true);
+    if (_isDesktop) {
+      _dataFileLocalDir = DataLoad.stringFromJson(_configJson, _dataFileLocalDirPath, fallback: _applicationDefaultDir, create: true);
+    } else {
+      _dataFileLocalDir = _applicationDefaultDir;
+    }
     _appColoursPrimary = validColour(DataLoad.stringFromJson(_configJson, _appColoursPrimaryPath, fallback: "blue", create: true), _appColoursPrimaryPath);
     _appColoursSecondary = validColour(DataLoad.stringFromJson(_configJson, _appColoursSecondaryPath, fallback: "green", create: true), _appColoursSecondaryPath);
     _appColoursHiLight = validColour(DataLoad.stringFromJson(_configJson, _appColoursHiLightPath, fallback: "yellow", create: true), _appColoursHiLightPath);
@@ -257,12 +281,30 @@ class ConfigData {
     return "$path${Platform.pathSeparator}$fileName";
   }
 
+  SuccessState save(Function(String log) log) {
+    try {
+      JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+      final contents = encoder.convert(_configJson);
+      final sc = DataLoad.saveToFile(_fullFileName, contents);
+      if (sc.isFail) {
+        return sc;
+      }
+      return SuccessState(true, message: "Config File Saved", log: log);
+    } catch (e) {
+      return SuccessState(false, message: "Config File Save Failed", exception: e as Exception, log: log);
+    }
+  }
+
   bool isDesktop() {
     return _isDesktop;
   }
 
+  int getDataFetchTimeoutMillis() {
+    return _dataFetchTimeoutMillis;
+  }
+
   String getConfigFileName() {
-    return _pathFromStrings(_defaultPath, _configFileName);
+    return _pathFromStrings(_applicationDefaultDir, _configFileName);
   }
 
   String getGetDataFileUrl() {
@@ -273,38 +315,12 @@ class ConfigData {
     return "$_postDataFileUrl/$_dataFileName";
   }
 
-  int getDataFetchTimeoutMillis() {
-    return _dataFetchTimeoutMillis;
-  }
-
   String getDataFileLocal() {
-    return _pathFromStrings(getDataFilePath(), getDataFileName());
+    return _pathFromStrings(_dataFileLocalDir, _dataFileName);
   }
 
   String getAppStateFileLocal() {
-    return _pathFromStrings(getAppStateLocalDir(), getAppStateFileName());
-  }
-
-  String getDataFilePath() {
-    if (isDesktop()) {
-      return _dataFileLocalDir;
-    }
-    return _defaultPath;
-  }
-
-  String getAppStateLocalDir() {
-    if (isDesktop()) {
-      return _appStateLocalDir;
-    }
-    return _defaultPath;
-  }
-
-  String getDataFileName() {
-    return _dataFileName;
-  }
-
-  String getAppStateFileName() {
-    return _appStateFileName;
+    return _pathFromStrings(_appStateLocalDir, _appStateFileName);
   }
 
   String getTitle() {
@@ -372,7 +388,9 @@ class ConfigData {
   List<SettingControl> createSettingsControlList() {
     final c = List<SettingControl>.empty(growable: true);
     for (var settingDetail in _settingsData) {
-      c.add(SettingControl(settingDetail, DataLoad.stringFromJson(getJson(), settingDetail.path, fallback: settingDetail.fallback)));
+      if (_isDesktop || settingDetail.desktopOnly) {
+        c.add(SettingControl(settingDetail, DataLoad.stringFromJson(getJson(), settingDetail.path, fallback: settingDetail.fallback)));
+      }
     }
     return c;
   }
@@ -437,7 +455,7 @@ class _ConfigInputFieldState extends State<ConfigInputField> {
           height: 2,
         ),
         Container(
-           color: widget.appThemeData.primary.shade100,
+          color: widget.appThemeData.primary.shade100,
           padding: const EdgeInsets.all(5.0),
           child: TextField(
             controller: widget.settingsControl.controller,
