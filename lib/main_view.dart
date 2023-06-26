@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:data_repo/config.dart';
 import 'package:flutter/material.dart';
 import 'package:split_view/split_view.dart';
 import 'package:flutter_treeview/flutter_treeview.dart';
 import 'data_load.dart';
 import "data_types.dart";
+import 'detail_buttons.dart';
 import "path.dart";
 import "treeNode.dart";
 import 'detail_widget.dart';
@@ -50,14 +53,15 @@ DisplayData createSplitView(
     final Path selectedPath, // The currently selected path
     final bool isEditDataDisplay,
     final bool horizontal, // Display horizontal or vertical split pane
-    double initPos, // The split pane divider position
-    AppThemeData appThemeData, // The colour scheme
+    final double initPos, // The split pane divider position
+    final AppThemeData appThemeData, // The colour scheme
+    final NodeCopyBin nodeCopyBin,
     PathList hiLightedPath,
     final Function(Path) onSelect, // Called when a tree node in selected
     final Function(double) onDivChange, // Called when the split pane divider is moved
-    final Function(int) onSearchComplete, // Called when the search is complete
     final bool Function(DetailAction) onDataAction,
     final Widget Function(BuildContext, Node<dynamic>) buildNode,
+    final void Function(String, int) searchResults,
     final void Function(String) log) {
   // Called when one of the detail buttons is pressed
   /// Left right or Top bottom
@@ -73,25 +77,35 @@ DisplayData createSplitView(
   final Widget detailContainer;
   final node = DataLoad.findLastMapNodeForPath(originalData, selectedPath);
   if (node != null) {
-    detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, hiLightedPath, appThemeData, onDataAction);
+    detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, hiLightedPath, appThemeData, nodeCopyBin, onDataAction);
   } else {
     detailContainer = Container(
       color: appThemeData.error.shade900,
       child: const Center(child: Text("Selected Node was not found in the data")),
     );
   }
+  int counter = -1;
   final scrollController = ScrollController();
+  final listView = MyTreeNodeWidgetList(
+    rootTreeNode,
+    selectedPath,
+    appThemeData,
+    appThemeData.treeNodeHeight,
+    (selectedNode) {
+      onSelect(selectedNode.path);
+    },
+    search: filter,
+    onSearchComplete: (searchExpression, rowCount) {
+      if (searchExpression.isNotEmpty) {
+        searchResults(searchExpression, rowCount);
+      }
+    },
+    nodeNavigationBar: _createNodeNavButtonBar(selectedPath, nodeCopyBin, appThemeData, onDataAction),
+  );
+
   final scroller = SingleChildScrollView(
     controller: scrollController,
-    child: MyTreeNodeWidgetList(
-      rootTreeNode,
-      selectedPath,
-      appThemeData,
-      appThemeData.treeNodeHeight,
-      (selectedNode) {
-        onSelect(selectedNode.path);
-      },
-    ),
+    child: listView,
   );
 
   final splitView = SplitView(
@@ -132,7 +146,60 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
   return lm;
 }
 
-ListView _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathList hiLightedPaths, final AppThemeData appThemeData, final bool Function(DetailAction) dataAction) {
+Widget _createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCopyBin, final AppThemeData appThemeData, final bool Function(DetailAction) dataAction) {
+  final canCopy = selectedPath.hasParent();
+  final canPaste = nodeCopyBin.isNotEmpty() && nodeCopyBin.copyFromPath.isNotEqual(selectedPath);
+  return Row(
+    children: [
+      DetailIconButton(
+        onPressed: () {
+          dataAction(DetailAction(ActionType.select, false, Path.empty()));
+        },
+        tooltip: "Home",
+        icon: const Icon(Icons.home),
+        appThemeData: appThemeData,
+      ),
+      DetailIconButton(
+        show: selectedPath.hasParent(),
+        onPressed: () {
+          dataAction(DetailAction(ActionType.select, false, selectedPath.parentPath()));
+        },
+        tooltip: "Up one level",
+        icon: const Icon(Icons.arrow_upward),
+        appThemeData: appThemeData,
+      ),
+      DetailIconButton(
+        show: canCopy,
+        onPressed: () {
+          dataAction(DetailAction(ActionType.copyNode, false, selectedPath));
+        },
+        tooltip: "Copy This Node",
+        icon: const Icon(Icons.copy),
+        appThemeData: appThemeData,
+      ),
+      DetailIconButton(
+        show: canCopy,
+        onPressed: () {
+          dataAction(DetailAction(ActionType.cutNode, false, selectedPath));
+        },
+        tooltip: "Cut This Node",
+        icon: const Icon(Icons.cut),
+        appThemeData: appThemeData,
+      ),
+      DetailIconButton(
+        show: canPaste,
+        onPressed: () {
+          dataAction(DetailAction(ActionType.pasteNode, false, selectedPath));
+        },
+        tooltip: "Paste into ${selectedPath.getLast()}",
+        icon: const Icon(Icons.paste),
+        appThemeData: appThemeData,
+      ),
+    ],
+  );
+}
+
+Widget _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathList hiLightedPaths, final AppThemeData appThemeData, NodeCopyBin copyBin, final bool Function(DetailAction) dataAction) {
   List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath);
   properties.sort(
     (a, b) {
@@ -141,8 +208,6 @@ ListView _createDetailContainer(final Map<String, dynamic> selectedNode, Path se
   );
   return ListView(
     shrinkWrap: true,
-    restorationId: 'list_demo_list_view',
-    padding: const EdgeInsets.symmetric(vertical: 8),
     children: [
       for (int index = 0; index < properties.length; index++)
         DetailWidget(
@@ -156,91 +221,3 @@ ListView _createDetailContainer(final Map<String, dynamic> selectedNode, Path se
     ],
   );
 }
-
-TreeViewController _buildTreeViewController(final Map<String, dynamic> data, final Path selectedNode, final String filter, final String expand, final Function(int) onSearchComplete) {
-  if (data.isEmpty) {
-    return TreeViewController(
-      children: [const Node(key: 'root', label: 'Empty Tree')],
-      selectedKey: 'root',
-    );
-  }
-
-  final List<String> list = List.empty(growable: true);
-  final filterLc = filter.toLowerCase();
-  final Map<String, dynamic> map = <String, dynamic>{};
-
-  DataLoad.pathsForMapNodes(data, (path) {
-    final lc = path.toLowerCase();
-    if (lc.contains(filterLc)) {
-      list.add(path);
-    }
-  });
-
-  _buildMapFromPathList(map, list);
-  final c = _mapToNodeList(data, Path.empty(), map, expand, filter);
-  onSearchComplete(c.length);
-
-  if (c.isEmpty) {
-    return TreeViewController(
-      children: const [],
-      selectedKey: '',
-    );
-  }
-
-  return TreeViewController(
-    children: c,
-    selectedKey: selectedNode.toString(),
-  );
-}
-
-List<Node<dynamic>> _mapToNodeList(final Map<String, dynamic> data, final Path path, final Map<String, dynamic> filterList, final String expand, final String filter) {
-  final List<Node<dynamic>> l = List.empty(growable: true);
-  final expandLC = expand.toLowerCase();
-  data.forEach((k, v) {
-    if (v is Map<String, dynamic>) {
-      path.push(k);
-      if (path.isInMap(filterList)) {
-        bool exp = false;
-        if (filter == "") {
-          exp = (path.getRoot().toLowerCase() == expandLC);
-        } else {
-          exp = true;
-        }
-        l.add(Node(key: path.toString(), label: " $k", expanded: exp, children: _mapToNodeList(v, path, filterList, expand, filter)));
-      }
-      path.pop();
-    }
-  });
-  return l;
-}
-
-void _buildMapFromPathList(final Map<String, dynamic> map, final List<String> pathList) {
-  if (pathList.isEmpty) {
-    return;
-  }
-  for (int i = 0; i < pathList.length; i++) {
-    Map<String, dynamic> root = map;
-    var splitPath = pathList[i].split('|');
-    if (splitPath.isNotEmpty) {
-      for (int j = 0; j < splitPath.length; j++) {
-        root.putIfAbsent(splitPath[j], () => <String, dynamic>{});
-        root = root[splitPath[j]];
-      }
-    }
-  }
-}
-
-// TreeViewTheme buildTreeViewTheme(final AppThemeData appThemeData) {
-//   return TreeViewTheme(
-//     expanderTheme: const ExpanderThemeData(
-//       type: ExpanderType.arrow,
-//       modifier: ExpanderModifier.circleOutlined,
-//       position: ExpanderPosition.start,
-//       size: 20,
-//     ),
-//     labelStyle: appThemeData.tsTreeViewLabel,
-//     parentLabelStyle: appThemeData.tsTreeViewParentLabel,
-//     colorScheme: ColorScheme.fromSeed(seedColor: appThemeData.primary),
-//     verticalSpacing: 5,
-//   );
-// }

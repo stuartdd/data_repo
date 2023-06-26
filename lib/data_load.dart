@@ -6,6 +6,7 @@ import 'package:http_status_code/http_status_code.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'encrypt.dart';
+import 'data_types.dart';
 
 const timeStampPrefix = "TS:";
 const timeStampPrefixClear = "${timeStampPrefix}C:";
@@ -120,92 +121,7 @@ class DataContainer {
   }
 }
 
-class SuccessState {
-  final String message;
-  final String value;
-  final bool _isSuccess;
-  late final Exception? _exception;
-  SuccessState(this._isSuccess, {this.message = "", this.value = "", Exception? exception, void Function(String)? log}) {
-    _exception = exception;
-    if (log != null) {
-      if (_exception != null) {
-        if (message.isEmpty) {
-          log("__EXCEPTION:__ ${_exception.toString()}");
-        } else {
-          log("__EXCEPTION:__ $message. ${_exception.toString()}");
-        }
-      } else {
-        if (!_isSuccess) {
-          log("__FAIL:__ '$message'");
-        } else {
-          if (message.isNotEmpty) {
-            log("__OK:__ $message");
-          }
-        }
-      }
-    }
-  }
 
-  bool get hasException {
-    return (_exception != null);
-  }
-
-  bool get isSuccess {
-    if (hasException) {
-      return false;
-    }
-    return _isSuccess;
-  }
-
-  bool get isFail {
-    return !isSuccess;
-  }
-
-  Exception? get exception {
-    return _exception;
-  }
-
-  String toLogString({bool bold = true}) {
-    final bb = bold ? "__" : "";
-    if (_exception != null) {
-      if (message.isEmpty) {
-        return "${bb}EXCEPTION:$bb ${_exception.toString()}";
-      } else {
-        return "${bb}EXCEPTION:$bb $message. ${_exception.toString()}";
-      }
-    } else {
-      if (isFail) {
-        if (message.isNotEmpty) {
-          return "${bb}FAIL:$bb $message";
-        }
-        return "${bb}FAIL$bb";
-      } else {
-        if (message.isNotEmpty) {
-          return "${bb}OK:$bb $message";
-        }
-        return "${bb}OK$bb";
-      }
-    }
-  }
-
-  @override
-  String toString() {
-    return toLogString(bold: false);
-  }
-
-  bool isDifferentFrom(SuccessState other) {
-    if (isSuccess != other.isSuccess) {
-      return true;
-    }
-    if (value != other.value) {
-      return true;
-    }
-    if (message != other.message) {
-      return true;
-    }
-    return false;
-  }
-}
 
 class DataLoad {
   static Future<SuccessState> toHttpPost(String url, String body, {void Function(String)? log}) async {

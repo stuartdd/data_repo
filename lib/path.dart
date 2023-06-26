@@ -20,7 +20,6 @@ class PathList {
   }
 }
 
-
 class Path {
   final List<String> pathList = List.filled(9, "", growable: false);
   int count = 0;
@@ -32,21 +31,25 @@ class Path {
     count = list.length;
   }
 
+  bool isNotEqual(Path other) {
+    return !isEqual(other);
+  }
+
   bool isEqual(Path other) {
-      if (count != other.count) {
+    if (count != other.count) {
+      return false;
+    }
+    for (int i = 0; i < count; i++) {
+      if (pathList[i] != other.pathList[i]) {
         return false;
       }
-      for (int i =0; i<count; i++) {
-        if (pathList[i] != other.pathList[i])  {
-          return false;
-        }
-      }
-      return true;
+    }
+    return true;
   }
 
   Path cloneAppend(List<String> app) {
     final List<String> l = List.empty(growable: true);
-    for (int i = 0; i<count; i++) {
+    for (int i = 0; i < count; i++) {
       l.add(pathList[i]);
     }
     l.addAll(app);
@@ -55,7 +58,7 @@ class Path {
 
   Path cloneReversed() {
     final p = Path.empty();
-    for (int i = count-1; i >=0; i--) {
+    for (int i = count - 1; i >= 0; i--) {
       p.push(pathList[i]);
     }
     return p;
@@ -63,13 +66,13 @@ class Path {
 
   Path parentPath() {
     final List<String> l = List.empty(growable: true);
-    for (int i = 0; i<count-1; i++) {
+    for (int i = 0; i < count - 1; i++) {
       l.add(pathList[i]);
     }
     return Path(l);
   }
 
-  factory  Path.empty() {
+  factory Path.empty() {
     return Path([]);
   }
 
@@ -79,6 +82,10 @@ class Path {
 
   factory Path.fromList(List<String> list) {
     return Path(list);
+  }
+
+  bool hasParent() {
+    return (count > 1);
   }
 
   bool isInMap(Map<String, dynamic> map) {

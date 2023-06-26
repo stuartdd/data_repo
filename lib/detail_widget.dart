@@ -95,9 +95,7 @@ class _DetailWidgetState extends State<DetailWidget> {
 
   void doOnTapLink(String text, String? href, String title) {
     if (href != null) {
-      widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.path, href, widget.dataValueRow.type, (p0, p1, p2) {
-        return true;
-      }));
+      widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.path, oldValue:href, oldValueType:widget.dataValueRow.type));
     }
   }
 
@@ -212,7 +210,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   show: widget.isEditDataDisplay,
                   text: 'Edit',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.editStart, true, widget.dataValueRow.pathString, widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.editStart, true, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
                   },
                 ),
                 DetailButton(
@@ -220,7 +218,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   show: widget.isEditDataDisplay,
                   text: 'Re-Name',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.renameStart, true, widget.dataValueRow.pathString, widget.dataValueRow.name, widget.dataValueRow.type, _onCompleteAction, additional: widget.dataValueRow.value));
+                    widget.dataAction(DetailAction(ActionType.renameStart, true, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type,  onCompleteActionNullable:_onCompleteAction, additional: widget.dataValueRow.value));
                   },
                 ),
                 DetailButton(
@@ -230,7 +228,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   text: 'Copy',
                   onPressed: () async {
                     await Clipboard.setData(ClipboardData(text: widget.dataValueRow.value));
-                    widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.pathString, widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type,  onCompleteActionNullable:_onCompleteAction));
                   },
                 ),
                 DetailButton(
@@ -239,7 +237,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   timerMs: 500,
                   text: 'Link',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.pathString, widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type,  onCompleteActionNullable:_onCompleteAction));
                   },
                 ),
                 DetailButton(
@@ -248,7 +246,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   timerMs: 500,
                   text: 'Remove',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.delete, true, widget.dataValueRow.pathString, widget.dataValueRow.value, widget.dataValueRow.type, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.delete, true, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type,  onCompleteActionNullable:_onCompleteAction));
                   },
                 ),
               ],
@@ -267,7 +265,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               title: Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
               subtitle: horizontal ? Text("Group is Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: appThemeData.tsSmall) : null,
               onTap: () {
-                widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathString, widget.dataValueRow.name, optionTypeDataGroup, _onCompleteAction));
+                widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup,  onCompleteActionNullable:_onCompleteAction));
               },
             ),
             Row(
@@ -278,7 +276,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   show: widget.isEditDataDisplay,
                   text: 'Re-Name',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.renameStart, false, widget.dataValueRow.pathString, widget.dataValueRow.name, optionTypeDataGroup, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.renameStart, false, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.name,oldValueType:  optionTypeDataGroup,  onCompleteActionNullable:_onCompleteAction));
                   },
                 ),
                 DetailButton(
@@ -286,7 +284,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   show: widget.isEditDataDisplay,
                   text: 'Remove',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.delete, false, widget.dataValueRow.pathString, widget.dataValueRow.value, optionTypeDataGroup, _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.delete, false, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.value, oldValueType: optionTypeDataGroup,  onCompleteActionNullable:_onCompleteAction));
                   },
                 ),
               ],

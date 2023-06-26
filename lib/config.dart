@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'data_load.dart';
 import 'path.dart';
+import 'data_types.dart';
 import 'dart:io';
 
 const String defaultRemoteGetUrl = "http://localhost:8080/file";
@@ -61,7 +62,7 @@ final List<SettingDetail> _settingsData = [
   SettingDetail("Error Colour", "The Error colour theme", _appColoursErrorPath, "COLOUR", defaultErrorColour, true),
 ];
 
-const List<IconData> defaultTreeNodeIconData = [Icons.density_medium, Icons.arrow_downward, Icons.arrow_forward];
+const List<IconData> defaultTreeNodeIconData = [Icons.list_sharp, Icons.arrow_downward, Icons.arrow_forward];
 
 const Map<String, MaterialColor> _colourNames = <String, MaterialColor>{
   'red': Colors.red,

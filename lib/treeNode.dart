@@ -2,7 +2,6 @@ import 'package:data_repo/config.dart';
 import 'package:flutter/material.dart';
 import 'path.dart';
 
-
 class MyTreeNode {
   final String label;
   final String pathKey;
@@ -97,6 +96,16 @@ class MyTreeNode {
     return p.cloneReversed();
   }
 
+  bool searchMatch(String s) {
+    if (s.isEmpty) {
+      return true;
+    }
+    if (label.toLowerCase().contains(s.toLowerCase())) {
+      return true;
+    }
+    return false;
+  }
+
   MyTreeNode? findByLabel(String l) {
     if (isNotEmpty) {
       for (var element in children) {
@@ -167,7 +176,7 @@ Widget? buildNodeDefault(int index, MyTreeNode node, AppThemeData appThemeData, 
       color: selected ? appThemeData.primary.shade300 : appThemeData.primary.shade500,
       child: Row(
         children: [
-          SizedBox(width: 20.0 * (pathLen-1)),
+          SizedBox(width: 20.0 * (pathLen - 1)),
           IconButton(
               onPressed: () {
                 if (node.canExpand) {
@@ -193,13 +202,16 @@ Widget? buildNodeDefault(int index, MyTreeNode node, AppThemeData appThemeData, 
 }
 
 class MyTreeNodeWidgetList extends StatefulWidget {
-  const MyTreeNodeWidgetList(this.nodes, this.selectedNode, this.appThemeData, this.rowHeight, this.onSelect, {super.key, this.buildNode = buildNodeDefault});
+  const MyTreeNodeWidgetList(this.nodes, this.selectedNode, this.appThemeData, this.rowHeight, this.onSelect, {super.key, this.search = "", this.buildNode = buildNodeDefault, this.nodeNavigationBar, this.onSearchComplete});
   final Widget? Function(int, MyTreeNode, AppThemeData, double, bool, int, Function(MyTreeNode, bool)) buildNode;
   final void Function(MyTreeNode) onSelect;
+  final void Function(String, int)? onSearchComplete;
+  final Widget? nodeNavigationBar;
   final AppThemeData appThemeData;
   final MyTreeNode nodes;
   final double rowHeight;
   final Path selectedNode;
+  final String search;
   @override
   State<MyTreeNodeWidgetList> createState() => _MyTreeNodeWidgetListState();
 }
@@ -209,31 +221,41 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint("IN:_MyTreeNodeWidgetListState Build");
     final List<Widget> children = List.empty(growable: true);
-    int c  = 0;
+    if (widget.nodeNavigationBar != null) {
+      children.add(widget.nodeNavigationBar!);
+    }
+    int c = 0;
     widget.nodes.visitEachNode(
       (aNode) {
-        final w = widget.buildNode(
-          c,
-          aNode,
-          widget.appThemeData,
-          widget.rowHeight,
-          widget.selectedNode.isEqual(aNode.path),
-          aNode.pathLen,
-          (node, select) {
-            setState(() {
-              widget.onSelect(node);
-            });
-          },
-        );
-        if (w != null) {
-          children.add(w);
-          children.add(Container(height: 1,color: widget.appThemeData.primary.shade800,));
-          c++;
+        if (aNode.searchMatch(widget.search)) {
+          final w = widget.buildNode(
+            c,
+            aNode,
+            widget.appThemeData,
+            widget.rowHeight,
+            widget.selectedNode.isEqual(aNode.path),
+            aNode.pathLen,
+            (node, select) {
+              setState(() {
+                widget.onSelect(node);
+              });
+            },
+          );
+          if (w != null) {
+            children.add(w);
+            children.add(Container(
+              height: 1,
+              color: widget.appThemeData.primary.shade800,
+            ));
+            c++;
+          }
         }
       },
     );
+    if (widget.onSearchComplete != null && widget.search.isNotEmpty) {
+      widget.onSearchComplete!(widget.search, c);
+    }
     return ListBody(
       children: children,
     );

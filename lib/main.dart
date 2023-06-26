@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:data_repo/data_load.dart';
 import 'package:data_repo/treeNode.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_treeview/flutter_treeview.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_size/window_size.dart';
 import 'package:window_manager/window_manager.dart';
@@ -18,7 +17,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
-
+NodeCopyBin _nodeCopyBin = NodeCopyBin.empty();
 StringBuffer eventLog = StringBuffer();
 String eventLogLatest = "";
 
@@ -144,7 +143,6 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   String _password = "";
   String _search = "";
-  String _previousSearch = "";
   bool _beforeDataLoaded = true;
   bool _dataWasUpdated = false;
   bool _isEditDataDisplay = false;
@@ -174,6 +172,10 @@ class _MyHomePageState extends State<MyHomePage> {
   void _setSearchExpressionState(String st) {
     if (st == _search) {
       return;
+    }
+    if (st.isEmpty) {
+      log("__SEARCH__ cleared");
+      _reSelectNode();
     }
     setState(() {
       textEditingController.text = st;
@@ -307,6 +309,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _hiLightedPaths.add(path);
           _dataWasUpdated = true;
           _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+          _reSelectNode(path: path);
         });
         break;
       case optionTypeDataGroup:
@@ -316,22 +319,27 @@ class _MyHomePageState extends State<MyHomePage> {
           _hiLightedPaths.add(path);
           _dataWasUpdated = true;
           _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+          _reSelectNode(path: path);
         });
         break;
     }
     _globalSuccessState = SuccessState(true, message: "Node '$name' added", log: log);
   }
 
-  void _handleTreeSelect(Path path) {
+  void _setSelectedPath(Path path) {
+    final n = _treeNodeDataRoot.findByPath(path);
+    if (n == null) {
+      _selectedPath = Path.fromDotPath(_loadedData.keys.first);
+      _selectedTreeNode = _treeNodeDataRoot.findByPath(_selectedPath)!;
+    } else {
+      _selectedTreeNode = n;
+      _selectedPath = path;
+    }
+  }
+
+  void _handleTreeSelectState(Path path) {
     setState(() {
-      final n = _treeNodeDataRoot.findByPath(path);
-      if (n == null) {
-        _selectedPath = Path.fromDotPath(_loadedData.keys.first);
-        _selectedTreeNode = _treeNodeDataRoot.findByPath(_selectedPath)!;
-      } else {
-        _selectedTreeNode = n;
-        _selectedPath = path;
-      }
+      _setSelectedPath(path);
     });
   }
 
@@ -417,12 +425,13 @@ class _MyHomePageState extends State<MyHomePage> {
         _hiLightedPaths.add(detailActionData.path);
         _dataWasUpdated = true;
         _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+        _reSelectNode(path:detailActionData.path);
         _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: log);
       });
     }
   }
 
-  void _handleDelete(Path path, String value, String response) async {
+  void _handleDelete(final Path path, final String response) async {
     if (response == "OK") {
       setState(() {
         final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, path);
@@ -512,6 +521,19 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  void _reSelectNode({Path? path}) {
+    if (path != null) {
+      _setSelectedPath(path);
+    }
+    Future.delayed(
+      const Duration(milliseconds: 300),
+      () {
+        final index = (_selectedTreeNode.index - 2) * _configData.getAppThemeData().treeNodeHeight;
+        _treeViewScrollController.animateTo(index, duration: const Duration(milliseconds: 400), curve: Curves.ease);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
@@ -527,19 +549,12 @@ class _MyHomePageState extends State<MyHomePage> {
       _configData.isDesktop(),
       _applicationState.screen.hDiv,
       _configData.getAppThemeData(),
+      _nodeCopyBin,
       _hiLightedPaths,
-      _handleTreeSelect, // On tree selection
+      _handleTreeSelectState, // On tree selection
       (divPos) {
         // On divider change
         if (_applicationState.updateDividerPosState(divPos)) {
-          _applicationState.writeAppStateConfigFile(false);
-        }
-      },
-      (searchCount) {
-        // On search complete.
-        if (searchCount > 0 && _previousSearch != _search) {
-          _previousSearch = _search;
-          _applicationState.addLastFind(_search, 5);
           _applicationState.writeAppStateConfigFile(false);
         }
       },
@@ -551,6 +566,31 @@ class _MyHomePageState extends State<MyHomePage> {
             {
               return false;
             }
+          case ActionType.copyNode:
+            {
+              setState(() {
+                _nodeCopyBin = NodeCopyBin(detailActionData.path, false, DataLoad.mapFromJson(_loadedData.dataMap, detailActionData.path));
+                _globalSuccessState = SuccessState(true, message: "Node '${detailActionData.path.getLast()}' COPIED to clipboard");
+              });
+              return true;
+            }
+          case ActionType.cutNode:
+            {
+              setState(() {
+                _nodeCopyBin = NodeCopyBin(detailActionData.path, true, DataLoad.mapFromJson(_loadedData.dataMap, detailActionData.path));
+                _globalSuccessState = SuccessState(true, message: "Node '${detailActionData.path.getLast()}' CUT to clipboard");
+              });
+              return true;
+            }
+          case ActionType.pasteNode:
+            {
+              setState(() {
+                _globalSuccessState = SuccessState(true, message: "Node '${_nodeCopyBin.copyFromPath.getLast()}' ${_nodeCopyBin.cut?'MOVED':'COPIED'} to '${detailActionData.path.getLast()}'");
+                _nodeCopyBin = NodeCopyBin.empty();
+              });
+              debugPrint("$_nodeCopyBin");
+              return true;
+            }
           case ActionType.delete:
             {
               _showModalDialog(context, "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDelete);
@@ -558,16 +598,8 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.select:
             {
-              _handleTreeSelect(detailActionData.path);
-              Future.delayed(
-                const Duration(milliseconds: 300),
-                () {
-                  if (_selectedTreeNode != null) {
-                    final index = (_selectedTreeNode.index -2) * _configData.getAppThemeData().treeNodeHeight;
-                    _treeViewScrollController.animateTo(index, duration: const Duration(milliseconds: 400), curve: Curves.ease);
-                  }
-                },
-              );
+              _handleTreeSelectState(detailActionData.path);
+              _reSelectNode();
               return true;
             }
           case ActionType.renameStart:
@@ -670,6 +702,32 @@ class _MyHomePageState extends State<MyHomePage> {
         // BuildNode
         nodeContextList[node.key] = buildContext;
         return MyTreeWidget(node.key, node.label, buildContext);
+      },
+      (searchExpression, searchCount) {
+        if (searchExpression.isNotEmpty) {
+          if (searchCount == 0) {
+            Future.delayed(
+              Duration(milliseconds: 200),
+              () {
+                _showModalDialog(
+                  context,
+                  "Search:",
+                  ["No results were returned"],
+                  ["OK"],
+                  Path.empty(),
+                  (path, buttonText) {
+                    _setSearchExpressionState("");
+                  },
+                );
+              },
+            );
+            log("__SEARCH__ Search did not returned any entries.");
+          } else {
+            _applicationState.addLastFind(_search, 20);
+            _applicationState.writeAppStateConfigFile(true);
+            log("__SEARCH__ Search returned $searchCount entries.");
+          }
+        }
       },
       log,
     );
@@ -1109,7 +1167,7 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
   );
 }
 
-Future<void> _showModalDialog(final BuildContext context, final String title, final List<String> texts, final List<String> buttons, final Path? action, final void Function(Path, String, String)? onAction) async {
+Future<void> _showModalDialog(final BuildContext context, final String title, final List<String> texts, final List<String> buttons, final Path? path, final void Function(Path, String)? onResponse) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -1134,8 +1192,8 @@ Future<void> _showModalDialog(final BuildContext context, final String title, fi
                   appThemeData: _configData.getAppThemeData(),
                   text: buttons[i],
                   onPressed: () {
-                    if (onAction != null && action != null) {
-                      onAction(action, "", buttons[i].toUpperCase());
+                    if (onResponse != null && path != null) {
+                      onResponse(path, buttons[i].toUpperCase());
                     } else {
                       _okCancelDialogResult = buttons[i].toUpperCase();
                     }

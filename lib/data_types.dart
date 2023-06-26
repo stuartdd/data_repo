@@ -1,3 +1,4 @@
+import 'package:data_repo/data_load.dart';
 import 'package:flutter/cupertino.dart';
 
 import 'path.dart';
@@ -35,6 +36,7 @@ const Map<String, DisplayTypeData> displayTypeMap = {
 // End Display type data
 //
 
+const optionsDataTypeEmpty = OptionsTypeData(String, "string", "empty");
 //
 // When renaming a data element the Options are derived from this class.
 //
@@ -46,6 +48,10 @@ class OptionsTypeData {
   final int min;
   final int max;
   const OptionsTypeData(this.elementType, this.key, this.description, {this.suffix = "", this.min = -maxIntValue, this.max = maxIntValue});
+
+  factory OptionsTypeData.empty() {
+    return optionsDataTypeEmpty;
+  }
 
   static OptionsTypeData locateTypeInOptionsList(String key, List<OptionsTypeData> l, OptionsTypeData fallback) {
     for (int i = 0; i < l.length; i++) {
@@ -177,7 +183,7 @@ const List<OptionsTypeData> optionsEditElementValue = [];
 //
 // An action from a GUI component serviced by the maim State full GUI.
 //
-enum ActionType { none, editStart, renameStart, select, delete, link, clip }
+enum ActionType { none, editStart, renameStart, select, delete, link, clip, copyNode, cutNode, pasteNode }
 
 class DetailAction {
   final ActionType action;
@@ -185,9 +191,9 @@ class DetailAction {
   final Path path;
   final String oldValue;
   final OptionsTypeData oldValueType;
-  final bool Function(String, String, String) onCompleteAction;
+  final bool Function(String, String, String)? onCompleteActionNullable;
   final String additional;
-  DetailAction(this.action, this.value, this.path, this.oldValue, this.oldValueType, this.onCompleteAction, {this.additional = ""});
+  DetailAction(this.action, this.value, this.path, {this.oldValue = "", this.oldValueType = optionsDataTypeEmpty, this.onCompleteActionNullable, this.additional = ""});
 
   String getLastPathElement() {
     return path.getLast();
@@ -233,7 +239,128 @@ class DetailAction {
         {
           return "CLIP: $s";
         }
+      case ActionType.copyNode:
+        {
+          return "COPY NODE: $s";
+        }
+      case ActionType.cutNode:
+        {
+          return "CUT NODE: $s";
+        }
+      case ActionType.pasteNode:
+        {
+          return "PASTE NODE: $s";
+        }
     }
   }
 }
 
+class NodeCopyBin {
+  final Path copyFromPath;
+  final bool cut;
+  late final bool hasData;
+  final Map<String, dynamic> copyNode;
+  NodeCopyBin(this.copyFromPath, this.cut, this.copyNode) {
+    hasData = copyFromPath.isNotEmpty();
+  }
+
+  factory NodeCopyBin.empty() {
+    return NodeCopyBin(Path.empty(), false, {});
+  }
+
+  bool isNotEmpty() {
+    return copyFromPath.isNotEmpty();
+  }
+
+  @override
+  String toString() {
+    return "${cut?"CUT":"COPY"} ${copyFromPath.toString()}\n${DataLoad.mapToString(copyNode)}";
+  }
+}
+
+class SuccessState {
+  final String message;
+  final String value;
+  final bool _isSuccess;
+  late final Exception? _exception;
+  SuccessState(this._isSuccess, {this.message = "", this.value = "", Exception? exception, void Function(String)? log}) {
+    _exception = exception;
+    if (log != null) {
+      if (_exception != null) {
+        if (message.isEmpty) {
+          log("__EXCEPTION:__ ${_exception.toString()}");
+        } else {
+          log("__EXCEPTION:__ $message. ${_exception.toString()}");
+        }
+      } else {
+        if (!_isSuccess) {
+          log("__FAIL:__ '$message'");
+        } else {
+          if (message.isNotEmpty) {
+            log("__OK:__ $message");
+          }
+        }
+      }
+    }
+  }
+
+  bool get hasException {
+    return (_exception != null);
+  }
+
+  bool get isSuccess {
+    if (hasException) {
+      return false;
+    }
+    return _isSuccess;
+  }
+
+  bool get isFail {
+    return !isSuccess;
+  }
+
+  Exception? get exception {
+    return _exception;
+  }
+
+  String toLogString({bool bold = true}) {
+    final bb = bold ? "__" : "";
+    if (_exception != null) {
+      if (message.isEmpty) {
+        return "${bb}EXCEPTION:$bb ${_exception.toString()}";
+      } else {
+        return "${bb}EXCEPTION:$bb $message. ${_exception.toString()}";
+      }
+    } else {
+      if (isFail) {
+        if (message.isNotEmpty) {
+          return "${bb}FAIL:$bb $message";
+        }
+        return "${bb}FAIL$bb";
+      } else {
+        if (message.isNotEmpty) {
+          return "${bb}OK:$bb $message";
+        }
+        return "${bb}OK$bb";
+      }
+    }
+  }
+
+  @override
+  String toString() {
+    return toLogString(bold: false);
+  }
+
+  bool isDifferentFrom(SuccessState other) {
+    if (isSuccess != other.isSuccess) {
+      return true;
+    }
+    if (value != other.value) {
+      return true;
+    }
+    if (message != other.message) {
+      return true;
+    }
+    return false;
+  }
+}

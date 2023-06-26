@@ -241,11 +241,8 @@ class _MarkDownInputField extends State<MarkDownInputField> {
         ActionType.link,
         true,
         Path.empty(),
-        href,
-        optionTypeDataString,
-        (p0, p1, p2) {
-          return true;
-        },
+        oldValue: href,
+        oldValueType: optionTypeDataString,
       ));
     }
   }
