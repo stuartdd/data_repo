@@ -13,10 +13,12 @@ class DataValueDisplayRow {
   final OptionsTypeData _type;
   final bool _isValue;
   final Path _path;
+  late final Path _pathWithName;
   final int _mapSize;
   DisplayTypeData _displayTypeData = simpleDisplayData;
 
   DataValueDisplayRow(this._name, this._value, this._type, this._isValue, this._path, this._mapSize) {
+    _pathWithName = _path.cloneAppendList([_name]);
     final t = displayTypeMap[type.key];
     if (t != null) {
       _displayTypeData = t;
@@ -36,7 +38,7 @@ class DataValueDisplayRow {
     }
     return name.substring(0, (_name.length - displayTypeData.markerLength));
   }
-  
+
   String get value {
     if (_type.elementType == bool) {
       if (_value == "true") {
@@ -47,8 +49,8 @@ class DataValueDisplayRow {
     return _value;
   }
 
-  Path get pathString {
-    return _path.cloneAppend([_name]);
+  Path get pathWithName {
+    return _pathWithName;
   }
 
   bool get isLink {
@@ -71,10 +73,10 @@ class DataValueDisplayRow {
 }
 
 class DetailWidget extends StatefulWidget {
-  const DetailWidget({super.key, required this.dataValueRow, required this.appThemeData, required this.dataAction, required this.hiLightedPaths, required this.isEditDataDisplay, required this.isHorizontal});
+  const DetailWidget({super.key, required this.dataValueRow, required this.appThemeData, required this.dataAction, required this.pathPropertiesList, required this.isEditDataDisplay, required this.isHorizontal});
   final DataValueDisplayRow dataValueRow;
   final AppThemeData appThemeData;
-  final PathList hiLightedPaths;
+  final PathPropertiesList pathPropertiesList;
   final bool isEditDataDisplay;
   final bool isHorizontal;
   final bool Function(DetailAction) dataAction;
@@ -95,13 +97,13 @@ class _DetailWidgetState extends State<DetailWidget> {
 
   void doOnTapLink(String text, String? href, String title) {
     if (href != null) {
-      widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.path, oldValue:href, oldValueType:widget.dataValueRow.type));
+      widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.path, oldValue: href, oldValueType: widget.dataValueRow.type));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final hiLight = widget.hiLightedPaths.contains(widget.dataValueRow.pathString);
+    final hiLight = widget.pathPropertiesList.contains(widget.dataValueRow.pathWithName);
     if (widget.dataValueRow.isValue) {
       return _detailForValue(widget.appThemeData, hiLight, widget.isHorizontal);
     }
@@ -150,27 +152,27 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _cardForValue(final DataValueDisplayRow dataValueRow, final AppThemeData appThemeData, final bool hiLight) {
+  Widget _cardForValue(final DataValueDisplayRow dataValueRow, final AppThemeData appThemeData, final PathProperties plp) {
     if (dataValueRow.type.equal(optionTypeDataPositional)) {
       return Card(
-        margin: EdgeInsetsGeometry.lerp(null, null, 5),
-        color: appThemeData.hiLowColor(hiLight).shade700,
+        margin: const EdgeInsets.all(5.0),
+        color: appThemeData.selectedUpdatedColour(true, plp.updated),
         child: Column(
           children: [
-            _rowForPosition(dataValueRow.value.length, appThemeData.hiLowColor(hiLight), appThemeData.tsMedium),
+            _rowForPosition(dataValueRow.value.length, appThemeData.primary, appThemeData.tsMedium),
             Container(
               color: Colors.black,
               height: 2,
             ),
-            _rowForString(dataValueRow.value, appThemeData.hiLowColor(hiLight), appThemeData.tsMedium),
+            _rowForString(dataValueRow.value, appThemeData.primary, appThemeData.tsMedium),
           ],
         ),
       );
     }
     if (dataValueRow.type.equal(optionTypeDataMarkDown)) {
       return Card(
-        margin: EdgeInsetsGeometry.lerp(null, null, 5),
-        color: appThemeData.hiLowColor(hiLight).shade200,
+        margin: const EdgeInsets.all(5.0),
+        color: appThemeData.selectedUpdatedColour(true, plp.updated),
         child: SizedBox(
           child: Markdown(
             data: dataValueRow.value,
@@ -183,108 +185,117 @@ class _DetailWidgetState extends State<DetailWidget> {
       );
     }
     return Card(
-      margin: EdgeInsetsGeometry.lerp(null, null, 5),
-      color: appThemeData.hiLowColor(hiLight).shade200,
-      child: Padding(padding: const EdgeInsets.only(left: 20.0), child: Text(dataValueRow.value, style: appThemeData.tsLarge)),
+      margin: const EdgeInsets.all(5.0),
+      color: appThemeData.selectedUpdatedColour(true, plp.updated),
+      child: Padding(padding: const EdgeInsets.all(5.0), child: Text(dataValueRow.value, style: appThemeData.tsLarge)),
+
     );
   }
 
-  Widget _detailForValue(final AppThemeData appThemeData, final bool hiLight, final bool horizontal) {
+  Widget _detailForValue(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
     return Card(
-          color: appThemeData.primary.shade600,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            ListTile(
-              leading: hiLight ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
-              title: Text(widget.dataValueRow.getDisplayName(widget.isEditDataDisplay), style: appThemeData.tsMedium),
-              subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: appThemeData.tsSmall) : null,
+      color: appThemeData.primary.shade600,
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        ListTile(
+          leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.dataAction),
+          title: Container(
+            padding: const EdgeInsets.all(5.0),
+            color: appThemeData.selectedUpdatedColour(true, plp.rename),
+            child: Text(widget.dataValueRow.getDisplayName(widget.isEditDataDisplay), style: appThemeData.tsMedium),
+          ),
+          subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: appThemeData.tsSmall) : null,
+        ),
+        SizedBox(
+          width: double.infinity,
+          child: _cardForValue(widget.dataValueRow, appThemeData, plp),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            DetailButton(
+              appThemeData: widget.appThemeData,
+              show: widget.isEditDataDisplay,
+              text: 'Edit',
+              onPressed: () {
+                widget.dataAction(DetailAction(ActionType.editStart, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+              },
             ),
-            SizedBox(
-              width: double.infinity,
-              child: _cardForValue(widget.dataValueRow, appThemeData, hiLight),
+            DetailButton(
+              appThemeData: widget.appThemeData,
+              show: widget.isEditDataDisplay,
+              text: 'Re-Name',
+              onPressed: () {
+                widget.dataAction(DetailAction(ActionType.renameStart, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
+              },
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: <Widget>[
-                DetailButton(
-                  appThemeData:  widget.appThemeData,
-                  show: widget.isEditDataDisplay,
-                  text: 'Edit',
-                  onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.editStart, true, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
-                  },
-                ),
-                DetailButton(
-                  appThemeData:  widget.appThemeData,
-                  show: widget.isEditDataDisplay,
-                  text: 'Re-Name',
-                  onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.renameStart, true, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type,  onCompleteActionNullable:_onCompleteAction, additional: widget.dataValueRow.value));
-                  },
-                ),
-                DetailButton(
-                  appThemeData:  widget.appThemeData,
-                  show: !widget.isEditDataDisplay && (widget.dataValueRow.displayTypeData.displayType != DisplayType.positionalString),
-                  timerMs: 500,
-                  text: 'Copy',
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: widget.dataValueRow.value));
-                    widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type,  onCompleteActionNullable:_onCompleteAction));
-                  },
-                ),
-                DetailButton(
-                  appThemeData:  widget.appThemeData,
-                  show: widget.dataValueRow.isLink && !widget.isEditDataDisplay && (widget.dataValueRow.displayTypeData.displayType != DisplayType.positionalString),
-                  timerMs: 500,
-                  text: 'Link',
-                  onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type,  onCompleteActionNullable:_onCompleteAction));
-                  },
-                ),
-                DetailButton(
-                  appThemeData:  widget.appThemeData,
-                  show: widget.isEditDataDisplay,
-                  timerMs: 500,
-                  text: 'Remove',
-                  onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.delete, true, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type,  onCompleteActionNullable:_onCompleteAction));
-                  },
-                ),
-              ],
+            DetailButton(
+              appThemeData: widget.appThemeData,
+              show: !widget.isEditDataDisplay && (widget.dataValueRow.displayTypeData.displayType != DisplayType.positionalString),
+              timerMs: 500,
+              text: 'Copy',
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: widget.dataValueRow.value));
+                widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+              },
             ),
-          ]),
+            DetailButton(
+              appThemeData: widget.appThemeData,
+              show: widget.dataValueRow.isLink && !widget.isEditDataDisplay && (widget.dataValueRow.displayTypeData.displayType != DisplayType.positionalString),
+              timerMs: 500,
+              text: 'Link',
+              onPressed: () {
+                widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+              },
+            ),
+            DetailButton(
+              appThemeData: widget.appThemeData,
+              show: widget.isEditDataDisplay,
+              timerMs: 500,
+              text: 'Remove',
+              onPressed: () {
+                widget.dataAction(DetailAction(ActionType.delete, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+              },
+            ),
+          ],
+        ),
+      ]),
     );
   }
 
-  Widget _detailForMap(AppThemeData appThemeData, bool hiLight, bool horizontal) {
+  Widget _detailForMap(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
     return SizedBox(
       child: Card(
           color: appThemeData.primary.shade300,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ListTile(
-              leading: hiLight ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
-              title: Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
+              leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.dataAction),
+              title: Container(
+                padding: const EdgeInsets.all(5.0),
+                color: appThemeData.selectedUpdatedColour(true, plp.rename),
+                child: Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
+              ),
               subtitle: horizontal ? Text("Group is Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: appThemeData.tsSmall) : null,
               onTap: () {
-                widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup,  onCompleteActionNullable:_onCompleteAction));
+                widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
               },
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: <Widget>[
                 DetailButton(
-                  appThemeData:  widget.appThemeData,
+                  appThemeData: widget.appThemeData,
                   show: widget.isEditDataDisplay,
                   text: 'Re-Name',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.renameStart, false, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.name,oldValueType:  optionTypeDataGroup,  onCompleteActionNullable:_onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.renameStart, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
                   },
                 ),
                 DetailButton(
-                  appThemeData:  widget.appThemeData,
+                  appThemeData: widget.appThemeData,
                   show: widget.isEditDataDisplay,
                   text: 'Remove',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.delete, false, widget.dataValueRow.pathString, oldValue: widget.dataValueRow.value, oldValueType: optionTypeDataGroup,  onCompleteActionNullable:_onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.delete, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
                   },
                 ),
               ],
@@ -292,4 +303,14 @@ class _DetailWidgetState extends State<DetailWidget> {
           ])),
     );
   }
+}
+
+Widget groupButton(PathProperties plp, bool value, Path path, final bool Function(DetailAction) dataAction) {
+  return IconButton(
+    icon: plp.groupSelect ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
+    tooltip: plp.groupSelect ? 'Remove from group select' : 'Add to group select',
+    onPressed: () {
+      dataAction(DetailAction(ActionType.group, value, path));
+    },
+  );
 }

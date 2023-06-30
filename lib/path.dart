@@ -1,34 +1,213 @@
-class PathList {
-  final List<Path> _list = List.empty(growable: true);
-  PathList();
+class PathProperties {
+  bool rename = false;
+  bool updated = false;
+  bool groupSelect = false;
+  bool cut = false;
+  PathProperties(this.updated, this.groupSelect, this.cut, this.rename);
+  @override
+  String toString() {
+    return "rename:$rename updated:$updated group:$groupSelect cut:$cut";
+  }
+
+  bool get isEmpty {
+    return !isNotEmpty;
+  }
+
+  bool get isNotEmpty {
+    return rename || updated || groupSelect || cut;
+  }
+}
+
+class PathPropertiesList {
+  final Map<String, PathProperties> _list = {};
+
+  bool get isEmpty {
+    return _list.isEmpty;
+  }
+
+  bool get isNotEmpty {
+    return _list.isNotEmpty;
+  }
+
+  @override
+  String toString() {
+    if (_list.isEmpty) {
+      return "";
+    }
+    StringBuffer sb = StringBuffer();
+    _list.forEach((key, value) {
+      sb.write("Path:$key = $value\n");
+    });
+    return sb.toString();
+  }
 
   void clean() {
     _list.clear();
   }
 
-  void add(Path p) {
-    _list.add(p);
-  }
-
-  bool contains(Path p) {
-    for (int i = 0; i < _list.length; i++) {
-      if (_list[i].isEqual(p)) {
-        return true;
+  void groupSelect(Path p) {
+    final plKey = p.toString();
+    final plp = _list[plKey];
+    if (plp == null) {
+      _list[plKey] = PathProperties(false, true, false, false);
+    } else {
+      plp.groupSelect = !plp.groupSelect;
+      if (plp.isEmpty) {
+        _list.remove(plKey);
       }
     }
-    return false;
+  }
+
+  void cut(Path p, bool set) {
+    final plKey = p.toString();
+    final plp = _list[plKey];
+    if (plp == null) {
+      _list[plKey] = PathProperties(false, false, set, false);
+    } else {
+      plp.cut = set;
+      if (plp.isEmpty) {
+        _list.remove(plKey);
+      }
+    }
+  }
+
+  void renamed(Path p) {
+    final plKey = p.toString();
+    final plp = _list[plKey];
+    if (plp == null) {
+      _list[plKey] = PathProperties(false, false, false, true);
+    } else {
+      plp.rename = true;
+    }
+  }
+
+  void updated(Path p) {
+    final plKey = p.toString();
+    final plp = _list[plKey];
+    if (plp == null) {
+      _list[plKey] = PathProperties(true, false, false, false);
+    } else {
+      plp.updated = true;
+    }
+  }
+
+  PathProperties contains(Path p) {
+    final plp = _list[p.toString()];
+    if (plp == null) {
+      return PathProperties(false, false, false, false);
+    } else {
+      return plp;
+    }
+  }
+}
+
+const int initialSize = 9;
+
+class PathNodes {
+  final List<dynamic> nodes;
+  final bool error;
+  PathNodes(this.nodes, this.error);
+
+  factory PathNodes.from(Map<String, dynamic> json, Path path) {
+    if (path.isEmpty) {
+      return PathNodes([], true);
+    }
+    if (json.isEmpty) {
+      return PathNodes([], true);
+    }
+    var nn = json;
+    final List<dynamic> nodes = List.empty(growable: true);
+    for (var i = 0; i < path.length; i++) {
+      final name = path.peek(i);
+      var node = nn[name];
+      if (node == null) {
+        return PathNodes(nodes, true);
+      }
+      nodes.add(node);
+      if (node is Map<String, dynamic>) {
+        nn = node;
+      } else {
+        break;
+      }
+    }
+    return PathNodes(nodes, false);
+  }
+
+  bool get lastNodeIsAMap {
+    if (nodes.isEmpty) {
+      return false;
+    }
+    return (nodes[nodes.length - 1] is Map<String, dynamic>);
+  }
+
+  bool get lastNodeIsData {
+    if (nodes.isEmpty) {
+      return false;
+    }
+    return !(nodes[nodes.length - 1] is Map<String, dynamic>);
+  }
+
+  Map<String, dynamic>? get lastNodeAsMap {
+    if (nodes.isNotEmpty) {
+      return nodes[nodes.length - 1] as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  bool get lastNodeHasParent {
+    return (nodes.length > 1);
+  }
+
+  Map<String, dynamic>? get lastNodeParent {
+    if (nodes.length > 1) {
+      return nodes[nodes.length - 2] as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  dynamic? get lastNodeAsData {
+    if (nodes.isNotEmpty) {
+      return nodes[nodes.length - 1];
+    }
+    return null;
+  }
+
+  bool get isEmpty {
+    return nodes.isEmpty;
+  }
+
+  bool get isNotEmpty {
+    return nodes.isNotEmpty;
+  }
+
+  int get length {
+    return nodes.length;
+  }
+
+  @override
+  String toString() {
+    StringBuffer sb = StringBuffer();
+    sb.write("${error ? 'Error' : 'OK'}:");
+    for (int i = 0; i < nodes.length; i++) {
+      sb.write(nodes[i].toString());
+      sb.write('|');
+    }
+    return sb.toString();
   }
 }
 
 class Path {
-  final List<String> pathList = List.filled(9, "", growable: false);
+  final List<String> pathList = List.filled(initialSize, "", growable: false);
   int count = 0;
 
   Path(List<String> list) {
+    count = 0;
     for (int i = 0; i < list.length; i++) {
-      pathList[i] = list[i];
+      if (list[i].isNotEmpty) {
+        pathList[i] = list[i];
+        count++;
+      }
     }
-    count = list.length;
   }
 
   bool isNotEqual(Path other) {
@@ -47,13 +226,15 @@ class Path {
     return true;
   }
 
-  Path cloneAppend(List<String> app) {
-    final List<String> l = List.empty(growable: true);
+  Path cloneAppendList(List<String> app) {
+    final p = Path.empty();
     for (int i = 0; i < count; i++) {
-      l.add(pathList[i]);
+      p.push(pathList[i]);
     }
-    l.addAll(app);
-    return Path(l);
+    for (int i = 0; i < app.length; i++) {
+      p.push(app[i]);
+    }
+    return p;
   }
 
   Path cloneReversed() {
@@ -64,12 +245,12 @@ class Path {
     return p;
   }
 
-  Path parentPath() {
-    final List<String> l = List.empty(growable: true);
+  Path cloneParentPath() {
+    final p = Path.empty();
     for (int i = 0; i < count - 1; i++) {
-      l.add(pathList[i]);
+      p.push(pathList[i]);
     }
-    return Path(l);
+    return p;
   }
 
   factory Path.empty() {
@@ -84,12 +265,8 @@ class Path {
     return Path(list);
   }
 
-  bool hasParent() {
-    return (count > 1);
-  }
-
   bool isInMap(Map<String, dynamic> map) {
-    if (isEmpty()) {
+    if (count == 0) {
       return false;
     }
     var m = map;
@@ -103,15 +280,19 @@ class Path {
     return true;
   }
 
-  int length() {
+  bool get hasParent {
+    return (count > 1);
+  }
+
+  int get length {
     return count;
   }
 
-  bool isEmpty() {
+  bool get isEmpty {
     return (count == 0);
   }
 
-  bool isNotEmpty() {
+  bool get isNotEmpty {
     return (count > 0);
   }
 
@@ -123,17 +304,26 @@ class Path {
   }
 
   String getRoot() {
-    if (isEmpty()) {
+    if (count == 0) {
       return "";
     }
     return pathList[0];
   }
 
   String getLast() {
-    if (isEmpty()) {
+    if (count == 0) {
       return "";
     }
     return pathList[count - 1];
+  }
+
+  void setLast(String s) {
+    if (count == 0) {
+      pathList[count] = s;
+      count++;
+    } else {
+      pathList[count - 1] = s;
+    }
   }
 
   void push(String p) {

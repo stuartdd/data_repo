@@ -165,14 +165,20 @@ class AppThemeData {
     tsTreeViewParentLabel = TextStyle(fontFamily: font, fontSize: (25.0 * scale), fontWeight: FontWeight.w600, color: col);
     treeNodeHeight = defaultTreeNodeHeight;
     treeNodeIcons = List.empty(growable: true);
-    for (int i=0; i<defaultTreeNodeIconData.length;i++) {
-      treeNodeIcons.add(Icon(defaultTreeNodeIconData[i], size: treeNodeHeight-11,));
+    for (int i = 0; i < defaultTreeNodeIconData.length; i++) {
+      treeNodeIcons.add(Icon(
+        defaultTreeNodeIconData[i],
+        size: treeNodeHeight - 11,
+      ));
     }
     debugPrint("AppThemeData: Created!");
   }
 
-  MaterialColor hiLowColor(bool isHiLight) {
-    return isHiLight ? hiLight : primary;
+  selectedUpdatedColour(final bool sel, final bool upd) {
+    if (upd) {
+      return sel ? secondary.shade300 : secondary.shade500;
+    }
+    return sel ? primary.shade300 : primary.shade500;
   }
 }
 
@@ -220,15 +226,15 @@ class ConfigData {
     _configJson = jsonDecode(resp.value);
 
     if (_isDesktop) {
-      _appStateLocalDir = DataLoad.stringFromJson(getJson(), _appStateLocalDirPath, fallback: _applicationDefaultDir);
+      _appStateLocalDir = DataLoad.getStringFromJson(getJson(), _appStateLocalDirPath, fallback: _applicationDefaultDir);
     } else {
       _appStateLocalDir = _applicationDefaultDir;
     }
-    _appStateFileName = DataLoad.stringFromJson(getJson(), _appStateFileNamePath, fallback: defaultAppStateFileName);
+    _appStateFileName = DataLoad.getStringFromJson(getJson(), _appStateFileNamePath, fallback: defaultAppStateFileName);
 
     update();
-    _title = DataLoad.stringFromJson(getJson(), _titlePath, fallback: defaultAppTitle);
-    _dataFetchTimeoutMillis = DataLoad.numFromJson(_configJson, _dataFetchTimeoutMillisPath, fallback: defaultFetchTimeoutMillis) as int;
+    _title = DataLoad.getStringFromJson(getJson(), _titlePath, fallback: defaultAppTitle);
+    _dataFetchTimeoutMillis = DataLoad.getNumFromJson(_configJson, _dataFetchTimeoutMillisPath, fallback: defaultFetchTimeoutMillis) as int;
     log("__LOCAL DATA FILE:__ ${getDataFileLocal()}");
     log("__REMOTE DATA GET:__ ${getGetDataFileUrl()}");
     log("__REMOTE DATA POST:__ ${getPostDataFileUrl()}");
@@ -237,20 +243,20 @@ class ConfigData {
   }
 
   void update() {
-    _userName = DataLoad.stringFromJson(_configJson, _userNamePath, fallback: defaultUserName, create: true);
-    _userId = DataLoad.stringFromJson(_configJson, _userIdPath, fallback: defaultUserName.toLowerCase(), create: true);
-    _getDataFileUrl = DataLoad.stringFromJson(_configJson, _getDataUrlPath, fallback: defaultRemoteGetUrl, create: true);
-    _postDataFileUrl = DataLoad.stringFromJson(_configJson, _postDataUrlPath, fallback: defaultRemotePostUrl, create: true);
-    _dataFileName = DataLoad.stringFromJson(_configJson, _dataFileLocalNamePath, fallback: defaultDataFileName, create: true);
+    _userName = DataLoad.getStringFromJson(_configJson, _userNamePath, fallback: defaultUserName, create: true);
+    _userId = DataLoad.getStringFromJson(_configJson, _userIdPath, fallback: defaultUserName.toLowerCase(), create: true);
+    _getDataFileUrl = DataLoad.getStringFromJson(_configJson, _getDataUrlPath, fallback: defaultRemoteGetUrl, create: true);
+    _postDataFileUrl = DataLoad.getStringFromJson(_configJson, _postDataUrlPath, fallback: defaultRemotePostUrl, create: true);
+    _dataFileName = DataLoad.getStringFromJson(_configJson, _dataFileLocalNamePath, fallback: defaultDataFileName, create: true);
     if (_isDesktop) {
-      _dataFileLocalDir = DataLoad.stringFromJson(_configJson, _dataFileLocalDirPath, fallback: _applicationDefaultDir, create: true);
+      _dataFileLocalDir = DataLoad.getStringFromJson(_configJson, _dataFileLocalDirPath, fallback: _applicationDefaultDir, create: true);
     } else {
       _dataFileLocalDir = _applicationDefaultDir;
     }
-    _appColoursPrimary = validColour(DataLoad.stringFromJson(_configJson, _appColoursPrimaryPath, fallback: "blue", create: true), _appColoursPrimaryPath);
-    _appColoursSecondary = validColour(DataLoad.stringFromJson(_configJson, _appColoursSecondaryPath, fallback: "green", create: true), _appColoursSecondaryPath);
-    _appColoursHiLight = validColour(DataLoad.stringFromJson(_configJson, _appColoursHiLightPath, fallback: "yellow", create: true), _appColoursHiLightPath);
-    _appColoursError = validColour(DataLoad.stringFromJson(_configJson, _appColoursErrorPath, fallback: "red", create: true), _appColoursErrorPath);
+    _appColoursPrimary = validColour(DataLoad.getStringFromJson(_configJson, _appColoursPrimaryPath, fallback: "blue", create: true), _appColoursPrimaryPath);
+    _appColoursSecondary = validColour(DataLoad.getStringFromJson(_configJson, _appColoursSecondaryPath, fallback: "green", create: true), _appColoursSecondaryPath);
+    _appColoursHiLight = validColour(DataLoad.getStringFromJson(_configJson, _appColoursHiLightPath, fallback: "yellow", create: true), _appColoursHiLightPath);
+    _appColoursError = validColour(DataLoad.getStringFromJson(_configJson, _appColoursErrorPath, fallback: "red", create: true), _appColoursErrorPath);
     _appThemeData = null;
   }
 
@@ -390,7 +396,7 @@ class ConfigData {
     final c = List<SettingControl>.empty(growable: true);
     for (var settingDetail in _settingsData) {
       if (_isDesktop || settingDetail.desktopOnly) {
-        c.add(SettingControl(settingDetail, DataLoad.stringFromJson(getJson(), settingDetail.path, fallback: settingDetail.fallback)));
+        c.add(SettingControl(settingDetail, DataLoad.getStringFromJson(getJson(), settingDetail.path, fallback: settingDetail.fallback)));
       }
     }
     return c;

@@ -20,7 +20,6 @@ assertContainsNone(List<String> list, String s) {
   }
 }
 
-
 const serverPort = 8888;
 
 Future<void> startTestServer() async {

@@ -122,11 +122,12 @@ class OptionsTypeData {
 }
 
 // Values for Native types
-const OptionsTypeData optionTypeDataString = OptionsTypeData(String, "String", "Single line text");
+const OptionsTypeData optionTypeDataString = OptionsTypeData(String, "String", "Text");
 const OptionsTypeData optionTypeDataBool = OptionsTypeData(bool, "bool", "Yes or No", min: 2, max: 3);
 const OptionsTypeData optionTypeDataDouble = OptionsTypeData(double, "double", "Decimal number");
 const OptionsTypeData optionTypeDataInt = OptionsTypeData(int, "int", "Integer number");
 // Values to identify special case String values as Positional Lists or Markdown
+const OptionsTypeData optionTypeDataSimple = OptionsTypeData(String, positionalStringMarker, "Simple", suffix: positionalStringMarker);
 const OptionsTypeData optionTypeDataPositional = OptionsTypeData(String, positionalStringMarker, "Positional List", suffix: positionalStringMarker);
 const OptionsTypeData optionTypeDataMarkDown = OptionsTypeData(String, markDownMarker, "Multi Line Markdown", suffix: markDownMarker);
 // Values for adding elements as groups or values
@@ -158,7 +159,7 @@ const List<OptionsTypeData> _elementTypesOther = [
 const List<OptionsTypeData> optionsForRenameElement = [
   optionTypeDataPositional,
   optionTypeDataMarkDown,
-  optionTypeDataString,
+  optionTypeDataSimple,
 ];
 
 const List<OptionsTypeData> optionsForUpdateElement = [
@@ -183,7 +184,7 @@ const List<OptionsTypeData> optionsEditElementValue = [];
 //
 // An action from a GUI component serviced by the maim State full GUI.
 //
-enum ActionType { none, editStart, renameStart, select, delete, link, clip, copyNode, cutNode, pasteNode }
+enum ActionType {none, editStart, renameStart, select, delete, link, clip, copyNode, cutNode, pasteNode, group}
 
 class DetailAction {
   final ActionType action;
@@ -218,6 +219,10 @@ class DetailAction {
       case ActionType.editStart:
         {
           return "EDIT-START: $s";
+        }
+      case ActionType.group:
+        {
+          return "GROUP-SEL: $s";
         }
       case ActionType.renameStart:
         {
@@ -261,7 +266,7 @@ class NodeCopyBin {
   late final bool hasData;
   final Map<String, dynamic> copyNode;
   NodeCopyBin(this.copyFromPath, this.cut, this.copyNode) {
-    hasData = copyFromPath.isNotEmpty();
+    hasData = copyFromPath.isNotEmpty;
   }
 
   factory NodeCopyBin.empty() {
@@ -269,7 +274,7 @@ class NodeCopyBin {
   }
 
   bool isNotEmpty() {
-    return copyFromPath.isNotEmpty();
+    return copyFromPath.isNotEmpty;
   }
 
   @override

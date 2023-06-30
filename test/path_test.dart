@@ -1,38 +1,132 @@
+import 'package:data_repo/data_load.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:data_repo/path.dart';
+import 'dart:convert' as json_tools;
 
 void main() {
   //
-  test('Test Clone Append', () async {
+  test('Test Path Nodes', () async {
+    var s = json_tools.jsonDecode(DataLoad.loadFromFile("test/data/data04.json").value);
+    var p = PathNodes.from(s, Path.empty());
+    expect(p.error, true);
+    expect(p.isNotEmpty, false);
+    expect(p.isEmpty, true);
+    expect(p.length, 0);
+    expect(p.lastNodeAsMap, null);
+    expect(p.lastNodeHasParent, false);
+    expect(p.lastNodeParent, null);
+    expect(p.lastNodeIsAMap, false);
+    expect(p.lastNodeIsData, false);
+    expect(p.toString(), "Error:");
+
+    p = PathNodes.from(s, Path.fromDotPath('A'));
+    expect(p.error, false);
+    expect(p.isNotEmpty, true);
+    expect(p.isEmpty, false);
+    expect(p.length, 1);
+    expect(p.lastNodeIsAMap, true);
+    expect(p.lastNodeIsData, false);
+    expect(p.lastNodeHasParent, false);
+    expect(p.lastNodeParent, null);
+    Map<String, dynamic>? pm = p.lastNodeAsMap;
+    expect(pm == null, false);
+    expect(pm!.length, 2);
+
+    p = PathNodes.from(s, Path.fromDotPath('A.X'));
+    expect(p.error, true);
+    expect(p.isNotEmpty, true);
+    expect(p.isEmpty, false);
+    expect(p.length, 1);
+    expect(p.lastNodeIsAMap, true);
+    expect(p.lastNodeIsData, false);
+    expect(p.lastNodeParent, null);
+    pm = p.lastNodeAsMap;
+    expect(pm == null, false);
+    expect(pm!.length, 2);
+
+    p = PathNodes.from(s, Path.fromDotPath('A.B'));
+    expect(p.error, false);
+    expect(p.isNotEmpty, true);
+    expect(p.isEmpty, false);
+    expect(p.length, 2);
+    expect(p.lastNodeIsAMap, true);
+    expect(p.lastNodeIsData, false);
+    pm = p.lastNodeAsMap;
+    expect(p.lastNodeHasParent, true);
+    Map<String, dynamic>? parent = p.lastNodeParent;
+    expect(parent?.containsKey("B"), true);
+    expect(parent?.containsKey("A1"), true);
+    expect(parent == null, false);
+    expect(pm == null, false);
+    expect(pm!.length, 2);
+
+    p = PathNodes.from(s, Path.fromDotPath('A.A1.A11.A111'));
+    expect(p.error, false);
+    expect(p.isNotEmpty, true);
+    expect(p.isEmpty, false);
+    expect(p.length, 4);
+    expect(p.lastNodeIsAMap, false);
+    expect(p.lastNodeIsData, true);
+    expect(p.lastNodeHasParent, true);
+    parent = p.lastNodeParent;
+    expect(parent == null, false);
+    expect(parent?.containsKey("A111"), true);
+    expect(parent?.containsKey("A112"), true);
+    expect(parent?["A111"], "A111V");
+    final ps = p.lastNodeAsData;
+    expect(ps == null, false);
+    expect(ps is String, true);
+  });
+
+  test('Test Clone Append, Parent, Reverse', () async {
     final p = Path.fromDotPath("root.one.two");
-    expect(p.length(), 3);
+    expect(p.length, 3);
     expect(p.toString(), "root.one.two");
-    final p2 = p.cloneAppend(["three","four"]);
-    expect(p.length(), 3);
+    final p2 = p.cloneAppendList(["three", "four"]);
+    expect(p.length, 3);
     expect(p.toString(), "root.one.two");
-    expect(p2.length(), 5);
+    expect(p2.length, 5);
     expect(p2.toString(), "root.one.two.three.four");
 
     expect(p.pop(), "two");
     expect(p2.pop(), "four");
-    expect(p.length(), 2);
+    expect(p.length, 2);
     expect(p.toString(), "root.one");
-    expect(p2.length(), 4);
+    expect(p2.length, 4);
     expect(p2.toString(), "root.one.two.three");
 
     final p3 = Path.fromDotPath("root.one.two");
-    expect(p3.length(), 3);
+    expect(p3.length, 3);
     expect(p3.toString(), "root.one.two");
-    final p4 = p3.cloneAppend(["three","four"]);
+    final p4 = p3.cloneAppendList(["three", "four"]);
     p4.push("five");
     p4.push("six");
     expect(p4.toString(), "root.one.two.three.four.five.six");
+    var p5 = p4.cloneParentPath();
+    expect(p4.toString(), "root.one.two.three.four.five.six");
+    expect(p5.toString(), "root.one.two.three.four.five");
+    p5 = p5.cloneParentPath();
+    expect(p5.toString(), "root.one.two.three.four");
+    p5 = p5.cloneParentPath();
+    expect(p5.toString(), "root.one.two.three");
+    p5 = p5.cloneParentPath();
+    expect(p5.toString(), "root.one.two");
+    p5 = p5.cloneParentPath();
+    expect(p5.toString(), "root.one");
+    p5 = p5.cloneParentPath();
+    expect(p5.toString(), "root");
+    p5 = p5.cloneParentPath();
+    expect(p5.toString(), "");
+    expect(p4.toString(), "root.one.two.three.four.five.six");
+    final p6 = Path.fromDotPath("A.B.C");
+    expect(p6.toString(), "A.B.C");
+    final p7 = p6.cloneReversed();
+    expect(p7.toString(), "C.B.A");
   });
-
 
   test('Test Path Peek and Last', () async {
     final p = Path.fromDotPath("root.one.two");
-    expect(p.length(), 3);
+    expect(p.length, 3);
     expect(p.getRoot(), "root");
     expect(p.peek(-1), "");
     expect(p.peek(0), "root");
@@ -41,34 +135,54 @@ void main() {
     expect(p.peek(3), "");
     expect(p.toString(), "root.one.two");
     expect(p.getLast(), "two");
-    expect(p.isEmpty(), false);
-    expect(p.isNotEmpty(), true);
+    expect(p.isEmpty, false);
+    expect(p.isNotEmpty, true);
 
     expect(p.pop(), "two");
     expect(p.toString(), "root.one");
     expect(p.getLast(), "one");
-    expect(p.isEmpty(), false);
-    expect(p.isNotEmpty(), true);
+    expect(p.isEmpty, false);
+    expect(p.isNotEmpty, true);
     expect(p.pop(), "one");
 
     expect(p.toString(), "root");
     expect(p.getLast(), "root");
-    expect(p.isEmpty(), false);
-    expect(p.isNotEmpty(), true);
+    expect(p.isEmpty, false);
+    expect(p.isNotEmpty, true);
     expect(p.pop(), "root");
 
     assertEmpty(p);
     expect(p.getLast(), "");
     expect(p.getRoot(), "");
+
+    final px = Path.fromDotPath("root.one.two");
+    expect(px.getLast(), "two");
+    px.setLast('xx');
+    expect(px.getLast(), "xx");
+    expect(px.toString(), "root.one.xx");
+    final px1 = px.cloneParentPath();
+    expect(px1.toString(), "root.one");
+    px1.setLast('yy');
+    expect(px1.getLast(), "yy");
+    expect(px1.toString(), "root.yy");
+    final px2 = px1.cloneParentPath();
+    expect(px2.toString(), "root");
+    px2.setLast('zz');
+    expect(px2.getLast(), "zz");
+    expect(px2.toString(), "zz");
+    final px3 = px2.cloneParentPath();
+    expect(px3.toString(), "");
+    px3.setLast("last");
+    expect(px3.toString(), "last");
   });
 
   test('Test Path From String and isInMap', () async {
     final p = Path.fromDotPath("root.one.two");
-    expect(p.length(), 3);
+    expect(p.length, 3);
     expect(p.getRoot(), "root");
     expect(p.toString(), "root.one.two");
-    expect(p.isEmpty(), false);
-    expect(p.isNotEmpty(), true);
+    expect(p.isEmpty, false);
+    expect(p.isNotEmpty, true);
 
     var m1 = {
       'root': {
@@ -108,11 +222,11 @@ void main() {
     final p = Path.empty();
     assertEmpty(p);
     p.push("root");
-    expect(p.length(), 1);
+    expect(p.length, 1);
     expect(p.getRoot(), "root");
     expect(p.toString(), "root");
-    expect(p.isEmpty(), false);
-    expect(p.isNotEmpty(), true);
+    expect(p.isEmpty, false);
+    expect(p.isNotEmpty, true);
     expect(p.pop(), "root");
     assertEmpty(p);
     expect(p.pop(), "");
@@ -122,25 +236,25 @@ void main() {
     p.push("one");
     p.push("two");
 
-    expect(p.length(), 3);
+    expect(p.length, 3);
     expect(p.getRoot(), "root");
     expect(p.toString(), "root.one.two");
-    expect(p.isEmpty(), false);
-    expect(p.isNotEmpty(), true);
+    expect(p.isEmpty, false);
+    expect(p.isNotEmpty, true);
 
     expect(p.pop(), "two");
-    expect(p.length(), 2);
+    expect(p.length, 2);
     expect(p.getRoot(), "root");
     expect(p.toString(), "root.one");
-    expect(p.isEmpty(), false);
-    expect(p.isNotEmpty(), true);
+    expect(p.isEmpty, false);
+    expect(p.isNotEmpty, true);
 
     expect(p.pop(), "one");
-    expect(p.length(), 1);
+    expect(p.length, 1);
     expect(p.getRoot(), "root");
     expect(p.toString(), "root");
-    expect(p.isEmpty(), false);
-    expect(p.isNotEmpty(), true);
+    expect(p.isEmpty, false);
+    expect(p.isNotEmpty, true);
 
     expect(p.pop(), "root");
     assertEmpty(p);
@@ -150,10 +264,10 @@ void main() {
 }
 
 void assertEmpty(Path p) {
-  expect(p.length(), 0);
+  expect(p.length, 0);
   expect(p.getRoot(), "");
   expect(p.toString(), "");
-  expect(p.isEmpty(), true);
-  expect(p.isNotEmpty(), false);
+  expect(p.isEmpty, true);
+  expect(p.isNotEmpty, false);
   expect(p.pop(), "");
 }

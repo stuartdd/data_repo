@@ -23,7 +23,7 @@ String eventLogLatest = "";
 
 String _okCancelDialogResult = "";
 bool _inExitProcess = false;
-final PathList _hiLightedPaths = PathList();
+final PathPropertiesList _pathPropertiesList = PathPropertiesList();
 final TextEditingController textEditingController = TextEditingController(text: "");
 
 const appBarHeight = 50.0;
@@ -155,7 +155,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Map<String, BuildContext> nodeContextList = {};
 
-  Future<void> implementLinkState(final String href, final String from) async {
+  Future<void> _implementLinkState(final String href, final String from) async {
     var urlCanLaunch = await canLaunchUrlString(href); //canLaunch is from url_launcher package
     if (urlCanLaunch) {
       await launchUrlString(href); //launch is from url_launcher package to launch URL
@@ -167,6 +167,23 @@ class _MyHomePageState extends State<MyHomePage> {
         _globalSuccessState = SuccessState(false, message: "Link could not be launched", log: log);
       });
     }
+  }
+
+  void _handleTreeSelect(Path path) {
+    final n = _treeNodeDataRoot.findByPath(path);
+    if (n == null) {
+      _selectedPath = Path.fromDotPath(_loadedData.keys.first);
+      _selectedTreeNode = _treeNodeDataRoot.findByPath(_selectedPath)!;
+    } else {
+      _selectedTreeNode = n;
+      _selectedPath = path;
+    }
+  }
+
+  void _handleTreeSelectState(Path path) {
+    setState(() {
+      _handleTreeSelect(path);
+    });
   }
 
   void _setSearchExpressionState(String st) {
@@ -210,7 +227,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       if (success) {
         _dataWasUpdated = false;
-        _hiLightedPaths.clean();
+        _pathPropertiesList.clean();
       }
       _globalSuccessState = SuccessState(success, message: m);
     });
@@ -283,7 +300,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _treeNodeDataRoot.expandAll(true);
       _selectedPath = Path.fromDotPath(_loadedData.keys.first);
       _selectedTreeNode = _treeNodeDataRoot.findByPath(_selectedPath)!;
-      _hiLightedPaths.clean();
+      _pathPropertiesList.clean();
       _globalSuccessState = SuccessState(true, message: "${ts.encrypted ? "Encrypted " : ""} ${_loadedData.source} File loaded: ${_loadedData.filePrefixData.getTimeStamp()}", log: log);
     });
   }
@@ -293,7 +310,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _globalSuccessState = SuccessState(false, message: "Name is too short");
       return;
     }
-    final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, path);
+    final mapNode = DataLoad.getNodeFromJson(_loadedData.dataMap, path);
     if (mapNode == null) {
       _globalSuccessState = SuccessState(false, message: "Path not found");
       return;
@@ -306,7 +323,7 @@ class _MyHomePageState extends State<MyHomePage> {
       case optionTypeDataValue:
         setState(() {
           mapNode[name] = "undefined";
-          _hiLightedPaths.add(path);
+          _pathPropertiesList.updated(path);
           _dataWasUpdated = true;
           _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
           _reSelectNode(path: path);
@@ -316,7 +333,7 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           final Map<String, dynamic> m = {};
           mapNode[name] = m;
-          _hiLightedPaths.add(path);
+          _pathPropertiesList.updated(path);
           _dataWasUpdated = true;
           _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
           _reSelectNode(path: path);
@@ -324,23 +341,6 @@ class _MyHomePageState extends State<MyHomePage> {
         break;
     }
     _globalSuccessState = SuccessState(true, message: "Node '$name' added", log: log);
-  }
-
-  void _setSelectedPath(Path path) {
-    final n = _treeNodeDataRoot.findByPath(path);
-    if (n == null) {
-      _selectedPath = Path.fromDotPath(_loadedData.keys.first);
-      _selectedTreeNode = _treeNodeDataRoot.findByPath(_selectedPath)!;
-    } else {
-      _selectedTreeNode = n;
-      _selectedPath = path;
-    }
-  }
-
-  void _handleTreeSelectState(Path path) {
-    setState(() {
-      _setSelectedPath(path);
-    });
   }
 
   String _checkRenameOk(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
@@ -351,30 +351,21 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       }
     }
+    if (newNameNoSuffix.length < 2) {
+      return "New Name is too short";
+    }
     final newName = "$newNameNoSuffix${newType.suffix}";
-    final oldName = "${detailActionData.oldValue}${detailActionData.oldValueType.suffix}";
-
-    if (oldName != newName) {
-      if (newName.isEmpty) {
-        return "Cannot be empty";
-      }
-      final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, detailActionData.path);
+    if (detailActionData.oldValue != newName) {
+      final mapNode = DataLoad.getNodeFromJson(_loadedData.dataMap, detailActionData.path);
       if (mapNode == null) {
         return "Path not found";
       }
-      if (detailActionData.value) {
-        if (mapNode[newName] != null) {
-          return "Name already exists";
-        }
-      } else {
-        final pp = detailActionData.path.parentPath();
-        final parentNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, pp);
-        if (parentNode == null) {
-          return "Parent not found";
-        }
-        if (parentNode[newName] != null) {
-          return "Name already exists";
-        }
+      final parentNode = DataLoad.getNodeFromJson(_loadedData.dataMap, detailActionData.path.cloneParentPath());
+      if (parentNode == null) {
+        return "Parent not found";
+      }
+      if (parentNode[newName] != null) {
+        return "Name already exists";
       }
     }
     return "";
@@ -385,47 +376,33 @@ class _MyHomePageState extends State<MyHomePage> {
     final oldName = detailActionData.oldValue;
     if (oldName != newName) {
       setState(() {
-        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, detailActionData.path);
+        if (newNameNoSuffix.length < 2) {
+          _globalSuccessState = SuccessState(false, message: "New Name is too short");
+          return;
+        }
+        final mapNode = DataLoad.getNodeFromJson(_loadedData.dataMap, detailActionData.path);
         if (mapNode == null) {
           _globalSuccessState = SuccessState(false, message: "Path not found");
           return;
         }
-        if (detailActionData.value) {
-          if (mapNode[newName] != null) {
-            _globalSuccessState = SuccessState(false, message: "Name already exists");
-            return;
-          }
-          final renameNode = mapNode[oldName];
-          if (renameNode == null) {
-            _globalSuccessState = SuccessState(false, message: "Name not found");
-            return;
-          }
-          mapNode.remove(oldName);
-          mapNode[newName] = renameNode;
-        } else {
-          if (newName.length <= 2) {
-            _globalSuccessState = SuccessState(false, message: "New Name is too short");
-            return;
-          }
-          final pp = detailActionData.path.parentPath();
-          final parentNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, pp);
-          if (parentNode == null) {
-            _globalSuccessState = SuccessState(false, message: "Parent not found");
-            return;
-          }
-          if (parentNode[newName] != null) {
-            _globalSuccessState = SuccessState(false, message: "Name already exists");
-            return;
-          }
-          parentNode.remove(oldName);
-          parentNode[newName] = mapNode;
+        final pp = detailActionData.path.cloneParentPath();
+        final parentNode = DataLoad.getNodeFromJson(_loadedData.dataMap, pp);
+        if (parentNode == null) {
+          _globalSuccessState = SuccessState(false, message: "Parent not found");
+          return;
         }
-        detailActionData.path.pop();
-        detailActionData.path.push(newName);
-        _hiLightedPaths.add(detailActionData.path);
+        if (parentNode[newName] != null) {
+          _globalSuccessState = SuccessState(false, message: "Name already exists");
+          return;
+        }
+
+        parentNode.remove(oldName);
+        parentNode[newName] = mapNode;
+        _pathPropertiesList.renamed(pp.cloneAppendList([newName]));
+
         _dataWasUpdated = true;
         _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
-        _reSelectNode(path:detailActionData.path);
+        _reSelectNode(path: pp);
         _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: log);
       });
     }
@@ -434,13 +411,13 @@ class _MyHomePageState extends State<MyHomePage> {
   void _handleDelete(final Path path, final String response) async {
     if (response == "OK") {
       setState(() {
-        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, path);
+        final mapNode = DataLoad.getNodeFromJson(_loadedData.dataMap, path);
         if (mapNode == null) {
           _globalSuccessState = SuccessState(false, message: "Path not found");
           return;
         } else {
-          final pp = path.parentPath();
-          final parentNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, pp);
+          final pp = path.cloneParentPath();
+          final parentNode = DataLoad.getNodeFromJson(_loadedData.dataMap, pp);
           if (parentNode == null) {
             _globalSuccessState = SuccessState(false, message: "Parent not found");
             return;
@@ -457,7 +434,12 @@ class _MyHomePageState extends State<MyHomePage> {
   void _handleEditSubmit(DetailAction detailActionData, String newValue, OptionsTypeData type) {
     if (detailActionData.oldValue != newValue || detailActionData.oldValueType != type) {
       setState(() {
-        final mapNode = DataLoad.findLastMapNodeForPath(_loadedData.dataMap, detailActionData.path);
+        final mapNode = DataLoad.getNodeFromJson(_loadedData.dataMap, detailActionData.path);
+        if (mapNode == null) {
+          _globalSuccessState = SuccessState(false, message: "Path not found");
+          return;
+        }
+        final parentNode = DataLoad.getNodeFromJson(_loadedData.dataMap, detailActionData.path.cloneParentPath());
         if (mapNode == null) {
           _globalSuccessState = SuccessState(false, message: "Path not found");
           return;
@@ -471,25 +453,26 @@ class _MyHomePageState extends State<MyHomePage> {
         final nvTrim = newValue.trim();
         if (type.elementType == bool) {
           final lvTrimLc = nvTrim.toLowerCase();
-          mapNode[key] = (lvTrimLc == "true" || lvTrimLc == "yes" || nvTrim == "1");
+          parentNode[key] = (lvTrimLc == "true" || lvTrimLc == "yes" || nvTrim == "1");
         } else {
           if (type.elementType == double || type.elementType == int) {
             try {
               final iv = int.parse(nvTrim);
-              mapNode[key] = iv;
+              parentNode[key] = iv;
             } catch (e) {
               try {
                 final dv = double.parse(nvTrim);
-                mapNode[key] = dv;
+                parentNode[key] = dv;
               } catch (e) {
-                mapNode[key] = nvTrim;
+                parentNode[key] = nvTrim;
               }
             }
           } else {
-            mapNode[key] = nvTrim;
+            parentNode[key] = nvTrim;
           }
         }
-        _hiLightedPaths.add(detailActionData.path);
+        _pathPropertiesList.updated(detailActionData.path);
+        _pathPropertiesList.updated(detailActionData.path.cloneParentPath());
         _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
         _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.getLastPathElement()} updated");
       });
@@ -523,7 +506,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _reSelectNode({Path? path}) {
     if (path != null) {
-      _setSelectedPath(path);
+      _handleTreeSelect(path);
     }
     Future.delayed(
       const Duration(milliseconds: 300),
@@ -539,6 +522,11 @@ class _MyHomePageState extends State<MyHomePage> {
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
       return await _shouldExitHandler();
     });
+    // if (_pathPropertiesList.isNotEmpty) {
+    //   debugPrint(_pathPropertiesList.toString());
+    // }
+
+
     final DisplayData displayData = createSplitView(
       _loadedData.dataMap,
       _treeNodeDataRoot,
@@ -550,7 +538,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _applicationState.screen.hDiv,
       _configData.getAppThemeData(),
       _nodeCopyBin,
-      _hiLightedPaths,
+      _pathPropertiesList,
       _handleTreeSelectState, // On tree selection
       (divPos) {
         // On divider change
@@ -566,10 +554,17 @@ class _MyHomePageState extends State<MyHomePage> {
             {
               return false;
             }
+          case ActionType.group:
+            {
+              setState(() {
+                _pathPropertiesList.groupSelect(detailActionData.path);
+              });
+              return false;
+            }
           case ActionType.copyNode:
             {
               setState(() {
-                _nodeCopyBin = NodeCopyBin(detailActionData.path, false, DataLoad.mapFromJson(_loadedData.dataMap, detailActionData.path));
+                _nodeCopyBin = NodeCopyBin(detailActionData.path, false, DataLoad.getMapFromJson(_loadedData.dataMap, detailActionData.path));
                 _globalSuccessState = SuccessState(true, message: "Node '${detailActionData.path.getLast()}' COPIED to clipboard");
               });
               return true;
@@ -577,7 +572,7 @@ class _MyHomePageState extends State<MyHomePage> {
           case ActionType.cutNode:
             {
               setState(() {
-                _nodeCopyBin = NodeCopyBin(detailActionData.path, true, DataLoad.mapFromJson(_loadedData.dataMap, detailActionData.path));
+                _nodeCopyBin = NodeCopyBin(detailActionData.path, true, DataLoad.getMapFromJson(_loadedData.dataMap, detailActionData.path));
                 _globalSuccessState = SuccessState(true, message: "Node '${detailActionData.path.getLast()}' CUT to clipboard");
               });
               return true;
@@ -585,7 +580,7 @@ class _MyHomePageState extends State<MyHomePage> {
           case ActionType.pasteNode:
             {
               setState(() {
-                _globalSuccessState = SuccessState(true, message: "Node '${_nodeCopyBin.copyFromPath.getLast()}' ${_nodeCopyBin.cut?'MOVED':'COPIED'} to '${detailActionData.path.getLast()}'");
+                _globalSuccessState = SuccessState(true, message: "Node '${_nodeCopyBin.copyFromPath.getLast()}' ${_nodeCopyBin.cut ? 'MOVED' : 'COPIED'} to '${detailActionData.path.getLast()}'");
                 _nodeCopyBin = NodeCopyBin.empty();
               });
               debugPrint("$_nodeCopyBin");
@@ -640,7 +635,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     _handleEditSubmit(detailActionData, text, type);
                   } else {
                     if (action == "link") {
-                      implementLinkState(text, detailActionData.path.getLast());
+                      _implementLinkState(text, detailActionData.path.getLast());
                     }
                   }
                 },
@@ -689,7 +684,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.link:
             {
-              implementLinkState(detailActionData.oldValue, detailActionData.path.getLast());
+              _implementLinkState(detailActionData.oldValue, detailActionData.path.getLast());
               return true;
             }
           default:
@@ -982,7 +977,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           size: statusBarHeight,
                         ),
                         tooltip: 'Log',
-                        padding: const EdgeInsets.fromLTRB(1, 1, 1, 0),
+                        padding: const EdgeInsets.all(1.0),
                         onPressed: () {
                           _showLogDialog(context, eventLog.toString());
                         },

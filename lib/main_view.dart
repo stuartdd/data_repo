@@ -56,7 +56,7 @@ DisplayData createSplitView(
     final double initPos, // The split pane divider position
     final AppThemeData appThemeData, // The colour scheme
     final NodeCopyBin nodeCopyBin,
-    PathList hiLightedPath,
+    final PathPropertiesList pathPropertiesList,
     final Function(Path) onSelect, // Called when a tree node in selected
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final bool Function(DetailAction) onDataAction,
@@ -75,9 +75,9 @@ DisplayData createSplitView(
 
   /// Create the detail.
   final Widget detailContainer;
-  final node = DataLoad.findLastMapNodeForPath(originalData, selectedPath);
+  final node = DataLoad.getNodeFromJson(originalData, selectedPath);
   if (node != null) {
-    detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, hiLightedPath, appThemeData, nodeCopyBin, onDataAction);
+    detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, pathPropertiesList, appThemeData, nodeCopyBin, onDataAction);
   } else {
     detailContainer = Container(
       color: appThemeData.error.shade900,
@@ -94,6 +94,7 @@ DisplayData createSplitView(
     (selectedNode) {
       onSelect(selectedNode.path);
     },
+    pathPropertiesList,
     search: filter,
     onSearchComplete: (searchExpression, rowCount) {
       if (searchExpression.isNotEmpty) {
@@ -147,7 +148,7 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
 }
 
 Widget _createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCopyBin, final AppThemeData appThemeData, final bool Function(DetailAction) dataAction) {
-  final canCopy = selectedPath.hasParent();
+  final canCopy = selectedPath.hasParent;
   final canPaste = nodeCopyBin.isNotEmpty() && nodeCopyBin.copyFromPath.isNotEqual(selectedPath);
   return Row(
     children: [
@@ -160,9 +161,9 @@ Widget _createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCo
         appThemeData: appThemeData,
       ),
       DetailIconButton(
-        show: selectedPath.hasParent(),
+        show: selectedPath.hasParent,
         onPressed: () {
-          dataAction(DetailAction(ActionType.select, false, selectedPath.parentPath()));
+          dataAction(DetailAction(ActionType.select, false, selectedPath.cloneParentPath()));
         },
         tooltip: "Up one level",
         icon: const Icon(Icons.arrow_upward),
@@ -199,7 +200,7 @@ Widget _createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCo
   );
 }
 
-Widget _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathList hiLightedPaths, final AppThemeData appThemeData, NodeCopyBin copyBin, final bool Function(DetailAction) dataAction) {
+Widget _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, NodeCopyBin copyBin, final bool Function(DetailAction) dataAction) {
   List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath);
   properties.sort(
     (a, b) {
@@ -213,7 +214,7 @@ Widget _createDetailContainer(final Map<String, dynamic> selectedNode, Path sele
         DetailWidget(
           dataValueRow: properties[index],
           appThemeData: appThemeData,
-          hiLightedPaths: hiLightedPaths,
+          pathPropertiesList: pathPropertiesList,
           dataAction: dataAction,
           isEditDataDisplay: isEditDataDisplay,
           isHorizontal: isHorizontal,

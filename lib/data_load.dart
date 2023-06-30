@@ -48,7 +48,7 @@ class JsonException implements Exception {
   @override
   String toString() {
     Object? message = this.message;
-    if (path == null || path!.isEmpty()) {
+    if (path == null || path!.isEmpty) {
       return "JsonException: $message";
     }
     return "JsonException: $message: Path:$path";
@@ -207,25 +207,6 @@ class DataLoad {
     return FilePrefixData.empty();
   }
 
-  static void pathsForMapNodes(Map<String, dynamic> json, Function(String) callBack) {
-    _pathsForMapNodesRecurse(json, "", callBack);
-  }
-
-  static void _pathsForMapNodesRecurse(Map<String, dynamic> json, String kk, Function(String) callBack) {
-    if (kk.isNotEmpty) {
-      callBack(kk);
-    }
-    json.forEach((key, value) {
-      if (value is Map<String, dynamic>) {
-        if (kk.isEmpty) {
-          _pathsForMapNodesRecurse(value, key, callBack);
-        } else {
-          _pathsForMapNodesRecurse(value, '$kk|$key', callBack);
-        }
-      }
-    });
-  }
-
   static SuccessState saveToFile(final String fileName, final String contents) {
     try {
       File(fileName).writeAsStringSync(contents);
@@ -252,26 +233,54 @@ class DataLoad {
     }
   }
 
-  static dynamic _nodeFromJson(Map<String, dynamic> json, Path path) {
-    if (path.isEmpty()) {
+  static dynamic getNodeFromJson(Map<String, dynamic> json, Path path) {
+    if (path.isEmpty) {
       throw JsonException(message: "_nodeFromJson: Empty Path", path);
     }
     dynamic node = json;
-    for (var i = 0; i < path.length(); i++) {
+    for (var i = 0; i < path.length; i++) {
       final name = path.peek(i);
       node = node[name];
       if (node == null) {
         return null;
       }
-      if (i == (path.length() - 1)) {
+      if (i == (path.length - 1)) {
         return node;
       }
     }
     return null;
   }
 
-  static String stringFromJson(Map<String, dynamic> json, Path path, {String fallback = "", bool create = false}) {
-    final node = _nodeFromJson(json, path);
+  static String setValueForJsonPath(Map<String, dynamic> json, Path path, dynamic value) {
+    if (path.isEmpty) {
+      return "Path is empty";
+    }
+    dynamic node = json;
+    dynamic parent = json;
+    for (int i = 0; i < path.length; i++) {
+      final name = path.peek(i);
+      parent = node;
+      node = parent[name];
+      if (node == null) {
+        parent[name] = {};
+        if (i == path.length - 1) {
+          parent[name] = value;
+          return "";
+        } else {
+          node = parent[name];
+        }
+      } else {
+        if (i == path.length - 1) {
+          parent[name] = value;
+          return "";
+        }
+      }
+    }
+    return "";
+  }
+
+  static String getStringFromJson(Map<String, dynamic> json, Path path, {String fallback = "", bool create = false}) {
+    final node = getNodeFromJson(json, path);
     if (node == null) {
       if (create) {
         setValueForJsonPath(json, path, fallback);
@@ -281,134 +290,76 @@ class DataLoad {
           return fallback;
         }
       }
-      throw JsonException(message: "stringFromJson: String Node was NOT found", path);
+      throw JsonException(message: "getStringFromJson: String Node was NOT found", path);
     }
     if (node is String) {
       return node;
     }
-    throw JsonException(message: "stringFromJson: Node found was NOT a String node", path);
+    throw JsonException(message: "getStringFromJson: Node found was NOT a String node", path);
   }
 
-  static String setValueForJsonPath(Map<String, dynamic> json, Path path, dynamic value) {
-    if (path.isEmpty()) {
-      return "Path is empty";
-    }
-    dynamic node = json;
-    dynamic parent = json;
-    for (int i = 0; i < path.length(); i++) {
-      final name = path.peek(i);
-      parent = node;
-      node = parent[name];
-      if (node == null) {
-        parent[name] = {};
-        if (i == path.length() - 1) {
-          parent[name] = value;
-          return "";
-        } else {
-          node = parent[name];
-        }
-      } else {
-        if (i == path.length() - 1) {
-          parent[name] = value;
-          return "";
-        }
-      }
-    }
-    return "";
-  }
 
-  static num numFromJson(Map<String, dynamic> json, Path path, {num? fallback}) {
-    final node = _nodeFromJson(json, path);
+  static num getNumFromJson(Map<String, dynamic> json, Path path, {num? fallback}) {
+    final node = getNodeFromJson(json, path);
     if (node == null) {
       if (fallback != null) {
         return fallback;
       }
-      throw JsonException(message: "numFromJson: number Node was NOT found", path);
+      throw JsonException(message: "getNumFromJson: number Node was NOT found", path);
     }
     if (node is num) {
       return node;
     }
-    throw JsonException(message: "intFromJson: Node found [$node] was NOT a Number node", path);
+    throw JsonException(message: "getNumFromJson: Node found [$node] was NOT a Number node", path);
   }
 
-  static Color colorFromHexJson(Map<String, dynamic> json, Path path) {
-    final node = _nodeFromJson(json, path);
+  static bool geBoolFromJson(Map<String, dynamic> json, Path path) {
+    final node = getNodeFromJson(json, path);
     if (node == null) {
-      throw JsonException(message: "colorFromHexJson: Hex:Color Node was NOT found", path);
-    }
-    if (node is String) {
-      var hexColor = node.replaceAll("#", "");
-      if (hexColor.length == 6) {
-        hexColor = "FF$hexColor";
-      }
-      if (hexColor.length == 8) {
-        try {
-          return Color(int.parse("0x$hexColor"));
-        } catch (e) {
-          throw JsonException(message: "colorFromJson: Node found [$node] could not be parsed", path);
-        }
-      }
-    }
-    throw JsonException(message: "colorFromJson: Node found [$node] was NOT a Hex Colour (6 or 8 chars)", path);
-  }
-
-  static bool boolFromJson(Map<String, dynamic> json, Path path) {
-    final node = _nodeFromJson(json, path);
-    if (node == null) {
-      throw JsonException(message: "boolFromJson: bool Node was NOT found", path);
+      throw JsonException(message: "geBoolFromJson: bool Node was NOT found", path);
     }
     if (node is bool) {
       return node;
     }
-    throw JsonException(message: "intFromJson: Node found [$node] was NOT a bool node", path);
+    throw JsonException(message: "geBoolFromJson: Node found [$node] was NOT a bool node", path);
   }
 
-  static Map<String, dynamic> mapFromJson(Map<String, dynamic> json, Path path) {
-    final node = _nodeFromJson(json, path);
+  static Map<String, dynamic> getMapFromJson(Map<String, dynamic> json, Path path) {
+    final node = getNodeFromJson(json, path);
     if (node == null) {
-      throw JsonException(message: "mapFromJson: Map Node was NOT found", path);
+      throw JsonException(message: "getMapFromJson: Map Node was NOT found", path);
     }
     if (node is Map<String, dynamic>) {
       return node;
     }
-    throw JsonException(message: "mapFromJson: Node found was NOT a Map node", path);
+    throw JsonException(message: "getMapFromJson: Node found was NOT a Map node", path);
   }
 
   /// Finds the map at the path.
   ///   If the last FOUND node is not a map and not a list it returns the parent node of the FOUND node.
   ///   If the last FOUND node is a map or a list it returns the FOUND node.
   ///
-  static Map<String, dynamic>? findLastMapNodeForPath(final Map<String, dynamic> json, Path path) {
-    if (json.isEmpty || path.isEmpty()) {
-      return null;
-    }
-    var j = json;
-    String key;
-    dynamic f;
-    for (int i = 0; i < path.length(); i++) {
-      key = path.peek(i);
-      if (key.isNotEmpty) {
-        f = j[key];
-        if (f == null) {
-          return null;
-        }
-        if (f is! Map<String, dynamic> && f is! List<dynamic>) {
-          return j;
-        }
-        j = f;
-      }
-    }
-    return f;
-  }
+  // static Map<String, dynamic>? getLastMapNodeForPath(final Map<String, dynamic> json, Path path) {
+  //   if (json.isEmpty || path.isEmpty) {
+  //     return null;
+  //   }
+  //   var j = json;
+  //   String key;
+  //   dynamic f;
+  //   for (int i = 0; i < path.length(); i++) {
+  //     key = path.peek(i);
+  //     if (key.isNotEmpty) {
+  //       f = j[key];
+  //       if (f == null) {
+  //         return null;
+  //       }
+  //       if (f is! Map<String, dynamic> && f is! List<dynamic>) {
+  //         return j;
+  //       }
+  //       j = f;
+  //     }
+  //   }
+  //   return f;
+  // }
 
-  static List<dynamic> listFromJson(Map<String, dynamic> json, Path path) {
-    final node = _nodeFromJson(json, path);
-    if (node == null) {
-      throw JsonException(message: "mapFromJson: List Node was NOT found", path);
-    }
-    if (node is List<dynamic>) {
-      return node;
-    }
-    throw JsonException(message: "listFromJson: Node found was NOT a List node", path);
-  }
 }

@@ -118,7 +118,7 @@ class MyTreeNode {
   }
 
   MyTreeNode? findByPath(Path path) {
-    if (path.isEmpty() || isEmpty) {
+    if (path.isEmpty || isEmpty) {
       return null;
     }
     MyTreeNode n = this;
@@ -168,12 +168,12 @@ class MyTreeNode {
   }
 }
 
-Widget? buildNodeDefault(int index, MyTreeNode node, AppThemeData appThemeData, double rowHeight, bool selected, int pathLen, Function(MyTreeNode, bool) onClick) {
+Widget? buildNodeDefault(int index, MyTreeNode node, AppThemeData appThemeData, double rowHeight, bool selected, int pathLen, PathProperties pathProperties, Function(MyTreeNode, bool) onClick) {
   if (node.parentIsExpanded && node.isNotEmpty) {
     node.index = index;
     return Container(
       height: rowHeight,
-      color: selected ? appThemeData.primary.shade300 : appThemeData.primary.shade500,
+      color: appThemeData.selectedUpdatedColour(selected, pathProperties.rename),
       child: Row(
         children: [
           SizedBox(width: 20.0 * (pathLen - 1)),
@@ -187,7 +187,7 @@ Widget? buildNodeDefault(int index, MyTreeNode node, AppThemeData appThemeData, 
               icon: appThemeData.treeNodeIcons[node.iconIndex]),
           TextButton(
             child: Text(
-              "${node.index}: ${node.label} ",
+              node.label,
               style: node.canExpand ? appThemeData.tsTreeViewParentLabel : appThemeData.tsTreeViewLabel,
             ),
             onPressed: () {
@@ -202,8 +202,8 @@ Widget? buildNodeDefault(int index, MyTreeNode node, AppThemeData appThemeData, 
 }
 
 class MyTreeNodeWidgetList extends StatefulWidget {
-  const MyTreeNodeWidgetList(this.nodes, this.selectedNode, this.appThemeData, this.rowHeight, this.onSelect, {super.key, this.search = "", this.buildNode = buildNodeDefault, this.nodeNavigationBar, this.onSearchComplete});
-  final Widget? Function(int, MyTreeNode, AppThemeData, double, bool, int, Function(MyTreeNode, bool)) buildNode;
+  const MyTreeNodeWidgetList(this.nodes, this.selectedNode, this.appThemeData, this.rowHeight, this.onSelect, this.pathListProperties, {super.key, this.search = "", this.buildNode = buildNodeDefault, this.nodeNavigationBar, this.onSearchComplete});
+  final Widget? Function(int, MyTreeNode, AppThemeData, double, bool, int, PathProperties, Function(MyTreeNode, bool)) buildNode;
   final void Function(MyTreeNode) onSelect;
   final void Function(String, int)? onSearchComplete;
   final Widget? nodeNavigationBar;
@@ -211,6 +211,7 @@ class MyTreeNodeWidgetList extends StatefulWidget {
   final MyTreeNode nodes;
   final double rowHeight;
   final Path selectedNode;
+  final PathPropertiesList pathListProperties;
   final String search;
   @override
   State<MyTreeNodeWidgetList> createState() => _MyTreeNodeWidgetListState();
@@ -236,6 +237,7 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
             widget.rowHeight,
             widget.selectedNode.isEqual(aNode.path),
             aNode.pathLen,
+            widget.pathListProperties.contains(aNode.path),
             (node, select) {
               setState(() {
                 widget.onSelect(node);

@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'dart:convert' as json_tools;
 
 void main() {
-
   test('Test from map + visitEachNode ', () async {
     final s = json_tools.jsonDecode(DataLoad.loadFromFile("test/data/data04.json").value);
     final m = MyTreeNode.fromMap(s);
@@ -18,7 +17,7 @@ void main() {
       sb.write(") ");
     });
 //    debugPrint(sb.toString());
-    expect(sb.toString().trim(),"A(1) A.A1(2) A.A1.A11(3) A.A1.A11.A111(4) A.A1.A11.A112(4) A.B(2) A.B.B1(3) A.B.B1.B11(4) A.B.B1.B12(4) A.B.B2(3) A.B.B2.B21(4) A.B.B2.B21.B211(5) A.B.B2.B21.B212(5) C(1)");
+    expect(sb.toString().trim(), "A(1) A.A1(2) A.A1.A11(3) A.A1.A11.A111(4) A.A1.A11.A112(4) A.B(2) A.B.B1(3) A.B.B1.B11(4) A.B.B1.B12(4) A.B.B2(3) A.B.B2.B21(4) A.B.B2.B21.B211(5) A.B.B2.B21.B212(5) C(1)");
   });
 
   test('Test from map + findByPath ', () async {
@@ -58,7 +57,7 @@ void main() {
     expect(null, m.parent);
     expect("", m.path.toString());
     expect("", m.label);
-    expect(false, m.expanded);
+    expect(true, m.expanded);
 
     expect(null, m.findByLabel(''));
     expect(null, m.findByLabel('c'));
@@ -74,7 +73,7 @@ void main() {
     expect('A', aa!.label);
     expect('A', aa!.path.toString());
     expect(true, aa!.isNotEmpty);
-    expect(false, aa!.expanded);
+    expect(true, aa!.expanded);
 
     final aa1 = aa!.findByLabel('A1');
     expect('A1', aa1!.label);
