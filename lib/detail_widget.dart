@@ -103,7 +103,7 @@ class _DetailWidgetState extends State<DetailWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final hiLight = widget.pathPropertiesList.contains(widget.dataValueRow.pathWithName);
+    final hiLight = widget.pathPropertiesList.propertiesForPath(widget.dataValueRow.pathWithName);
     if (widget.dataValueRow.isValue) {
       return _detailForValue(widget.appThemeData, hiLight, widget.isHorizontal);
     }
@@ -156,7 +156,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     if (dataValueRow.type.equal(optionTypeDataPositional)) {
       return Card(
         margin: const EdgeInsets.all(5.0),
-        color: appThemeData.selectedUpdatedColour(true, plp.updated),
+        color: appThemeData.selectedHilightColour(true, plp.updated),
         child: Column(
           children: [
             _rowForPosition(dataValueRow.value.length, appThemeData.primary, appThemeData.tsMedium),
@@ -172,7 +172,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     if (dataValueRow.type.equal(optionTypeDataMarkDown)) {
       return Card(
         margin: const EdgeInsets.all(5.0),
-        color: appThemeData.selectedUpdatedColour(true, plp.updated),
+        color: appThemeData.selectedHilightColour(true, plp.updated),
         child: SizedBox(
           child: Markdown(
             data: dataValueRow.value,
@@ -186,7 +186,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     }
     return Card(
       margin: const EdgeInsets.all(5.0),
-      color: appThemeData.selectedUpdatedColour(true, plp.updated),
+      color: appThemeData.selectedHilightColour(true, plp.updated),
       child: Padding(padding: const EdgeInsets.all(5.0), child: Text(dataValueRow.value, style: appThemeData.tsLarge)),
 
     );
@@ -200,7 +200,7 @@ class _DetailWidgetState extends State<DetailWidget> {
           leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.dataAction),
           title: Container(
             padding: const EdgeInsets.all(5.0),
-            color: appThemeData.selectedUpdatedColour(true, plp.rename),
+            color: appThemeData.selectedHilightColour(true, plp.rename),
             child: Text(widget.dataValueRow.getDisplayName(widget.isEditDataDisplay), style: appThemeData.tsMedium),
           ),
           subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: appThemeData.tsSmall) : null,
@@ -271,7 +271,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.dataAction),
               title: Container(
                 padding: const EdgeInsets.all(5.0),
-                color: appThemeData.selectedUpdatedColour(true, plp.rename),
+                color: appThemeData.selectedHilightColour(true, plp.rename),
                 child: Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
               ),
               subtitle: horizontal ? Text("Group is Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: appThemeData.tsSmall) : null,

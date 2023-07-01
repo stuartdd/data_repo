@@ -174,7 +174,7 @@ class AppThemeData {
     debugPrint("AppThemeData: Created!");
   }
 
-  selectedUpdatedColour(final bool sel, final bool upd) {
+  selectedHilightColour(final bool sel, final bool upd) {
     if (upd) {
       return sel ? secondary.shade300 : secondary.shade500;
     }

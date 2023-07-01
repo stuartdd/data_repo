@@ -34,11 +34,11 @@ const iconDataFileLoad = Icons.file_open;
 bool _shouldDisplayMarkdownHelp = false;
 bool _shouldDisplayMarkdownPreview = false;
 
-void closer(int returnCode) async {
+void closer(final int returnCode) async {
   exit(returnCode);
 }
 
-void log(String text) {
+void log(final String text) {
   if (text == eventLogLatest) {
     return;
   }
@@ -73,7 +73,7 @@ class MyApp extends StatelessWidget with WindowListener {
   MyApp({super.key});
 
   @override
-  onWindowEvent(String eventName) async {
+  onWindowEvent(final String eventName) async {
     switch (eventName) {
       case 'maximize':
       case 'minimize':
@@ -110,7 +110,7 @@ class MyApp extends StatelessWidget with WindowListener {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     if (_configData.isDesktop()) {
       windowManager.addListener(this);
     }
@@ -151,6 +151,7 @@ class _MyHomePageState extends State<MyHomePage> {
   ScrollController _treeViewScrollController = ScrollController();
   MyTreeNode _treeNodeDataRoot = MyTreeNode.empty();
   Path _selectedPath = Path.empty();
+  PathNodes _selectedPathNodes = PathNodes.empty();
   MyTreeNode _selectedTreeNode = MyTreeNode.empty();
 
   Map<String, BuildContext> nodeContextList = {};
@@ -169,7 +170,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _handleTreeSelect(Path path) {
+  void _handleTreeSelect(final Path path) {
     final n = _treeNodeDataRoot.findByPath(path);
     if (n == null) {
       _selectedPath = Path.fromDotPath(_loadedData.keys.first);
@@ -178,15 +179,30 @@ class _MyHomePageState extends State<MyHomePage> {
       _selectedTreeNode = n;
       _selectedPath = path;
     }
+    _selectedPathNodes = _selectedPath.pathNodes(_loadedData.dataMap);
   }
 
-  void _handleTreeSelectState(Path path) {
+  void _reSelectNode({Path? path}) {
+    if (path != null) {
+      _handleTreeSelect(path);
+    }
+    Future.delayed(
+      const Duration(milliseconds: 300),
+          () {
+        final index = (_selectedTreeNode.index - 2) * _configData.getAppThemeData().treeNodeHeight;
+        _treeViewScrollController.animateTo(index, duration: const Duration(milliseconds: 400), curve: Curves.ease);
+      },
+    );
+  }
+
+
+  void _handleTreeSelectState(final Path path) {
     setState(() {
       _handleTreeSelect(path);
     });
   }
 
-  void _setSearchExpressionState(String st) {
+  void _setSearchExpressionState(final String st) {
     if (st == _search) {
       return;
     }
@@ -299,48 +315,56 @@ class _MyHomePageState extends State<MyHomePage> {
       _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
       _treeNodeDataRoot.expandAll(true);
       _selectedPath = Path.fromDotPath(_loadedData.keys.first);
+      _selectedPathNodes = _selectedPath.pathNodes(_loadedData.dataMap);
       _selectedTreeNode = _treeNodeDataRoot.findByPath(_selectedPath)!;
       _pathPropertiesList.clean();
       _globalSuccessState = SuccessState(true, message: "${ts.encrypted ? "Encrypted " : ""} ${_loadedData.source} File loaded: ${_loadedData.filePrefixData.getTimeStamp()}", log: log);
     });
   }
 
-  void _handleAdd(Path path, String name, OptionsTypeData type) async {
+  void _handleAdd(final Path path, final String name, final OptionsTypeData type) async {
     if (name.length < 2) {
       _globalSuccessState = SuccessState(false, message: "Name is too short");
       return;
     }
-    final mapNode = DataLoad.getNodeFromJson(_loadedData.dataMap, path);
-    if (mapNode == null) {
+    final mapNodes = path.pathNodes(_loadedData.dataMap);
+    if (mapNodes.error) {
       _globalSuccessState = SuccessState(false, message: "Path not found");
       return;
     }
-    if (mapNode[name] != null) {
+    if (mapNodes.lastNodeIsData) {
+      _globalSuccessState = SuccessState(false, message: "Cannot add to a data node");
+      return;
+    }
+    if (mapNodes.lastNodeAsMap!.containsKey(name)) {
       _globalSuccessState = SuccessState(false, message: "Name already exists");
       return;
     }
     switch (type) {
       case optionTypeDataValue:
         setState(() {
-          mapNode[name] = "undefined";
+          mapNodes.lastNodeAsMap![name] = "undefined";
           _pathPropertiesList.updated(path);
+          _pathPropertiesList.updated(path.cloneAppendList([name]));
           _dataWasUpdated = true;
           _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
           _reSelectNode(path: path);
+          _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log: log);
         });
         break;
       case optionTypeDataGroup:
         setState(() {
           final Map<String, dynamic> m = {};
-          mapNode[name] = m;
+          mapNodes.lastNodeAsMap![name] = m;
           _pathPropertiesList.updated(path);
+          _pathPropertiesList.updated(path.cloneAppendList([name]));
           _dataWasUpdated = true;
           _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
           _reSelectNode(path: path);
+          _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log: log);
         });
         break;
     }
-    _globalSuccessState = SuccessState(true, message: "Node '$name' added", log: log);
   }
 
   String _checkRenameOk(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
@@ -356,15 +380,11 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     final newName = "$newNameNoSuffix${newType.suffix}";
     if (detailActionData.oldValue != newName) {
-      final mapNode = DataLoad.getNodeFromJson(_loadedData.dataMap, detailActionData.path);
-      if (mapNode == null) {
+      final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
+      if (mapNodes.error) {
         return "Path not found";
       }
-      final parentNode = DataLoad.getNodeFromJson(_loadedData.dataMap, detailActionData.path.cloneParentPath());
-      if (parentNode == null) {
-        return "Parent not found";
-      }
-      if (parentNode[newName] != null) {
+      if (mapNodes.lastNodeAsMap!.containsKey(newName)) {
         return "Name already exists";
       }
     }
@@ -380,29 +400,29 @@ class _MyHomePageState extends State<MyHomePage> {
           _globalSuccessState = SuccessState(false, message: "New Name is too short");
           return;
         }
-        final mapNode = DataLoad.getNodeFromJson(_loadedData.dataMap, detailActionData.path);
-        if (mapNode == null) {
+        final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
+        if (mapNodes.error) {
           _globalSuccessState = SuccessState(false, message: "Path not found");
           return;
         }
-        final pp = detailActionData.path.cloneParentPath();
-        final parentNode = DataLoad.getNodeFromJson(_loadedData.dataMap, pp);
-        if (parentNode == null) {
-          _globalSuccessState = SuccessState(false, message: "Parent not found");
+        if (!mapNodes.lastNodeHasParent) {
+          _globalSuccessState = SuccessState(false, message: "Cannot rename root node");
           return;
         }
-        if (parentNode[newName] != null) {
+        if (mapNodes.lastNodeAsMap!.containsKey(newName)) {
           _globalSuccessState = SuccessState(false, message: "Name already exists");
           return;
         }
 
-        parentNode.remove(oldName);
-        parentNode[newName] = mapNode;
-        _pathPropertiesList.renamed(pp.cloneAppendList([newName]));
+        mapNodes.lastNodeParent!.remove(oldName);
+        mapNodes.lastNodeParent![newName] = mapNodes.lastNodeAsData;
 
         _dataWasUpdated = true;
         _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
-        _reSelectNode(path: pp);
+
+        final newPath = detailActionData.path.cloneAppendList([newName]);
+        _pathPropertiesList.renamed(newPath);
+        _reSelectNode(path: newPath);
         _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: log);
       });
     }
@@ -411,22 +431,23 @@ class _MyHomePageState extends State<MyHomePage> {
   void _handleDelete(final Path path, final String response) async {
     if (response == "OK") {
       setState(() {
-        final mapNode = DataLoad.getNodeFromJson(_loadedData.dataMap, path);
-        if (mapNode == null) {
+        final mapNodes = path.pathNodes(_loadedData.dataMap);
+        if (mapNodes.error) {
           _globalSuccessState = SuccessState(false, message: "Path not found");
           return;
-        } else {
-          final pp = path.cloneParentPath();
-          final parentNode = DataLoad.getNodeFromJson(_loadedData.dataMap, pp);
-          if (parentNode == null) {
-            _globalSuccessState = SuccessState(false, message: "Parent not found");
-            return;
-          }
-          parentNode.remove(path.getLast());
-          _dataWasUpdated = true;
-          _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
-          _globalSuccessState = SuccessState(true, message: "Removed: '${path.getLast()}'");
         }
+        if (!mapNodes.lastNodeHasParent) {
+          _globalSuccessState = SuccessState(false, message: "Cannot delete root node");
+          return;
+        }
+        final parentNode = mapNodes.lastNodeParent;
+        final parentPath = path.cloneParentPath();
+        parentNode!.remove(path.last);
+        _dataWasUpdated = true;
+        _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+        _pathPropertiesList.updated(parentPath);
+        _reSelectNode(path: parentPath);
+        _globalSuccessState = SuccessState(true, message: "Removed: '${path.last}'");
       });
     }
   }
@@ -434,41 +455,41 @@ class _MyHomePageState extends State<MyHomePage> {
   void _handleEditSubmit(DetailAction detailActionData, String newValue, OptionsTypeData type) {
     if (detailActionData.oldValue != newValue || detailActionData.oldValueType != type) {
       setState(() {
-        final mapNode = DataLoad.getNodeFromJson(_loadedData.dataMap, detailActionData.path);
-        if (mapNode == null) {
+        final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
+        if (mapNodes.error) {
           _globalSuccessState = SuccessState(false, message: "Path not found");
           return;
         }
-        final parentNode = DataLoad.getNodeFromJson(_loadedData.dataMap, detailActionData.path.cloneParentPath());
-        if (mapNode == null) {
-          _globalSuccessState = SuccessState(false, message: "Path not found");
+        if (!mapNodes.lastNodeIsData) {
+          _globalSuccessState = SuccessState(false, message: "Cannot edit a map node");
           return;
         }
-        final key = detailActionData.getLastPathElement();
-        if (key == "") {
-          _globalSuccessState = SuccessState(false, message: "Last element of Path was not found");
+        if (!mapNodes.lastNodeHasParent) {
+          _globalSuccessState = SuccessState(false, message: "Cannot edit a root node");
           return;
         }
+        final parentNode = mapNodes.lastNodeParent;
+        final key = detailActionData.path.last;
         _dataWasUpdated = true;
         final nvTrim = newValue.trim();
         if (type.elementType == bool) {
           final lvTrimLc = nvTrim.toLowerCase();
-          parentNode[key] = (lvTrimLc == "true" || lvTrimLc == "yes" || nvTrim == "1");
+          parentNode![key] = (lvTrimLc == "true" || lvTrimLc == "yes" || nvTrim == "1");
         } else {
           if (type.elementType == double || type.elementType == int) {
             try {
               final iv = int.parse(nvTrim);
-              parentNode[key] = iv;
+              parentNode![key] = iv;
             } catch (e) {
               try {
                 final dv = double.parse(nvTrim);
-                parentNode[key] = dv;
+                parentNode![key] = dv;
               } catch (e) {
-                parentNode[key] = nvTrim;
+                parentNode![key] = nvTrim;
               }
             }
           } else {
-            parentNode[key] = nvTrim;
+            parentNode![key] = nvTrim;
           }
         }
         _pathPropertiesList.updated(detailActionData.path);
@@ -504,19 +525,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _reSelectNode({Path? path}) {
-    if (path != null) {
-      _handleTreeSelect(path);
-    }
-    Future.delayed(
-      const Duration(milliseconds: 300),
-      () {
-        final index = (_selectedTreeNode.index - 2) * _configData.getAppThemeData().treeNodeHeight;
-        _treeViewScrollController.animateTo(index, duration: const Duration(milliseconds: 400), curve: Curves.ease);
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
@@ -525,7 +533,6 @@ class _MyHomePageState extends State<MyHomePage> {
     // if (_pathPropertiesList.isNotEmpty) {
     //   debugPrint(_pathPropertiesList.toString());
     // }
-
 
     final DisplayData displayData = createSplitView(
       _loadedData.dataMap,
@@ -565,7 +572,7 @@ class _MyHomePageState extends State<MyHomePage> {
             {
               setState(() {
                 _nodeCopyBin = NodeCopyBin(detailActionData.path, false, DataLoad.getMapFromJson(_loadedData.dataMap, detailActionData.path));
-                _globalSuccessState = SuccessState(true, message: "Node '${detailActionData.path.getLast()}' COPIED to clipboard");
+                _globalSuccessState = SuccessState(true, message: "Node '${detailActionData.path.last}' COPIED to clipboard");
               });
               return true;
             }
@@ -573,14 +580,14 @@ class _MyHomePageState extends State<MyHomePage> {
             {
               setState(() {
                 _nodeCopyBin = NodeCopyBin(detailActionData.path, true, DataLoad.getMapFromJson(_loadedData.dataMap, detailActionData.path));
-                _globalSuccessState = SuccessState(true, message: "Node '${detailActionData.path.getLast()}' CUT to clipboard");
+                _globalSuccessState = SuccessState(true, message: "Node '${detailActionData.path.last}' CUT to clipboard");
               });
               return true;
             }
           case ActionType.pasteNode:
             {
               setState(() {
-                _globalSuccessState = SuccessState(true, message: "Node '${_nodeCopyBin.copyFromPath.getLast()}' ${_nodeCopyBin.cut ? 'MOVED' : 'COPIED'} to '${detailActionData.path.getLast()}'");
+                _globalSuccessState = SuccessState(true, message: "Node '${_nodeCopyBin.copyFromPath.last}' ${_nodeCopyBin.cut ? 'MOVED' : 'COPIED'} to '${detailActionData.path.last}'");
                 _nodeCopyBin = NodeCopyBin.empty();
               });
               debugPrint("$_nodeCopyBin");
@@ -635,7 +642,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     _handleEditSubmit(detailActionData, text, type);
                   } else {
                     if (action == "link") {
-                      _implementLinkState(text, detailActionData.path.getLast());
+                      _implementLinkState(text, detailActionData.path.last);
                     }
                   }
                 },
@@ -684,7 +691,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.link:
             {
-              _implementLinkState(detailActionData.oldValue, detailActionData.path.getLast());
+              _implementLinkState(detailActionData.oldValue, detailActionData.path.last);
               return true;
             }
           default:
@@ -823,7 +830,7 @@ class _MyHomePageState extends State<MyHomePage> {
           onPressed: () {
             _showModalInputDialog(
               context,
-              "Add To: '${_selectedPath.getLast()}'",
+              "Add To: '${_selectedPath.last}'",
               "",
               optionsForAddElement,
               optionTypeDataValue,

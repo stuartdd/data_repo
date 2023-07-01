@@ -91,7 +91,7 @@ class PathPropertiesList {
     }
   }
 
-  PathProperties contains(Path p) {
+  PathProperties propertiesForPath(Path p) {
     final plp = _list[p.toString()];
     if (plp == null) {
       return PathProperties(false, false, false, false);
@@ -133,7 +133,10 @@ class PathNodes {
     return PathNodes(nodes, false);
   }
 
-  bool get lastNodeIsAMap {
+  factory PathNodes.empty() {
+    return PathNodes([], true);
+  }
+  bool get lastNodeIsMap {
     if (nodes.isEmpty) {
       return false;
     }
@@ -144,7 +147,7 @@ class PathNodes {
     if (nodes.isEmpty) {
       return false;
     }
-    return !(nodes[nodes.length - 1] is Map<String, dynamic>);
+    return nodes[nodes.length - 1] is! Map<String, dynamic>;
   }
 
   Map<String, dynamic>? get lastNodeAsMap {
@@ -209,7 +212,11 @@ class Path {
       }
     }
   }
-
+  
+  PathNodes pathNodes(Map<String,dynamic> m) {
+      return PathNodes.from(m, this);
+  }
+  
   bool isNotEqual(Path other) {
     return !isEqual(other);
   }
@@ -303,14 +310,14 @@ class Path {
     return "";
   }
 
-  String getRoot() {
+  String get root {
     if (count == 0) {
       return "";
     }
     return pathList[0];
   }
 
-  String getLast() {
+  String get last {
     if (count == 0) {
       return "";
     }

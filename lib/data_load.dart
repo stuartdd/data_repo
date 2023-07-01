@@ -124,7 +124,7 @@ class DataContainer {
 
 
 class DataLoad {
-  static Future<SuccessState> toHttpPost(String url, String body, {void Function(String)? log}) async {
+  static Future<SuccessState> toHttpPost(final String url, final String body, {void Function(String)? log}) async {
     try {
       final uri = Uri.parse(url);
       var response = await http.post(uri, headers: {"Content-Type": "application/json"}, body: body);
@@ -138,7 +138,7 @@ class DataLoad {
     }
   }
 
-  static Future<SuccessState> fromHttpGet(String url, {void Function(String)? log, int timeoutMillis = 2000, String prefix = ""}) async {
+  static Future<SuccessState> fromHttpGet(final String url, {final void Function(String)? log, final int timeoutMillis = 2000, final String prefix = ""}) async {
     try {
       final uri = Uri.parse(url);
       final response = await http.get(uri).timeout(

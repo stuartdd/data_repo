@@ -192,7 +192,7 @@ Widget _createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCo
         onPressed: () {
           dataAction(DetailAction(ActionType.pasteNode, false, selectedPath));
         },
-        tooltip: "Paste into ${selectedPath.getLast()}",
+        tooltip: "Paste into ${selectedPath.last}",
         icon: const Icon(Icons.paste),
         appThemeData: appThemeData,
       ),

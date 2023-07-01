@@ -197,7 +197,7 @@ class DetailAction {
   DetailAction(this.action, this.value, this.path, {this.oldValue = "", this.oldValueType = optionsDataTypeEmpty, this.onCompleteActionNullable, this.additional = ""});
 
   String getLastPathElement() {
-    return path.getLast();
+    return path.last;
   }
 
   String getDisplayValue(bool editMode) {
