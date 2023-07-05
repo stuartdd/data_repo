@@ -1,10 +1,116 @@
+import 'dart:math';
+
 import 'package:data_repo/data_load.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:data_repo/path.dart';
 import 'dart:convert' as json_tools;
 
+void check(final PathProperties p, final bool empty, final bool chg, final bool upd, final bool ren, final bool cut, final bool grp) {
+  expect(p.isEmpty, empty);
+  expect(p.isNotEmpty, !empty);
+  expect(p.changed, chg);
+  expect(p.updated, upd);
+  expect(p.renamed, ren);
+  expect(p.cut, cut);
+  expect(p.groupSelect, grp);
+}
+
 void main() {
   //
+  test('Test PathProperties List', () async {
+    final pAB = Path.fromDotPath("A.B");
+    final pXY = Path.fromDotPath("X.Y");
+    final PathPropertiesList ppl = PathPropertiesList();
+    expect(ppl.isEmpty, true);
+    expect(ppl.isNotEmpty, false);
+
+    ppl.setRenamed(pAB);
+    expect(ppl.isEmpty, false);
+    expect(ppl.isNotEmpty, true);
+    check(ppl.propertiesForPath(pAB), false, true, false, true, false, false);
+    ppl.setUpdated(pAB);
+    check(ppl.propertiesForPath(pAB), false, true, true, true, false, false);
+    check(ppl.propertiesForPath(pXY), true, false, false, false, false, false);
+
+    ppl.clear();
+    check(ppl.propertiesForPath(pAB), true, false, false, false, false, false);
+    expect(ppl.isEmpty, true);
+    expect(ppl.isNotEmpty, false);
+
+    ppl.setCut(pAB, true);
+    check(ppl.propertiesForPath(pAB), false, false, false, false, true, false);
+    ppl.setCut(pAB, false);
+    check(ppl.propertiesForPath(pAB), true, false, false, false, false, false);
+    expect(ppl.isEmpty, true);
+    expect(ppl.isNotEmpty, false);
+
+    ppl.setGroupSelect(pXY);
+    ppl.setGroupSelect(pAB);
+    check(ppl.propertiesForPath(pAB), false, false, false, false, false, true);
+    ppl.setGroupSelect(pAB);
+    check(ppl.propertiesForPath(pAB), true, false, false, false, false, false);
+    check(ppl.propertiesForPath(pXY), false, false, false, false, false, true);
+    expect(ppl.isEmpty, false);
+    expect(ppl.isNotEmpty, true);
+
+    ppl.setCut(pAB,true);
+    ppl.setGroupSelect(pAB);
+    check(ppl.propertiesForPath(pAB), false, false, false, false, true, true);
+    ppl.setGroupSelect(pAB);
+    check(ppl.propertiesForPath(pAB), false, false, false, false, true, false);
+    ppl.setCut(pAB,false);
+    check(ppl.propertiesForPath(pAB), true, false, false, false, false, false);
+    check(ppl.propertiesForPath(pXY), false, false, false, false, false, true);
+    expect(ppl.isEmpty, false);
+    expect(ppl.isNotEmpty, true);
+
+    ppl.setUpdated(pAB);
+    ppl.setCut(pAB,true);
+    ppl.setGroupSelect(pAB);
+    check(ppl.propertiesForPath(pAB), false, true, true, false, true, true);
+    ppl.setGroupSelect(pAB);
+    check(ppl.propertiesForPath(pAB), false, true, true, false, true, false);
+    ppl.setCut(pAB,false);
+    check(ppl.propertiesForPath(pAB), false, true, true, false, false, false);
+    check(ppl.propertiesForPath(pXY), false, false, false, false, false, true);
+    expect(ppl.isEmpty, false);
+    expect(ppl.isNotEmpty, true);
+
+    ppl.clear();
+    check(ppl.propertiesForPath(pAB), true, false, false, false, false, false);
+    check(ppl.propertiesForPath(pXY), true, false, false, false, false, false);
+    expect(ppl.isEmpty, true);
+    expect(ppl.isNotEmpty, false);
+
+  });
+
+  test('Test PathProperties', () async {
+    var p = PathProperties.clear();
+    check(p, true, false, false, false, false, false);
+    p.cut = true;
+    check(p, false, false, false, false, true, false);
+    p.groupSelect = true;
+    check(p, false, false, false, false, true, true);
+    p.updated = true;
+    check(p, false, true, true, false, true, true);
+    p.renamed = true;
+    check(p, false, true, true, true, true, true);
+
+    p.clear();
+    check(p, true, false, false, false, false, false);
+    p.updated = true;
+    check(p, false, true, true, false, false, false);
+    p.renamed = true;
+    check(p, false, true, true, true, false, false);
+
+    p.clear();
+    check(p, true, false, false, false, false, false);
+    p.renamed = true;
+    check(p, false, true, false, true, false, false);
+    p.updated = true;
+    check(p, false, true, true, true, false, false);
+  });
+
   test('Test Path Nodes', () async {
     var s = json_tools.jsonDecode(DataLoad.loadFromFile("test/data/data04.json").value);
     var p = PathNodes.from(s, Path.empty());
@@ -155,24 +261,23 @@ void main() {
     expect(p.last, "");
     expect(p.root, "");
 
-    final px = Path.fromDotPath("root.one.two");
+    var px = Path.fromDotPath("root.one.two");
     expect(px.last, "two");
-    px.setLast('xx');
-    expect(px.last, "xx");
+    px = px.cloneRename('xx');
     expect(px.toString(), "root.one.xx");
-    final px1 = px.cloneParentPath();
+    var px1 = px.cloneParentPath();
     expect(px1.toString(), "root.one");
-    px1.setLast('yy');
+    px1 = px1.cloneRename('yy');
     expect(px1.last, "yy");
     expect(px1.toString(), "root.yy");
-    final px2 = px1.cloneParentPath();
+    var px2 = px1.cloneParentPath();
     expect(px2.toString(), "root");
-    px2.setLast('zz');
+    px2 = px2.cloneRename('zz');
     expect(px2.last, "zz");
     expect(px2.toString(), "zz");
-    final px3 = px2.cloneParentPath();
+    var px3 = px2.cloneParentPath();
     expect(px3.toString(), "");
-    px3.setLast("last");
+    px3 = px3.cloneRename("last");
     expect(px3.toString(), "last");
   });
 

@@ -200,7 +200,7 @@ class _DetailWidgetState extends State<DetailWidget> {
           leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.dataAction),
           title: Container(
             padding: const EdgeInsets.all(5.0),
-            color: appThemeData.selectedHilightColour(true, plp.rename),
+            color: appThemeData.selectedHilightColour(true, plp.renamed),
             child: Text(widget.dataValueRow.getDisplayName(widget.isEditDataDisplay), style: appThemeData.tsMedium),
           ),
           subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: appThemeData.tsSmall) : null,
@@ -271,7 +271,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.dataAction),
               title: Container(
                 padding: const EdgeInsets.all(5.0),
-                color: appThemeData.selectedHilightColour(true, plp.rename),
+                color: appThemeData.selectedHilightColour(true, plp.renamed),
                 child: Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
               ),
               subtitle: horizontal ? Text("Group is Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: appThemeData.tsSmall) : null,

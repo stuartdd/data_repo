@@ -1,12 +1,24 @@
 class PathProperties {
-  bool rename = false;
-  bool updated = false;
+  bool _renamed = false;
+  bool _updated = false;
   bool groupSelect = false;
   bool cut = false;
-  PathProperties(this.updated, this.groupSelect, this.cut, this.rename);
+  PathProperties(this._updated, this.groupSelect, this.cut, this._renamed);
+
+  factory PathProperties.clear() {
+    return PathProperties(false, false, false, false);
+  }
+
   @override
   String toString() {
-    return "rename:$rename updated:$updated group:$groupSelect cut:$cut";
+    return "rename:$_renamed updated:$_updated group:$groupSelect cut:$cut";
+  }
+
+  void clear() {
+    _renamed = false;
+    _updated = false;
+    cut = false;
+    groupSelect = false;
   }
 
   bool get isEmpty {
@@ -14,7 +26,27 @@ class PathProperties {
   }
 
   bool get isNotEmpty {
-    return rename || updated || groupSelect || cut;
+    return _renamed || _updated || groupSelect || cut;
+  }
+
+  bool get changed {
+    return _updated || _renamed;
+  }
+
+  bool get updated {
+    return _updated;
+  }
+
+  void set updated(bool b) {
+    _updated = b;
+  }
+
+  void set renamed(bool b) {
+    _renamed = b;
+  }
+
+  bool get renamed {
+    return _renamed;
   }
 }
 
@@ -41,63 +73,54 @@ class PathPropertiesList {
     return sb.toString();
   }
 
-  void clean() {
+  void clear() {
     _list.clear();
   }
 
-  void groupSelect(Path p) {
-    final plKey = p.toString();
-    final plp = _list[plKey];
-    if (plp == null) {
-      _list[plKey] = PathProperties(false, true, false, false);
+  void setGroupSelect(Path p) {
+    final ps = p.toString();
+    final pfp = _propertiesForPath(ps);
+    pfp.groupSelect = !pfp.groupSelect;
+    if (pfp.isEmpty) {
+      _list.remove(ps);
     } else {
-      plp.groupSelect = !plp.groupSelect;
-      if (plp.isEmpty) {
-        _list.remove(plKey);
-      }
+      _list[ps] = pfp;
     }
   }
 
-  void cut(Path p, bool set) {
-    final plKey = p.toString();
-    final plp = _list[plKey];
-    if (plp == null) {
-      _list[plKey] = PathProperties(false, false, set, false);
+  void setCut(Path p, bool set) {
+    final ps = p.toString();
+    final pfp = _propertiesForPath(ps);
+    pfp.cut = set;
+    if (pfp.isEmpty) {
+      _list.remove(ps);
     } else {
-      plp.cut = set;
-      if (plp.isEmpty) {
-        _list.remove(plKey);
-      }
+      _list[ps] = pfp;
     }
   }
 
-  void renamed(Path p) {
-    final plKey = p.toString();
-    final plp = _list[plKey];
-    if (plp == null) {
-      _list[plKey] = PathProperties(false, false, false, true);
-    } else {
-      plp.rename = true;
-    }
+  void setRenamed(Path p) {
+    final ps = p.toString();
+    final pfp = _propertiesForPath(ps);
+    pfp._renamed = true;
+    _list[ps] = pfp;
   }
 
-  void updated(Path p) {
-    final plKey = p.toString();
-    final plp = _list[plKey];
-    if (plp == null) {
-      _list[plKey] = PathProperties(true, false, false, false);
-    } else {
-      plp.updated = true;
-    }
+  void setUpdated(Path p) {
+    final ps = p.toString();
+    final pfp = _propertiesForPath(ps);
+    pfp._updated = true;
+    _list[ps] = pfp;
   }
 
   PathProperties propertiesForPath(Path p) {
-    final plp = _list[p.toString()];
-    if (plp == null) {
-      return PathProperties(false, false, false, false);
-    } else {
-      return plp;
-    }
+    return _propertiesForPath(p.toString());
+  }
+
+  PathProperties _propertiesForPath(String p) {
+    var plp = _list[p];
+    plp ??= PathProperties.clear();
+    return plp;
   }
 }
 
@@ -136,6 +159,20 @@ class PathNodes {
   factory PathNodes.empty() {
     return PathNodes([], true);
   }
+
+  bool alreadyContainsName(String name) {
+    if (lastNodeIsMap) {
+      if (lastNodeAsMap!.containsKey(name)) {
+        return true;
+      }
+    } else {
+      if (lastNodeParent!.containsKey(name)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   bool get lastNodeIsMap {
     if (nodes.isEmpty) {
       return false;
@@ -212,11 +249,11 @@ class Path {
       }
     }
   }
-  
-  PathNodes pathNodes(Map<String,dynamic> m) {
-      return PathNodes.from(m, this);
+
+  PathNodes pathNodes(Map<String, dynamic> m) {
+    return PathNodes.from(m, this);
   }
-  
+
   bool isNotEqual(Path other) {
     return !isEqual(other);
   }
@@ -241,6 +278,15 @@ class Path {
     for (int i = 0; i < app.length; i++) {
       p.push(app[i]);
     }
+    return p;
+  }
+
+  Path cloneRename(String newName) {
+    final p = Path.empty();
+    for (int i = 0; i < count - 1; i++) {
+      p.push(pathList[i]);
+    }
+    p.push(newName);
     return p;
   }
 
@@ -322,15 +368,6 @@ class Path {
       return "";
     }
     return pathList[count - 1];
-  }
-
-  void setLast(String s) {
-    if (count == 0) {
-      pathList[count] = s;
-      count++;
-    } else {
-      pathList[count - 1] = s;
-    }
   }
 
   void push(String p) {

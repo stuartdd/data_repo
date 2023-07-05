@@ -188,13 +188,12 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     Future.delayed(
       const Duration(milliseconds: 300),
-          () {
+      () {
         final index = (_selectedTreeNode.index - 2) * _configData.getAppThemeData().treeNodeHeight;
         _treeViewScrollController.animateTo(index, duration: const Duration(milliseconds: 400), curve: Curves.ease);
       },
     );
   }
-
 
   void _handleTreeSelectState(final Path path) {
     setState(() {
@@ -243,7 +242,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       if (success) {
         _dataWasUpdated = false;
-        _pathPropertiesList.clean();
+        _pathPropertiesList.clear();
       }
       _globalSuccessState = SuccessState(success, message: m);
     });
@@ -317,7 +316,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _selectedPath = Path.fromDotPath(_loadedData.keys.first);
       _selectedPathNodes = _selectedPath.pathNodes(_loadedData.dataMap);
       _selectedTreeNode = _treeNodeDataRoot.findByPath(_selectedPath)!;
-      _pathPropertiesList.clean();
+      _pathPropertiesList.clear();
       _globalSuccessState = SuccessState(true, message: "${ts.encrypted ? "Encrypted " : ""} ${_loadedData.source} File loaded: ${_loadedData.filePrefixData.getTimeStamp()}", log: log);
     });
   }
@@ -344,8 +343,8 @@ class _MyHomePageState extends State<MyHomePage> {
       case optionTypeDataValue:
         setState(() {
           mapNodes.lastNodeAsMap![name] = "undefined";
-          _pathPropertiesList.updated(path);
-          _pathPropertiesList.updated(path.cloneAppendList([name]));
+          _pathPropertiesList.setUpdated(path);
+          _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
           _dataWasUpdated = true;
           _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
           _reSelectNode(path: path);
@@ -356,8 +355,8 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           final Map<String, dynamic> m = {};
           mapNodes.lastNodeAsMap![name] = m;
-          _pathPropertiesList.updated(path);
-          _pathPropertiesList.updated(path.cloneAppendList([name]));
+          _pathPropertiesList.setUpdated(path);
+          _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
           _dataWasUpdated = true;
           _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
           _reSelectNode(path: path);
@@ -384,7 +383,7 @@ class _MyHomePageState extends State<MyHomePage> {
       if (mapNodes.error) {
         return "Path not found";
       }
-      if (mapNodes.lastNodeAsMap!.containsKey(newName)) {
+      if (mapNodes.alreadyContainsName(newName)) {
         return "Name already exists";
       }
     }
@@ -409,7 +408,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _globalSuccessState = SuccessState(false, message: "Cannot rename root node");
           return;
         }
-        if (mapNodes.lastNodeAsMap!.containsKey(newName)) {
+        if (mapNodes.alreadyContainsName(newName)) {
           _globalSuccessState = SuccessState(false, message: "Name already exists");
           return;
         }
@@ -420,8 +419,12 @@ class _MyHomePageState extends State<MyHomePage> {
         _dataWasUpdated = true;
         _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
 
-        final newPath = detailActionData.path.cloneAppendList([newName]);
-        _pathPropertiesList.renamed(newPath);
+        var newPath = detailActionData.path.cloneRename(newName);
+        _pathPropertiesList.setRenamed(newPath);
+        if (detailActionData.value) {
+          newPath = newPath.cloneParentPath();
+        }
+        _pathPropertiesList.setRenamed(newPath);
         _reSelectNode(path: newPath);
         _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: log);
       });
@@ -445,7 +448,7 @@ class _MyHomePageState extends State<MyHomePage> {
         parentNode!.remove(path.last);
         _dataWasUpdated = true;
         _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
-        _pathPropertiesList.updated(parentPath);
+        _pathPropertiesList.setUpdated(parentPath);
         _reSelectNode(path: parentPath);
         _globalSuccessState = SuccessState(true, message: "Removed: '${path.last}'");
       });
@@ -492,8 +495,8 @@ class _MyHomePageState extends State<MyHomePage> {
             parentNode![key] = nvTrim;
           }
         }
-        _pathPropertiesList.updated(detailActionData.path);
-        _pathPropertiesList.updated(detailActionData.path.cloneParentPath());
+        _pathPropertiesList.setUpdated(detailActionData.path);
+        _pathPropertiesList.setUpdated(detailActionData.path.cloneParentPath());
         _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
         _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.getLastPathElement()} updated");
       });
@@ -564,7 +567,7 @@ class _MyHomePageState extends State<MyHomePage> {
           case ActionType.group:
             {
               setState(() {
-                _pathPropertiesList.groupSelect(detailActionData.path);
+                _pathPropertiesList.setGroupSelect(detailActionData.path);
               });
               return false;
             }

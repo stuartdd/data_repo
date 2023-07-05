@@ -246,7 +246,7 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
             widget.rowHeight,
             widget.selectedNode.isEqual(aNode.path),
             aNode.pathLen,
-            widget.pathListProperties.propertiesForPath(aNode.path).updated,
+            widget.pathListProperties.propertiesForPath(aNode.path).changed,
             (node, select) {
               setState(() {
                 widget.onSelect(node);
