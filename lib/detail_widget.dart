@@ -13,8 +13,8 @@ class DataValueDisplayRow {
   final OptionsTypeData _type;
   final bool _isValue;
   final Path _path;
-  late final Path _pathWithName;
   final int _mapSize;
+  late final Path _pathWithName;
   DisplayTypeData _displayTypeData = simpleDisplayData;
 
   DataValueDisplayRow(this._name, this._value, this._type, this._isValue, this._path, this._mapSize) {
@@ -28,6 +28,7 @@ class DataValueDisplayRow {
   String get name => _name;
   OptionsTypeData get type => _type;
   Path get path => _path;
+  Path get pathWithName => _pathWithName;
   bool get isValue => _isValue;
   int get mapSize => _mapSize;
   DisplayTypeData get displayTypeData => _displayTypeData;
@@ -47,10 +48,6 @@ class DataValueDisplayRow {
       return "No";
     }
     return _value;
-  }
-
-  Path get pathWithName {
-    return _pathWithName;
   }
 
   bool get isLink {
@@ -79,7 +76,7 @@ class DetailWidget extends StatefulWidget {
   final PathPropertiesList pathPropertiesList;
   final bool isEditDataDisplay;
   final bool isHorizontal;
-  final bool Function(DetailAction) dataAction;
+  final Path Function(DetailAction) dataAction;
 
   @override
   State<DetailWidget> createState() => _DetailWidgetState();
@@ -156,7 +153,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     if (dataValueRow.type.equal(optionTypeDataPositional)) {
       return Card(
         margin: const EdgeInsets.all(5.0),
-        color: appThemeData.selectedHilightColour(true, plp.updated),
+        color: appThemeData.selectedAndHiLightColour(true, plp.updated),
         child: Column(
           children: [
             _rowForPosition(dataValueRow.value.length, appThemeData.primary, appThemeData.tsMedium),
@@ -172,7 +169,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     if (dataValueRow.type.equal(optionTypeDataMarkDown)) {
       return Card(
         margin: const EdgeInsets.all(5.0),
-        color: appThemeData.selectedHilightColour(true, plp.updated),
+        color: appThemeData.selectedAndHiLightColour(true, plp.updated),
         child: SizedBox(
           child: Markdown(
             data: dataValueRow.value,
@@ -186,7 +183,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     }
     return Card(
       margin: const EdgeInsets.all(5.0),
-      color: appThemeData.selectedHilightColour(true, plp.updated),
+      color: appThemeData.selectedAndHiLightColour(true, plp.updated),
       child: Padding(padding: const EdgeInsets.all(5.0), child: Text(dataValueRow.value, style: appThemeData.tsLarge)),
 
     );
@@ -200,7 +197,7 @@ class _DetailWidgetState extends State<DetailWidget> {
           leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.dataAction),
           title: Container(
             padding: const EdgeInsets.all(5.0),
-            color: appThemeData.selectedHilightColour(true, plp.renamed),
+            color: appThemeData.selectedAndHiLightColour(true, plp.renamed),
             child: Text(widget.dataValueRow.getDisplayName(widget.isEditDataDisplay), style: appThemeData.tsMedium),
           ),
           subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: appThemeData.tsSmall) : null,
@@ -271,7 +268,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.dataAction),
               title: Container(
                 padding: const EdgeInsets.all(5.0),
-                color: appThemeData.selectedHilightColour(true, plp.renamed),
+                color: appThemeData.selectedAndHiLightColour(true, plp.renamed),
                 child: Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
               ),
               subtitle: horizontal ? Text("Group is Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: appThemeData.tsSmall) : null,
@@ -305,7 +302,7 @@ class _DetailWidgetState extends State<DetailWidget> {
   }
 }
 
-Widget groupButton(PathProperties plp, bool value, Path path, final bool Function(DetailAction) dataAction) {
+Widget groupButton(PathProperties plp, bool value, Path path, final Path Function(DetailAction) dataAction) {
   return IconButton(
     icon: plp.groupSelect ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
     tooltip: plp.groupSelect ? 'Remove from group select' : 'Add to group select',

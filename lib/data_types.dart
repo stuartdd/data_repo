@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:data_repo/data_load.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -37,6 +39,7 @@ const Map<String, DisplayTypeData> displayTypeMap = {
 //
 
 const optionsDataTypeEmpty = OptionsTypeData(String, "string", "empty");
+
 //
 // When renaming a data element the Options are derived from this class.
 //
@@ -184,7 +187,7 @@ const List<OptionsTypeData> optionsEditElementValue = [];
 //
 // An action from a GUI component serviced by the maim State full GUI.
 //
-enum ActionType {none, editStart, renameStart, select, delete, link, clip, copyNode, cutNode, pasteNode, group}
+enum ActionType { none, editMode, editStart, renameStart, select, querySelect, delete, link, clip, copyNode, cutNode, pasteNode, group }
 
 class DetailAction {
   final ActionType action;
@@ -215,6 +218,14 @@ class DetailAction {
       case ActionType.none:
         {
           return "NONE: $s";
+        }
+      case ActionType.querySelect:
+        {
+          return "QUERY_SELECT: $s";
+        }
+      case ActionType.editMode:
+        {
+          return "EDIT-MODE: $s";
         }
       case ActionType.editStart:
         {
@@ -263,23 +274,40 @@ class DetailAction {
 class NodeCopyBin {
   final Path copyFromPath;
   final bool cut;
-  late final bool hasData;
-  final Map<String, dynamic> copyNode;
-  NodeCopyBin(this.copyFromPath, this.cut, this.copyNode) {
-    hasData = copyFromPath.isNotEmpty;
+  final String _pw;
+  late final String _copyNode;
+
+  NodeCopyBin(this.copyFromPath, this.cut, Map<String, dynamic> node, this._pw) {
+    if (node.isEmpty) {
+      _copyNode = "";
+    } else {
+      _copyNode = DataLoad.convertMapToStringWithTs(node, _pw, addTimeStamp: false);
+    }
   }
 
   factory NodeCopyBin.empty() {
-    return NodeCopyBin(Path.empty(), false, {});
+    return NodeCopyBin(Path.empty(), false, {}, "");
   }
 
-  bool isNotEmpty() {
-    return copyFromPath.isNotEmpty;
+  Map<String, dynamic> copyNode({String name = ""}) {
+    final copied = DataLoad.convertStringToMap(_copyNode, _pw);
+    if (name.isNotEmpty) {
+      return <String, dynamic>{name: copied};
+    }
+    return copied;
+  }
+
+  bool get isNotEmpty {
+    return _copyNode.isNotEmpty;
+  }
+
+  bool get isEmpty {
+    return _copyNode.isEmpty;
   }
 
   @override
   String toString() {
-    return "${cut?"CUT":"COPY"} ${copyFromPath.toString()}\n${DataLoad.mapToString(copyNode)}";
+    return "${cut ? "CUT" : "COPY"} ${copyFromPath.toString()}\n$_copyNode";
   }
 }
 

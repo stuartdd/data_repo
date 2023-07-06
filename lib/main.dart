@@ -15,22 +15,21 @@ import 'main_view.dart';
 import 'detail_buttons.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
-late final ConfigData _configData;
-late final ApplicationState _applicationState;
-NodeCopyBin _nodeCopyBin = NodeCopyBin.empty();
-StringBuffer eventLog = StringBuffer();
-String eventLogLatest = "";
-
-String _okCancelDialogResult = "";
-bool _inExitProcess = false;
-final PathPropertiesList _pathPropertiesList = PathPropertiesList();
-final TextEditingController textEditingController = TextEditingController(text: "");
-
 const appBarHeight = 50.0;
 const statusBarHeight = 35.0;
 const inputTextTitleStyleHeight = 35.0;
 const iconDataFileLoad = Icons.file_open;
 
+late final ConfigData _configData;
+late final ApplicationState _applicationState;
+final PathPropertiesList _pathPropertiesList = PathPropertiesList();
+final TextEditingController textEditingController = TextEditingController(text: "");
+
+NodeCopyBin _nodeCopyBin = NodeCopyBin.empty();
+StringBuffer eventLog = StringBuffer();
+String eventLogLatest = "";
+String _okCancelDialogResult = "";
+bool _inExitProcess = false;
 bool _shouldDisplayMarkdownHelp = false;
 bool _shouldDisplayMarkdownPreview = false;
 
@@ -63,7 +62,7 @@ void main() async {
       setWindowFrame(Rect.fromLTWH(_applicationState.screen.x, _applicationState.screen.y, _applicationState.screen.w, _applicationState.screen.h));
     }
   } catch (e) {
-    print(e);
+    debugPrint(e.toString());
     closer(1);
   }
   runApp(MyApp());
@@ -151,11 +150,35 @@ class _MyHomePageState extends State<MyHomePage> {
   ScrollController _treeViewScrollController = ScrollController();
   MyTreeNode _treeNodeDataRoot = MyTreeNode.empty();
   Path _selectedPath = Path.empty();
-  PathNodes _selectedPathNodes = PathNodes.empty();
   MyTreeNode _selectedTreeNode = MyTreeNode.empty();
-
   Map<String, BuildContext> nodeContextList = {};
 
+  Path querySelect(Path sel, String dir) {
+    Path p = Path.empty();
+    if (sel.isEmpty) {
+      return p;
+    }
+    switch (dir) {
+      case "right":
+        {
+          p = _selectedTreeNode.firstChild;
+          break;
+        }
+      case "down":
+        {
+          p = _selectedTreeNode.down;
+          break;
+        }
+      case "up":
+        {
+          p = _selectedTreeNode.up;
+          break;
+        }
+    }
+    debugPrint("Query Select ${sel.toString()} ($dir) $p");
+    return p;
+  }
+  
   Future<void> _implementLinkState(final String href, final String from) async {
     var urlCanLaunch = await canLaunchUrlString(href); //canLaunch is from url_launcher package
     if (urlCanLaunch) {
@@ -178,8 +201,8 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       _selectedTreeNode = n;
       _selectedPath = path;
+      _selectedTreeNode.expandParent(true);
     }
-    _selectedPathNodes = _selectedPath.pathNodes(_loadedData.dataMap);
   }
 
   void _reSelectNode({Path? path}) {
@@ -216,7 +239,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _saveDataState() async {
-    final String content = _loadedData.dataAsString();
+    final String content = DataLoad.convertMapToStringWithTs(_loadedData.dataMap, _loadedData.password);
     final ss = DataLoad.saveToFile(_configData.getDataFileLocal(), content);
     if (ss.isSuccess) {
       log("__OK:__ Local Data saved");
@@ -250,35 +273,34 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _loadDataState() async {
     String source = "";
-    FilePrefixData ts = FilePrefixData.empty();
+    FilePrefixData filePrefixData = FilePrefixData.empty();
     FilePrefixData tsRemote = FilePrefixData.empty();
-    FilePrefixData tsLocal = FilePrefixData.empty();
     String fileData = "";
     final ssRemote = await DataLoad.fromHttpGet(_configData.getGetDataFileUrl(), timeoutMillis: _configData.getDataFetchTimeoutMillis());
     if (ssRemote.isSuccess) {
-      tsRemote = DataLoad.readFilePrefixData(ssRemote.value);
-      log("__INFO:__ Remote __TS:__ ${tsRemote.getTimeStamp()}");
+      tsRemote = FilePrefixData.fromString(ssRemote.value);
+      log("__INFO:__ Remote __TS:__ ${tsRemote.timeStamp}");
       fileData = ssRemote.value.substring(tsRemote.startPos);
       source = "Remote";
-      ts = tsRemote;
+      filePrefixData = tsRemote;
     } else {
       log(ssRemote.toLogString());
     }
 
     final ssLocal = DataLoad.loadFromFile(_configData.getDataFileLocal());
     if (ssLocal.isSuccess) {
-      tsLocal = DataLoad.readFilePrefixData(ssLocal.value);
-      log("__INFO:__ Local __TS:__ ${tsLocal.getTimeStamp()}");
+      final tsLocal = FilePrefixData.fromString(ssLocal.value);
+      log("__INFO:__ Local __TS:__ ${tsLocal.timeStamp}");
       if (ssRemote.isFail || tsLocal.isLaterThan(tsRemote)) {
         fileData = ssLocal.value.substring(tsLocal.startPos);
         source = "Local";
-        ts = tsLocal;
+        filePrefixData = tsLocal;
       }
     } else {
       log(ssLocal.toLogString());
     }
 
-    if (ts.encrypted && _password.isEmpty) {
+    if (filePrefixData.encrypted && _password.isEmpty) {
       setState(() {
         _globalSuccessState = SuccessState(false, message: "No Password Provided", log: log);
       });
@@ -294,7 +316,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final DataContainer data;
     try {
-      data = DataContainer(fileData, ts, source, _password);
+      data = DataContainer(fileData, filePrefixData, source, _password);
     } catch (r) {
       setState(() {
         _globalSuccessState = SuccessState(false, message: "Data file could not be parsed", exception: r as Exception, log: log);
@@ -314,10 +336,9 @@ class _MyHomePageState extends State<MyHomePage> {
       _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
       _treeNodeDataRoot.expandAll(true);
       _selectedPath = Path.fromDotPath(_loadedData.keys.first);
-      _selectedPathNodes = _selectedPath.pathNodes(_loadedData.dataMap);
       _selectedTreeNode = _treeNodeDataRoot.findByPath(_selectedPath)!;
       _pathPropertiesList.clear();
-      _globalSuccessState = SuccessState(true, message: "${ts.encrypted ? "Encrypted " : ""} ${_loadedData.source} File loaded: ${_loadedData.filePrefixData.getTimeStamp()}", log: log);
+      _globalSuccessState = SuccessState(true, message: "${filePrefixData.encrypted ? "Encrypted " : ""} ${_loadedData.source} File loaded: ${_loadedData.timeStampString}", log: log);
     });
   }
 
@@ -344,6 +365,7 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           mapNodes.lastNodeAsMap![name] = "undefined";
           _pathPropertiesList.setUpdated(path);
+          _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
           _dataWasUpdated = true;
           _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
@@ -356,6 +378,7 @@ class _MyHomePageState extends State<MyHomePage> {
           final Map<String, dynamic> m = {};
           mapNodes.lastNodeAsMap![name] = m;
           _pathPropertiesList.setUpdated(path);
+          _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
           _dataWasUpdated = true;
           _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
@@ -453,6 +476,29 @@ class _MyHomePageState extends State<MyHomePage> {
         _globalSuccessState = SuccessState(true, message: "Removed: '${path.last}'");
       });
     }
+  }
+
+  void _handlePasteState(final Path path) async {
+    setState(() {
+      final mapNodes = path.pathNodes(_loadedData.dataMap);
+      if (mapNodes.error) {
+        _globalSuccessState = SuccessState(false, message: "Path not found");
+        return;
+      }
+      final node = DataLoad.getMapFromJson(_loadedData.dataMap, path);
+      String name = _nodeCopyBin.copyFromPath.last;
+      if (node.containsKey(name)) {
+        name = "${name}_copy";
+      }
+      final newPath = path.cloneAppendList([name]);
+      node[name] = _nodeCopyBin.copyNode();
+      _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+      _dataWasUpdated = true;
+      _pathPropertiesList.setUpdated(path);
+      _pathPropertiesList.setUpdated(newPath);
+      _reSelectNode(path: newPath);
+      _globalSuccessState = SuccessState(true, message: "Pasted: '$name' into: '${path.last}'");
+    });
   }
 
   void _handleEditSubmit(DetailAction detailActionData, String newValue, OptionsTypeData type) {
@@ -560,52 +606,23 @@ class _MyHomePageState extends State<MyHomePage> {
         // On selected detail page action
         debugPrint(detailActionData.toString());
         switch (detailActionData.action) {
-          case ActionType.none:
-            {
-              return false;
-            }
           case ActionType.group:
             {
               setState(() {
                 _pathPropertiesList.setGroupSelect(detailActionData.path);
               });
-              return false;
-            }
-          case ActionType.copyNode:
-            {
-              setState(() {
-                _nodeCopyBin = NodeCopyBin(detailActionData.path, false, DataLoad.getMapFromJson(_loadedData.dataMap, detailActionData.path));
-                _globalSuccessState = SuccessState(true, message: "Node '${detailActionData.path.last}' COPIED to clipboard");
-              });
-              return true;
-            }
-          case ActionType.cutNode:
-            {
-              setState(() {
-                _nodeCopyBin = NodeCopyBin(detailActionData.path, true, DataLoad.getMapFromJson(_loadedData.dataMap, detailActionData.path));
-                _globalSuccessState = SuccessState(true, message: "Node '${detailActionData.path.last}' CUT to clipboard");
-              });
-              return true;
-            }
-          case ActionType.pasteNode:
-            {
-              setState(() {
-                _globalSuccessState = SuccessState(true, message: "Node '${_nodeCopyBin.copyFromPath.last}' ${_nodeCopyBin.cut ? 'MOVED' : 'COPIED'} to '${detailActionData.path.last}'");
-                _nodeCopyBin = NodeCopyBin.empty();
-              });
-              debugPrint("$_nodeCopyBin");
-              return true;
+              break;
             }
           case ActionType.delete:
             {
               _showModalDialog(context, "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDelete);
-              return true;
+              break;
             }
           case ActionType.select:
             {
               _handleTreeSelectState(detailActionData.path);
               _reSelectNode();
-              return true;
+              break;
             }
           case ActionType.renameStart:
             {
@@ -629,7 +646,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   return _checkRenameOk(detailActionData, value, valueType);
                 },
               );
-              return true;
+              break;
             }
           case ActionType.editStart:
             {
@@ -690,18 +707,16 @@ class _MyHomePageState extends State<MyHomePage> {
                   return "";
                 },
               );
-              return true;
+              break;
             }
           case ActionType.link:
             {
               _implementLinkState(detailActionData.oldValue, detailActionData.path.last);
-              return true;
-            }
-          default:
-            {
-              return false;
+              break;
             }
         }
+        ;
+        return Path.empty();
       },
       (buildContext, node) {
         // BuildNode
@@ -741,7 +756,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final List<Widget> toolBarItems = List.empty(growable: true);
     toolBarItems.add(
       DetailIconButton(
-        icon: const Icon(Icons.close_outlined),
+        iconData: Icons.close_outlined,
         tooltip: 'Exit application',
         onPressed: () async {
           final close = await _shouldExitHandler();
@@ -777,7 +792,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ));
       toolBarItems.add(DetailIconButton(
         appThemeData: _configData.getAppThemeData(),
-        icon: const Icon(iconDataFileLoad),
+        iconData: iconDataFileLoad,
         tooltip: 'Load Data',
         timerMs: 5000,
         onPressed: () {
@@ -792,21 +807,20 @@ class _MyHomePageState extends State<MyHomePage> {
       //
       toolBarItems.add(
         DetailIconButton(
-          show: !_beforeDataLoaded,
           appThemeData: _configData.getAppThemeData(),
-          icon: _isEditDataDisplay ? const Icon(Icons.remove_red_eye) : const Icon(Icons.edit),
-          tooltip: _isEditDataDisplay ? 'Stop Editing' : "Start Editing",
+          iconData: _isEditDataDisplay ?  Icons.search :  Icons.edit,
+          tooltip: _isEditDataDisplay ? 'Search Mode' : "Edit Mode",
           onPressed: () {
             setState(() {
               _isEditDataDisplay = !_isEditDataDisplay;
             });
           },
-        ),
+        )
       );
       if (_dataWasUpdated || _isEditDataDisplay) {
         toolBarItems.add(
           DetailIconButton(
-            icon: const Icon(Icons.save),
+            iconData: Icons.save,
             tooltip: _loadedData.hasPassword ? "Save ENCRYPTED" : 'Save Data',
             onPressed: () {
               _saveDataState();
@@ -816,7 +830,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         toolBarItems.add(
           DetailIconButton(
-            icon: const Icon(Icons.refresh),
+            iconData: Icons.refresh,
             tooltip: 'Reload Data',
             onPressed: () {
               _loadDataState();
@@ -826,9 +840,12 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       }
       if (_isEditDataDisplay) {
+        final canCopy = _selectedPath.hasParent;
+        final canPaste = _nodeCopyBin.isNotEmpty;
+
         toolBarItems.add(DetailIconButton(
           appThemeData: _configData.getAppThemeData(),
-          icon: const Icon(Icons.add_box_outlined),
+          iconData: Icons.add_box_outlined,
           tooltip: 'Add Value or Group',
           onPressed: () {
             _showModalInputDialog(
@@ -849,6 +866,45 @@ class _MyHomePageState extends State<MyHomePage> {
             );
           },
         ));
+        if (canCopy) {
+          toolBarItems.add(
+            DetailIconButton(
+              onPressed: () {
+                setState(() {
+                  _nodeCopyBin = NodeCopyBin(_selectedPath, false, DataLoad.getMapFromJson(_loadedData.dataMap, _selectedPath), _password);
+                  _globalSuccessState = SuccessState(true, message: "Node '${_selectedPath.last}' COPIED to clipboard");
+                });
+              },
+              tooltip: "Copy This Node",
+              iconData:  Icons.copy,
+              appThemeData: _configData.getAppThemeData(),
+            ),
+          );
+          toolBarItems.add(
+            DetailIconButton(
+              onPressed: () {
+                setState(() {
+                  _nodeCopyBin = NodeCopyBin(_selectedPath, true, DataLoad.getMapFromJson(_loadedData.dataMap, _selectedPath), _password);
+                  _globalSuccessState = SuccessState(true, message: "Node '${_selectedPath.last}' CUT to clipboard");
+                });
+              },
+              tooltip: "Cut This Node",
+              iconData: Icons.cut,
+              appThemeData: _configData.getAppThemeData(),
+            ),
+          );
+        }
+        if (canPaste) {
+          toolBarItems.add(DetailIconButton(
+            show: canPaste,
+            onPressed: () {
+              _handlePasteState(_selectedPath);
+            },
+            tooltip: "Paste into ${_selectedPath.last}",
+            iconData: Icons.paste,
+            appThemeData: _configData.getAppThemeData(),
+          ));
+        }
       } else {
         toolBarItems.add(
           Container(
@@ -873,7 +929,7 @@ class _MyHomePageState extends State<MyHomePage> {
         toolBarItems.add(
           DetailIconButton(
             appThemeData: _configData.getAppThemeData(),
-            icon: const Icon(Icons.search),
+            iconData:  Icons.search,
             tooltip: 'Search',
             onPressed: () {
               _setSearchExpressionState(textEditingController.text);
@@ -883,7 +939,7 @@ class _MyHomePageState extends State<MyHomePage> {
         toolBarItems.add(
           DetailIconButton(
             appThemeData: _configData.getAppThemeData(),
-            icon: const Icon(Icons.youtube_searched_for),
+            iconData: Icons.youtube_searched_for,
             tooltip: 'Previous Searches',
             onPressed: () async {
               await _showSearchDialog(
@@ -901,7 +957,7 @@ class _MyHomePageState extends State<MyHomePage> {
         toolBarItems.add(
           DetailIconButton(
             appThemeData: _configData.getAppThemeData(),
-            icon: const Icon(Icons.search_off),
+            iconData: Icons.search_off,
             tooltip: 'Clear Search',
             onPressed: () {
               _setSearchExpressionState("");
@@ -915,7 +971,7 @@ class _MyHomePageState extends State<MyHomePage> {
         left: MediaQuery.of(context).size.width - appBarHeight,
         top: 0,
         child: DetailIconButton(
-          icon: const Icon(Icons.settings),
+          iconData: Icons.settings,
           tooltip: 'Settings',
           onPressed: () {
             _showConfigDialog(
@@ -967,7 +1023,42 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: toolBarItems),
                 ),
                 Container(
-                  height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight),
+                  color: Colors.black,
+                  height: 1,
+                ),
+                _beforeDataLoaded
+                    ? const SizedBox(
+                        height: 0,
+                      )
+                    : Container(
+                        height: appBarHeight,
+                        color: _configData.getAppThemeData().primary.shade500,
+                        child: createNodeNavButtonBar(_selectedPath, _nodeCopyBin, _configData.getAppThemeData(), _isEditDataDisplay, _beforeDataLoaded, (detailActionData) {
+                          switch (detailActionData.action) {
+                            case ActionType.select:
+                              {
+                                _handleTreeSelectState(detailActionData.path);
+                                _reSelectNode();
+                                break;
+                              }
+                            case ActionType.querySelect:
+                              {
+                                return querySelect(detailActionData.path, detailActionData.additional);
+                              }
+                          }
+                          return Path.empty();
+                        }),
+                      ),
+                _beforeDataLoaded
+                    ? const SizedBox(
+                        height: 0,
+                      )
+                    : Container(
+                        color: Colors.black,
+                        height: 1,
+                      ),
+                Container(
+                  height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + (_beforeDataLoaded ? 2 : appBarHeight + 3)),
                   color: _configData.getAppThemeData().primary.shade500,
                   child: displayData.splitView,
                 ),
@@ -982,10 +1073,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     children: [
                       DetailIconButton(
                         appThemeData: _configData.getAppThemeData(),
-                        icon: const Icon(
-                          Icons.view_timeline,
-                          size: statusBarHeight,
-                        ),
+                        iconData: Icons.view_timeline,
                         tooltip: 'Log',
                         padding: const EdgeInsets.all(1.0),
                         onPressed: () {
@@ -1255,7 +1343,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                       },
                       dataAction: (detailAction) {
                         onAction(detailAction.action.name, detailAction.oldValue, OptionsTypeData.forTypeOrName(String, "link"));
-                        return true;
+                        return Path.empty();
                       },
                     )
                   : ValidatedInputField(

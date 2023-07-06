@@ -174,12 +174,20 @@ class AppThemeData {
     debugPrint("AppThemeData: Created!");
   }
 
-  selectedHilightColour(final bool sel, final bool upd) {
+  selectedAndHiLightColour(final bool sel, final bool upd) {
     if (upd) {
       return sel ? secondary.shade300 : secondary.shade500;
     }
     return sel ? primary.shade300 : primary.shade500;
   }
+
+  iconColour(final bool enabled) {
+    if (enabled) {
+      return Colors.black;
+    }
+    return Colors.black26;
+  }
+
 }
 
 class ConfigData {

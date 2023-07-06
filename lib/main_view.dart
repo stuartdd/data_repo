@@ -59,7 +59,7 @@ DisplayData createSplitView(
     final PathPropertiesList pathPropertiesList,
     final Function(Path) onSelect, // Called when a tree node in selected
     final Function(double) onDivChange, // Called when the split pane divider is moved
-    final bool Function(DetailAction) onDataAction,
+    final Path Function(DetailAction) onDataAction,
     final Widget Function(BuildContext, Node<dynamic>) buildNode,
     final void Function(String, int) searchResults,
     final void Function(String) log) {
@@ -84,7 +84,7 @@ DisplayData createSplitView(
       child: const Center(child: Text("Selected Node was not found in the data")),
     );
   }
-  int counter = -1;
+
   final scrollController = ScrollController();
   final listView = MyTreeNodeWidgetList(
     rootTreeNode,
@@ -101,7 +101,6 @@ DisplayData createSplitView(
         searchResults(searchExpression, rowCount);
       }
     },
-    nodeNavigationBar: _createNodeNavButtonBar(selectedPath, nodeCopyBin, appThemeData, onDataAction),
   );
 
   final scroller = SingleChildScrollView(
@@ -147,9 +146,11 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
   return lm;
 }
 
-Widget _createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCopyBin, final AppThemeData appThemeData, final bool Function(DetailAction) dataAction) {
-  final canCopy = selectedPath.hasParent;
-  final canPaste = nodeCopyBin.isNotEmpty() && nodeCopyBin.copyFromPath.isNotEqual(selectedPath);
+Widget createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCopyBin, final AppThemeData appThemeData, bool isEditDataDisplay, bool beforeDataLoaded, final Path Function(DetailAction) dataAction) {
+  final pathUp = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "up"));
+  final pathDown = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "down"));
+  final pathRight = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "right"));
+  final pathParent = selectedPath.hasParent ? selectedPath.cloneParentPath() : Path.empty();
   return Row(
     children: [
       DetailIconButton(
@@ -157,50 +158,50 @@ Widget _createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCo
           dataAction(DetailAction(ActionType.select, false, Path.empty()));
         },
         tooltip: "Home",
-        icon: const Icon(Icons.home),
+        iconData: Icons.home,
         appThemeData: appThemeData,
       ),
       DetailIconButton(
-        show: selectedPath.hasParent,
+        enabled: pathParent.isNotEmpty,
         onPressed: () {
-          dataAction(DetailAction(ActionType.select, false, selectedPath.cloneParentPath()));
+          dataAction(DetailAction(ActionType.select, false, pathParent));
         },
-        tooltip: "Up one level",
-        icon: const Icon(Icons.arrow_upward),
+        tooltip: "Back (${pathParent.toString()})",
+        iconData: Icons.north_west,
         appThemeData: appThemeData,
       ),
       DetailIconButton(
-        show: canCopy,
+        enabled: pathUp.isNotEmpty,
         onPressed: () {
-          dataAction(DetailAction(ActionType.copyNode, false, selectedPath));
+          dataAction(DetailAction(ActionType.select, true, pathUp));
         },
-        tooltip: "Copy This Node",
-        icon: const Icon(Icons.copy),
+        tooltip: "Up (${pathUp.toString()})",
+        iconData: Icons.arrow_upward,
         appThemeData: appThemeData,
       ),
       DetailIconButton(
-        show: canCopy,
+        enabled: pathDown.isNotEmpty,
         onPressed: () {
-          dataAction(DetailAction(ActionType.cutNode, false, selectedPath));
+          dataAction(DetailAction(ActionType.select, true, pathDown));
         },
-        tooltip: "Cut This Node",
-        icon: const Icon(Icons.cut),
+        tooltip: "Down (${pathDown.toString()})",
+        iconData: Icons.arrow_downward,
         appThemeData: appThemeData,
       ),
       DetailIconButton(
-        show: canPaste,
+        enabled: pathRight.isNotEmpty,
         onPressed: () {
-          dataAction(DetailAction(ActionType.pasteNode, false, selectedPath));
+          dataAction(DetailAction(ActionType.select, true, pathRight));
         },
-        tooltip: "Paste into ${selectedPath.last}",
-        icon: const Icon(Icons.paste),
+        tooltip: "Right (${pathRight.toString()})",
+        iconData: Icons.south_east,
         appThemeData: appThemeData,
       ),
     ],
   );
 }
 
-Widget _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, NodeCopyBin copyBin, final bool Function(DetailAction) dataAction) {
+Widget _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, NodeCopyBin copyBin, final Path Function(DetailAction) dataAction) {
   List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath);
   properties.sort(
     (a, b) {

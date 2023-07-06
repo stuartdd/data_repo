@@ -24,6 +24,59 @@ class MyTreeNode {
     return MyTreeNode("", "", null, false);
   }
 
+  Path get up {
+    if (parent == null) {
+      return Path.empty();
+    }
+    if (parent!.children == null) {
+      return Path.empty();
+    }
+    final c = parent!.children;
+    for (var i = (c.length-1); i >= 0; i--) {
+      if (c[i].pathKey == pathKey) {
+        if (i < 1) {
+          return Path.empty();
+        }
+        if (c[i - 1].isNotLeaf) {
+          return c[i - 1].path;
+        }
+        return Path.empty();
+      }
+    }
+    return Path.empty();
+  }
+
+  Path get down {
+    if (parent == null) {
+      return Path.empty();
+    }
+    if (parent!.children == null) {
+      return Path.empty();
+    }
+    final c = parent!.children;
+    for (var i = 0; i < c.length; i++) {
+      if (c[i].pathKey == pathKey) {
+        if (i > (c.length - 2)) {
+          return Path.empty();
+        }
+        if (c[i + 1].isNotLeaf) {
+          return c[i + 1].path;
+        }
+        return Path.empty();
+      }
+    }
+    return Path.empty();
+  }
+
+  Path get firstChild {
+    if (isNotEmpty) {
+      if (children[0].isNotLeaf) {
+        return children[0].path;
+      }
+    }
+    return Path.empty();
+  }
+
   int get iconIndex {
     if (canExpand) {
       if (expanded) {
@@ -73,9 +126,13 @@ class MyTreeNode {
 
   void expandAll(bool exp) {
     visitEachNode((node) {
-      // if (node.isNotEmpty) {
       node.expanded = exp;
-      // }
+    });
+  }
+
+  void expandParent(bool exp) {
+    visitEachParent((node) {
+      node.expanded = exp;
     });
   }
 
@@ -177,12 +234,12 @@ class MyTreeNode {
   }
 }
 
-Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeData appThemeData, final double rowHeight, final bool selected, final int pathLen,final bool hiLight, final Function(MyTreeNode, bool) onClick) {
+Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeData appThemeData, final double rowHeight, final bool selected, final int pathLen, final bool hiLight, final Function(MyTreeNode, bool) onClick) {
   if (node.parentIsExpanded && node.isNotLeaf) {
     node.index = index;
     return Container(
       height: rowHeight,
-      color: appThemeData.selectedHilightColour(selected, hiLight),
+      color: appThemeData.selectedAndHiLightColour(selected, hiLight),
       child: Row(
         children: [
           SizedBox(width: 20.0 * (pathLen - 1)),
@@ -211,11 +268,10 @@ Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeD
 }
 
 class MyTreeNodeWidgetList extends StatefulWidget {
-  const MyTreeNodeWidgetList(this.nodes, this.selectedNode, this.appThemeData, this.rowHeight, this.onSelect, this.pathListProperties, {super.key, this.search = "", this.buildNode = buildNodeDefault, this.nodeNavigationBar, this.onSearchComplete});
+  const MyTreeNodeWidgetList(this.nodes, this.selectedNode, this.appThemeData, this.rowHeight, this.onSelect, this.pathListProperties, {super.key, this.search = "", this.buildNode = buildNodeDefault, this.onSearchComplete});
   final Widget? Function(int, MyTreeNode, AppThemeData, double, bool, int, bool, Function(MyTreeNode, bool)) buildNode;
   final void Function(MyTreeNode) onSelect;
   final void Function(String, int)? onSearchComplete;
-  final Widget? nodeNavigationBar;
   final AppThemeData appThemeData;
   final MyTreeNode nodes;
   final double rowHeight;
@@ -232,9 +288,6 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> children = List.empty(growable: true);
-    if (widget.nodeNavigationBar != null) {
-      children.add(widget.nodeNavigationBar!);
-    }
     int c = 0;
     widget.nodes.visitEachNode(
       (aNode) {

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import "path.dart";
 import 'package:http/http.dart' as http;
 import 'package:http_status_code/http_status_code.dart';
@@ -11,6 +9,7 @@ import 'data_types.dart';
 const timeStampPrefix = "TS:";
 const timeStampPrefixClear = "${timeStampPrefix}C:";
 const timeStampPrefixEnc = "${timeStampPrefix}E:";
+const JsonEncoder formattedJsonEncoder = JsonEncoder.withIndent('  ');
 
 class FilePrefixData {
   final bool hasData;
@@ -19,15 +18,44 @@ class FilePrefixData {
   final bool encrypted;
   FilePrefixData(this.hasData, this.timeStamp, this.startPos, this.encrypted);
 
-  factory FilePrefixData.empty() {
-    return FilePrefixData(false, -1, 0, false);
+  factory FilePrefixData.fromString(String s) {
+    bool hasTimeStampData = false;
+    bool enc = false;
+    int pos = 0;
+    int ts = -1;
+    if (s.startsWith(timeStampPrefixClear)) {
+      hasTimeStampData = true;
+      enc = false;
+      pos = timeStampPrefixClear.length;
+    } else {
+      if (s.startsWith(timeStampPrefixEnc)) {
+        hasTimeStampData = true;
+        enc = true;
+        pos = timeStampPrefixEnc.length;
+      }
+    }
+
+    if (hasTimeStampData) {
+      final sb = StringBuffer();
+      var p1 = pos;
+      var cp = s.codeUnits[p1];
+      while (cp >= 48 && cp <= 57) {
+        sb.writeCharCode(cp);
+        p1++;
+        cp = s.codeUnits[p1];
+      }
+      try {
+        ts = int.parse(sb.toString());
+        return FilePrefixData(true, ts, p1 + 1, enc);
+      } catch (e) {
+        return FilePrefixData.empty();
+      }
+    }
+    return FilePrefixData.empty();
   }
 
-  String getTimeStamp() {
-    if (timeStamp == -1) {
-      return "None";
-    }
-    return DateTime.fromMillisecondsSinceEpoch(timeStamp).toString();
+  factory FilePrefixData.empty() {
+    return FilePrefixData(false, -1, 0, false);
   }
 
   bool isLaterThan(FilePrefixData other) {
@@ -65,9 +93,8 @@ class DataLoadException implements Exception {
 }
 
 class DataContainer {
-  final String _fileContents;
-  final FilePrefixData filePrefixData;
   final String source;
+  late final int _timeStamp;
   late final String _password;
   late final Map<String, dynamic> _dataMap;
 
@@ -75,29 +102,21 @@ class DataContainer {
     return DataContainer("", FilePrefixData.empty(), "", "");
   }
 
-  DataContainer(this._fileContents, this.filePrefixData, this.source, String pw) {
-    if (_fileContents.isEmpty) {
-      _password = "";
-      _dataMap = <String, dynamic>{};
-      return;
-    }
+  DataContainer(final String fileContents, final FilePrefixData filePrefixData, this.source, final String pw) {
     _password = pw;
-    if (_password.isNotEmpty && filePrefixData.encrypted) {
-      final temp = EncryptData.decrypt(_fileContents, _password);
-      _dataMap = jsonDecode(temp);
-    } else {
-      _dataMap = jsonDecode(_fileContents);
-    }
+    _timeStamp = filePrefixData.timeStamp;
+    _dataMap = DataLoad.convertStringToMap(fileContents, pw);
   }
 
-  String dataAsString() {
-    JsonEncoder encoder = const JsonEncoder.withIndent('  ');
-    final ts = DateTime.timestamp().millisecondsSinceEpoch;
-    final text = encoder.convert(_dataMap);
-    if (_password.isNotEmpty) {
-      return "$timeStampPrefixEnc$ts:${EncryptData.encryptAES(text, _password).base64}";
+  String get timeStampString {
+    if (_timeStamp == -1) {
+      return "None";
     }
-    return "$timeStampPrefixClear$ts:$text";
+    return DateTime.fromMillisecondsSinceEpoch(_timeStamp).toString();
+  }
+
+  String get password {
+    return _password;
   }
 
   bool get hasPassword {
@@ -109,10 +128,10 @@ class DataContainer {
   }
 
   bool get isEmpty {
-    return _fileContents.isEmpty;
+    return _dataMap.isEmpty;
   }
 
-  bool get hasData {
+  bool get isNotEmpty {
     return _dataMap.isNotEmpty;
   }
 
@@ -121,9 +140,31 @@ class DataContainer {
   }
 }
 
-
-
 class DataLoad {
+  static String convertMapToStringWithTs(Map<String, dynamic> json, String pw, {bool addTimeStamp = true}) {
+    String tsString = "";
+    if (addTimeStamp) {
+      final ts = DateTime.timestamp().millisecondsSinceEpoch;
+      tsString = "${pw.isEmpty?timeStampPrefixClear:timeStampPrefixEnc}$ts:";
+    }
+    if (pw.isEmpty) {
+      return "$tsString${formattedJsonEncoder.convert(json)}";
+    } else {
+      return "$tsString${EncryptData.encryptAES(jsonEncode(json), pw).base64}";
+    }
+  }
+
+  static Map<String, dynamic> convertStringToMap(String jsonText, String pw) {
+    if (jsonText.isEmpty) {
+      return <String, dynamic>{};
+    }
+    if (pw.isNotEmpty) {
+      return jsonDecode(EncryptData.decrypt(jsonText, pw));
+    } else {
+      return jsonDecode(jsonText);
+    }
+  }
+
   static Future<SuccessState> toHttpPost(final String url, final String body, {void Function(String)? log}) async {
     try {
       final uri = Uri.parse(url);
@@ -171,42 +212,6 @@ class DataLoad {
     }
   }
 
-  static FilePrefixData readFilePrefixData(String s) {
-    bool hasData = false;
-    bool enc = false;
-    int pos = 0;
-    int ts = -1;
-    if (s.startsWith(timeStampPrefixClear)) {
-      hasData = true;
-      enc = false;
-      pos = timeStampPrefixClear.length;
-    } else {
-      if (s.startsWith(timeStampPrefixEnc)) {
-        hasData = true;
-        enc = true;
-        pos = timeStampPrefixEnc.length;
-      }
-    }
-
-    if (hasData) {
-      final sb = StringBuffer();
-      var p1 = pos;
-      var cp = s.codeUnits[p1];
-      while (cp >= 48 && cp <= 57) {
-        sb.writeCharCode(cp);
-        p1++;
-        cp = s.codeUnits[p1];
-      }
-      try {
-        ts = int.parse(sb.toString());
-        return FilePrefixData(true, ts, p1 + 1, enc);
-      } catch (e) {
-        return FilePrefixData.empty();
-      }
-    }
-    return FilePrefixData.empty();
-  }
-
   static SuccessState saveToFile(final String fileName, final String contents) {
     try {
       File(fileName).writeAsStringSync(contents);
@@ -215,10 +220,6 @@ class DataLoad {
       stderr.write("DataLoad:saveToFile: $e\n$s");
       return SuccessState(false, message: e.toString(), exception: e as Exception);
     }
-  }
-
-  static mapToString(final Map<String, dynamic> contents) {
-    return jsonEncode(contents);
   }
 
   static SuccessState loadFromFile(String fileName, {void Function(String)? log}) {
@@ -298,7 +299,6 @@ class DataLoad {
     throw JsonException(message: "getStringFromJson: Node found was NOT a String node", path);
   }
 
-
   static num getNumFromJson(Map<String, dynamic> json, Path path, {num? fallback}) {
     final node = getNodeFromJson(json, path);
     if (node == null) {
@@ -334,32 +334,4 @@ class DataLoad {
     }
     throw JsonException(message: "getMapFromJson: Node found was NOT a Map node", path);
   }
-
-  /// Finds the map at the path.
-  ///   If the last FOUND node is not a map and not a list it returns the parent node of the FOUND node.
-  ///   If the last FOUND node is a map or a list it returns the FOUND node.
-  ///
-  // static Map<String, dynamic>? getLastMapNodeForPath(final Map<String, dynamic> json, Path path) {
-  //   if (json.isEmpty || path.isEmpty) {
-  //     return null;
-  //   }
-  //   var j = json;
-  //   String key;
-  //   dynamic f;
-  //   for (int i = 0; i < path.length(); i++) {
-  //     key = path.peek(i);
-  //     if (key.isNotEmpty) {
-  //       f = j[key];
-  //       if (f == null) {
-  //         return null;
-  //       }
-  //       if (f is! Map<String, dynamic> && f is! List<dynamic>) {
-  //         return j;
-  //       }
-  //       j = f;
-  //     }
-  //   }
-  //   return f;
-  // }
-
 }
