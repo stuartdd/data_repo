@@ -20,7 +20,7 @@ class ApplicationScreen {
     return '{"x":$x,"y":$y,"w":$w,"h":$h,"hDiv":$hDiv}';
   }
 
-  factory ApplicationScreen.fromJson(dynamic map) {
+  factory ApplicationScreen.fromJson(final dynamic map) {
     try {
       return ApplicationScreen(map['x'] as double, map['y'] as double, map['w'] as double, map['h'] as double, map['hDiv'] as double);
     } catch (e) {
@@ -55,7 +55,7 @@ class ApplicationState {
     return (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
   }
 
-  static Future<ApplicationState> readAppStateConfigFile(String appStateConfigFileName, Function(String) log) async {
+  static Future<ApplicationState> readAppStateConfigFile(final String appStateConfigFileName, final Function(String) log) async {
     final bool isDesktop = ApplicationState.appIsDesktop();
     late final String content;
     try {
@@ -90,7 +90,7 @@ class ApplicationState {
     return ApplicationState.fromJson(json, appStateConfigFileName, isDesktop, log);
   }
 
-  Future<bool> writeAppStateConfigFile(bool now) async {
+  Future<bool> writeAppStateConfigFile(final bool now) async {
     if (now) {
       File(_appStateConfigFileName).writeAsString(toString());
       return true;
@@ -112,7 +112,7 @@ class ApplicationState {
     return true;
   }
 
-  bool updateDividerPosState(double hDiv) {
+  bool updateDividerPosState(final double hDiv) {
     if (hDiv == screen.hDiv) {
       return false;
     }
@@ -120,7 +120,7 @@ class ApplicationState {
     return true;
   }
 
-  bool updateScreenState(double x, y, w, h) {
+  bool updateScreenState(final double x, y, w, h) {
     if (_shouldUpdateScreen) {
       if (x == screen.x && y == screen.y && w == screen.w && h == screen.h) {
         return false;
@@ -137,12 +137,12 @@ class ApplicationState {
     return false;
   }
 
-  void setShouldUpdateScreen(bool yes) {
+  void setShouldUpdateScreen(final bool yes) {
     _shouldUpdateScreen = yes;
   }
 
 
-  void addLastFind(String find, int max) {
+  void addLastFind(final String find, final int max) {
     if (find.isEmpty) {
       return;
     }
@@ -168,7 +168,7 @@ class ApplicationState {
     return '{"screen":$screen,"lastFind":${jsonEncode(_lastFind)}}';
   }
 
-  factory ApplicationState.fromJson(dynamic map, String fileName, bool isDesktop, Function(String) log) {
+  factory ApplicationState.fromJson(final dynamic map, final String fileName, final bool isDesktop, final Function(String) log) {
     dynamic lf = map["lastFind"];
     if (lf == null) {
       throw JsonException(message: "Cannot locate 'lastFind' list in Json", Path.fromList(["lastFind"]));

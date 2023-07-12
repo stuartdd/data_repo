@@ -64,7 +64,7 @@ class _DetailIconButton extends State<DetailIconButton> {
     if (widget.show) {
       return IconButton(
         padding: widget.padding,
-        icon: Icon(widget.iconData, color: widget.appThemeData.iconColour(widget.enabled && !grey)),
+        icon: Icon(widget.iconData, color: widget.appThemeData.screenForegroundColour(widget.enabled && !grey)),
         tooltip: widget.tooltip,
         onPressed: () {
           if (!widget.enabled) {
@@ -108,6 +108,7 @@ class _DetailButtonState extends State<DetailButton> {
 
   @override
   Widget build(BuildContext context) {
+    final style = BorderSide(color: widget.appThemeData.screenForegroundColour(!grey), width: 2);
     if (widget.show) {
       return Row(
         children: [
@@ -128,7 +129,7 @@ class _DetailButtonState extends State<DetailButton> {
                   });
                 });
               },
-              style: OutlinedButton.styleFrom(side: grey ? _buttonBorderStyleGrey : _buttonBorderStyle),
+              style: OutlinedButton.styleFrom(side: style),
               child: Text(widget.text, style: grey ? widget.appThemeData.tsMediumDisabled : widget.appThemeData.tsMedium),
             ),
           ),
@@ -259,7 +260,7 @@ class _MarkDownInputField extends State<MarkDownInputField> {
         children: [
           widget.shouldDisplayPreview(false)
               ? Container(
-                  color: widget.appThemeData.hiLight.shade300,
+                  color: widget.appThemeData.hiLight.light,
                   child: Markdown(
                     data: controller.text,
                     selectable: true,
@@ -272,7 +273,7 @@ class _MarkDownInputField extends State<MarkDownInputField> {
                 ),
           widget.shouldDisplayHelp(false)
               ? Container(
-                  color: widget.appThemeData.secondary.shade300,
+                  color: widget.appThemeData.secondary.light,
                   child: Markdown(
                     data: helpText,
                     selectable: true,
@@ -409,7 +410,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
             : Column(children: [
                 Container(
                   alignment: Alignment.centerLeft,
-                  color: widget.appThemeData.error.shade900,
+                  color: widget.appThemeData.error.light,
                   child: Text(
                     " $help ",
                     style: widget.appThemeData.tsMedium,

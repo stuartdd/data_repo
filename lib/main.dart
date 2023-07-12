@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:data_repo/configSettings.dart';
 import 'package:data_repo/data_load.dart';
 import 'package:data_repo/treeNode.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,7 @@ const iconDataFileLoad = Icons.file_open;
 
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
-final PathPropertiesList _pathPropertiesList = PathPropertiesList();
+final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: log);
 final TextEditingController textEditingController = TextEditingController(text: "");
 
 NodeCopyBin _nodeCopyBin = NodeCopyBin.empty();
@@ -115,7 +116,7 @@ class MyApp extends StatelessWidget with WindowListener {
     }
     return MaterialApp(
       title: 'data_repo',
-      theme: ThemeData(primarySwatch: _configData.getPrimaryColour()),
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: MyHomePage(
         title: _configData.getTitle(),
       ),
@@ -175,10 +176,9 @@ class _MyHomePageState extends State<MyHomePage> {
           break;
         }
     }
-    debugPrint("Query Select ${sel.toString()} ($dir) $p");
     return p;
   }
-  
+
   Future<void> _implementLinkState(final String href, final String from) async {
     var urlCanLaunch = await canLaunchUrlString(href); //canLaunch is from url_launcher package
     if (urlCanLaunch) {
@@ -302,14 +302,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (filePrefixData.encrypted && _password.isEmpty) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "No Password Provided", log: log);
+        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Password Provided", log: log);
       });
       return;
     }
 
     if (fileData.isEmpty) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "No Data Available", log: log);
+        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Data Available", log: log);
       });
       return;
     }
@@ -319,13 +319,13 @@ class _MyHomePageState extends State<MyHomePage> {
       data = DataContainer(fileData, filePrefixData, source, _password);
     } catch (r) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "Data file could not be parsed", exception: r as Exception, log: log);
+        _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file could not be parsed", exception: r as Exception, log: log);
       });
       return;
     }
     if (data.isEmpty) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "Data file does not contain any data", log: log);
+        _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file does not contain any data", log: log);
       });
       return;
     }
@@ -333,41 +333,41 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _dataWasUpdated = false;
       _beforeDataLoaded = false;
+      _pathPropertiesList.clear();
       _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
       _treeNodeDataRoot.expandAll(true);
       _selectedPath = Path.fromDotPath(_loadedData.keys.first);
       _selectedTreeNode = _treeNodeDataRoot.findByPath(_selectedPath)!;
-      _pathPropertiesList.clear();
       _globalSuccessState = SuccessState(true, message: "${filePrefixData.encrypted ? "Encrypted " : ""} ${_loadedData.source} File loaded: ${_loadedData.timeStampString}", log: log);
     });
   }
 
-  void _handleAdd(final Path path, final String name, final OptionsTypeData type) async {
+  void _handleAddState(final Path path, final String name, final OptionsTypeData type) async {
     if (name.length < 2) {
-      _globalSuccessState = SuccessState(false, message: "Name is too short");
+      _globalSuccessState = SuccessState(false, message: "__ADD__ Name is too short");
       return;
     }
     final mapNodes = path.pathNodes(_loadedData.dataMap);
     if (mapNodes.error) {
-      _globalSuccessState = SuccessState(false, message: "Path not found");
+      _globalSuccessState = SuccessState(false, message: "__ADD__ Path not found");
       return;
     }
     if (mapNodes.lastNodeIsData) {
-      _globalSuccessState = SuccessState(false, message: "Cannot add to a data node");
+      _globalSuccessState = SuccessState(false, message: "__ADD__ Cannot add to a data node");
       return;
     }
     if (mapNodes.lastNodeAsMap!.containsKey(name)) {
-      _globalSuccessState = SuccessState(false, message: "Name already exists");
+      _globalSuccessState = SuccessState(false, message: "__ADD__ Name already exists");
       return;
     }
     switch (type) {
       case optionTypeDataValue:
         setState(() {
           mapNodes.lastNodeAsMap![name] = "undefined";
+          _dataWasUpdated = true;
           _pathPropertiesList.setUpdated(path);
           _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
-          _dataWasUpdated = true;
           _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
           _reSelectNode(path: path);
           _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log: log);
@@ -377,10 +377,10 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           final Map<String, dynamic> m = {};
           mapNodes.lastNodeAsMap![name] = m;
+          _dataWasUpdated = true;
           _pathPropertiesList.setUpdated(path);
           _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
-          _dataWasUpdated = true;
           _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
           _reSelectNode(path: path);
           _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log: log);
@@ -413,26 +413,26 @@ class _MyHomePageState extends State<MyHomePage> {
     return "";
   }
 
-  void _handleRenameSubmit(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
+  void _handleRenameState(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
     final newName = "$newNameNoSuffix${newType.suffix}";
     final oldName = detailActionData.oldValue;
     if (oldName != newName) {
       setState(() {
         if (newNameNoSuffix.length < 2) {
-          _globalSuccessState = SuccessState(false, message: "New Name is too short");
+          _globalSuccessState = SuccessState(false, message: "__RENAME__ New Name is too short");
           return;
         }
         final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
         if (mapNodes.error) {
-          _globalSuccessState = SuccessState(false, message: "Path not found");
+          _globalSuccessState = SuccessState(false, message: "__RENAME__ Path not found");
           return;
         }
         if (!mapNodes.lastNodeHasParent) {
-          _globalSuccessState = SuccessState(false, message: "Cannot rename root node");
+          _globalSuccessState = SuccessState(false, message: "__RENAME__ Cannot rename root node");
           return;
         }
         if (mapNodes.alreadyContainsName(newName)) {
-          _globalSuccessState = SuccessState(false, message: "Name already exists");
+          _globalSuccessState = SuccessState(false, message: "__RENAME__ Name already exists");
           return;
         }
 
@@ -440,7 +440,6 @@ class _MyHomePageState extends State<MyHomePage> {
         mapNodes.lastNodeParent![newName] = mapNodes.lastNodeAsData;
 
         _dataWasUpdated = true;
-        _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
 
         var newPath = detailActionData.path.cloneRename(newName);
         _pathPropertiesList.setRenamed(newPath);
@@ -448,30 +447,43 @@ class _MyHomePageState extends State<MyHomePage> {
           newPath = newPath.cloneParentPath();
         }
         _pathPropertiesList.setRenamed(newPath);
+        _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
         _reSelectNode(path: newPath);
         _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: log);
       });
     }
   }
 
-  void _handleDelete(final Path path, final String response) async {
+  Path _handleDelete(final Path path) {
+    final mapNodes = path.pathNodes(_loadedData.dataMap);
+    if (mapNodes.error) {
+      _globalSuccessState = SuccessState(false, message: "__DELETE__ Path not found");
+      return Path.empty();
+    }
+    if (!mapNodes.lastNodeHasParent) {
+      _globalSuccessState = SuccessState(false, message: "__DELETE__ Cannot delete root node");
+      return Path.empty();
+    }
+    final parentPath = path.cloneParentPath();
+    if (parentPath.isEmpty) {
+      _globalSuccessState = SuccessState(false, message: "__DELETE__ Parent path is empty");
+      return parentPath;
+    }
+    final parentNode = mapNodes.lastNodeParent;
+    parentNode!.remove(path.last);
+    return parentPath;
+  }
+
+  void _handleDeleteState(final Path path, final String response) async {
     if (response == "OK") {
       setState(() {
-        final mapNodes = path.pathNodes(_loadedData.dataMap);
-        if (mapNodes.error) {
-          _globalSuccessState = SuccessState(false, message: "Path not found");
+        final parentPath = _handleDelete(path);
+        if (parentPath.isEmpty) {
           return;
         }
-        if (!mapNodes.lastNodeHasParent) {
-          _globalSuccessState = SuccessState(false, message: "Cannot delete root node");
-          return;
-        }
-        final parentNode = mapNodes.lastNodeParent;
-        final parentPath = path.cloneParentPath();
-        parentNode!.remove(path.last);
         _dataWasUpdated = true;
-        _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
         _pathPropertiesList.setUpdated(parentPath);
+        _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
         _reSelectNode(path: parentPath);
         _globalSuccessState = SuccessState(true, message: "Removed: '${path.last}'");
       });
@@ -482,7 +494,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       final mapNodes = path.pathNodes(_loadedData.dataMap);
       if (mapNodes.error) {
-        _globalSuccessState = SuccessState(false, message: "Path not found");
+        _globalSuccessState = SuccessState(false, message: "__PASTE__ Path not found");
         return;
       }
       final node = DataLoad.getMapFromJson(_loadedData.dataMap, path);
@@ -492,29 +504,38 @@ class _MyHomePageState extends State<MyHomePage> {
       }
       final newPath = path.cloneAppendList([name]);
       node[name] = _nodeCopyBin.copyNode();
-      _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
       _dataWasUpdated = true;
       _pathPropertiesList.setUpdated(path);
       _pathPropertiesList.setUpdated(newPath);
+      _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
       _reSelectNode(path: newPath);
+      if (_nodeCopyBin.cut) {
+        final p = _handleDelete(_nodeCopyBin.copyFromPath);
+        if (p.isEmpty) {
+          _globalSuccessState = SuccessState(false, message: "__PASTE__ CUT path not removed");
+          return;
+        }
+        _pathPropertiesList.setUpdated(p);
+        _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+      }
       _globalSuccessState = SuccessState(true, message: "Pasted: '$name' into: '${path.last}'");
     });
   }
 
-  void _handleEditSubmit(DetailAction detailActionData, String newValue, OptionsTypeData type) {
+  void _handleEditState(DetailAction detailActionData, String newValue, OptionsTypeData type) {
     if (detailActionData.oldValue != newValue || detailActionData.oldValueType != type) {
       setState(() {
         final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
         if (mapNodes.error) {
-          _globalSuccessState = SuccessState(false, message: "Path not found");
+          _globalSuccessState = SuccessState(false, message: "__EDIT__ Path not found");
           return;
         }
         if (!mapNodes.lastNodeIsData) {
-          _globalSuccessState = SuccessState(false, message: "Cannot edit a map node");
+          _globalSuccessState = SuccessState(false, message: "__EDIT__ Cannot edit a map node");
           return;
         }
         if (!mapNodes.lastNodeHasParent) {
-          _globalSuccessState = SuccessState(false, message: "Cannot edit a root node");
+          _globalSuccessState = SuccessState(false, message: "__EDIT__ Cannot edit a root node");
           return;
         }
         final parentNode = mapNodes.lastNodeParent;
@@ -544,6 +565,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _pathPropertiesList.setUpdated(detailActionData.path);
         _pathPropertiesList.setUpdated(detailActionData.path.cloneParentPath());
         _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+        _reSelectNode(path: detailActionData.path);
         _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.getLastPathElement()} updated");
       });
     }
@@ -615,7 +637,14 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.delete:
             {
-              _showModalDialog(context, "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDelete);
+              _showModalDialog(context, "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState);
+              break;
+            }
+          case ActionType.clip:
+            {
+              setState(() {
+                _globalSuccessState = SuccessState(true, message: "Copied to clipboard");
+              });
               break;
             }
           case ActionType.select:
@@ -636,7 +665,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 true,
                 (action, text, type) {
                   if (action == "OK") {
-                    _handleRenameSubmit(detailActionData, text, type);
+                    _handleRenameState(detailActionData, text, type);
                   }
                 },
                 (initial, value, initialType, valueType) {
@@ -659,7 +688,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 false,
                 (action, text, type) {
                   if (action == "OK") {
-                    _handleEditSubmit(detailActionData, text, type);
+                    _handleEditState(detailActionData, text, type);
                   } else {
                     if (action == "link") {
                       _implementLinkState(text, detailActionData.path.last);
@@ -715,7 +744,6 @@ class _MyHomePageState extends State<MyHomePage> {
               break;
             }
         }
-        ;
         return Path.empty();
       },
       (buildContext, node) {
@@ -727,7 +755,7 @@ class _MyHomePageState extends State<MyHomePage> {
         if (searchExpression.isNotEmpty) {
           if (searchCount == 0) {
             Future.delayed(
-              Duration(milliseconds: 200),
+              const Duration(milliseconds: 200),
               () {
                 _showModalDialog(
                   context,
@@ -770,7 +798,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (_beforeDataLoaded) {
       toolBarItems.add(Container(
-        color: _configData.getAppThemeData().primary.shade400,
+        color: _configData.getAppThemeData().primary.med,
         child: SizedBox(
           width: MediaQuery.of(context).size.width / 3,
           child: TextField(
@@ -805,18 +833,16 @@ class _MyHomePageState extends State<MyHomePage> {
       //
       // Data is loaded
       //
-      toolBarItems.add(
-        DetailIconButton(
-          appThemeData: _configData.getAppThemeData(),
-          iconData: _isEditDataDisplay ?  Icons.search :  Icons.edit,
-          tooltip: _isEditDataDisplay ? 'Search Mode' : "Edit Mode",
-          onPressed: () {
-            setState(() {
-              _isEditDataDisplay = !_isEditDataDisplay;
-            });
-          },
-        )
-      );
+      toolBarItems.add(DetailIconButton(
+        appThemeData: _configData.getAppThemeData(),
+        iconData: _isEditDataDisplay ? Icons.search : Icons.edit,
+        tooltip: _isEditDataDisplay ? 'Search Mode' : "Edit Mode",
+        onPressed: () {
+          setState(() {
+            _isEditDataDisplay = !_isEditDataDisplay;
+          });
+        },
+      ));
       if (_dataWasUpdated || _isEditDataDisplay) {
         toolBarItems.add(
           DetailIconButton(
@@ -857,7 +883,7 @@ class _MyHomePageState extends State<MyHomePage> {
               true,
               (action, text, type) {
                 if (action == "OK") {
-                  _handleAdd(_selectedPath, text, type);
+                  _handleAddState(_selectedPath, text, type);
                 }
               },
               (initial, value, initialType, valueType) {
@@ -876,7 +902,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 });
               },
               tooltip: "Copy This Node",
-              iconData:  Icons.copy,
+              iconData: Icons.copy,
               appThemeData: _configData.getAppThemeData(),
             ),
           );
@@ -908,10 +934,11 @@ class _MyHomePageState extends State<MyHomePage> {
       } else {
         toolBarItems.add(
           Container(
-            color: _configData.getAppThemeData().primary.shade400,
+            color: _configData.getAppThemeData().primary.med,
             child: SizedBox(
               width: MediaQuery.of(context).size.width / 3,
               child: TextField(
+                style: _configData.getAppThemeData().tsMedium,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   hintText: 'Search',
@@ -929,7 +956,7 @@ class _MyHomePageState extends State<MyHomePage> {
         toolBarItems.add(
           DetailIconButton(
             appThemeData: _configData.getAppThemeData(),
-            iconData:  Icons.search,
+            iconData: Icons.search,
             tooltip: 'Search',
             onPressed: () {
               _setSearchExpressionState(textEditingController.text);
@@ -982,19 +1009,18 @@ class _MyHomePageState extends State<MyHomePage> {
                 // Validate
                 return "";
               },
-              (settingsControl) {
+              (settingsControlList, save) {
                 // Commit
-                log("__SETTINGS:__ ${settingsControl.detail.path} Type:${settingsControl.detail.valueType} Value:'${settingsControl.value}'");
-                final msg = DataLoad.setValueForJsonPath(_configData.getJson(), settingsControl.detail.path, settingsControl.value);
+                // log("__SETTINGS:__ ${settingsControl.detail.path} Type:${settingsControl.detail.detailType} Value:'${settingsControl.stringValue}'");
+                // final msg = DataLoad.setValueForJsonPath(_configData.getJson(), settingsControl.detail.path, settingsControl.dynamicValue);
+                settingsControlList.commit(_configData.getJson());
                 setState(() {
                   _configData.update();
-                });
-                return msg;
-              },
-              () {
-                // Save
-                setState(() {
-                  _globalSuccessState = _configData.save(log);
+                  if (save) {
+                    _globalSuccessState = _configData.save(log);
+                  } else {
+                    _globalSuccessState = SuccessState(true, message: "Config data NOT saved");
+                  }
                 });
               },
             );
@@ -1008,6 +1034,8 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     //
+    final appBackgroundColor = _configData.getAppThemeData().screenBackgroundColor;
+    final appBackgroundErrorColor = _configData.getAppThemeData().screenBackgroundErrorColor;
     return Scaffold(
       body: SingleChildScrollView(
           child: Stack(
@@ -1019,7 +1047,7 @@ class _MyHomePageState extends State<MyHomePage> {
               children: [
                 Container(
                   height: appBarHeight,
-                  color: _configData.getAppThemeData().primary.shade500,
+                  color: appBackgroundColor,
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: toolBarItems),
                 ),
                 Container(
@@ -1032,7 +1060,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       )
                     : Container(
                         height: appBarHeight,
-                        color: _configData.getAppThemeData().primary.shade500,
+                        color: appBackgroundColor,
                         child: createNodeNavButtonBar(_selectedPath, _nodeCopyBin, _configData.getAppThemeData(), _isEditDataDisplay, _beforeDataLoaded, (detailActionData) {
                           switch (detailActionData.action) {
                             case ActionType.select:
@@ -1044,6 +1072,10 @@ class _MyHomePageState extends State<MyHomePage> {
                             case ActionType.querySelect:
                               {
                                 return querySelect(detailActionData.path, detailActionData.additional);
+                              }
+                            default:
+                              {
+                                return Path.empty();
                               }
                           }
                           return Path.empty();
@@ -1059,7 +1091,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                 Container(
                   height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + (_beforeDataLoaded ? 2 : appBarHeight + 3)),
-                  color: _configData.getAppThemeData().primary.shade500,
+                  color: appBackgroundColor,
                   child: displayData.splitView,
                 ),
                 Container(
@@ -1068,7 +1100,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 Container(
                   height: statusBarHeight,
-                  color: _globalSuccessState.isSuccess ? _configData.getAppThemeData().primary.shade500 : _configData.getAppThemeData().error.shade500,
+                  color: _globalSuccessState.isSuccess ? appBackgroundColor : appBackgroundErrorColor,
                   child: Row(
                     children: [
                       DetailIconButton(
@@ -1095,62 +1127,52 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Future<void> _showConfigDialog(final BuildContext context, AppThemeData appThemeData, final String fileName, final String Function(dynamic, SettingDetail) validate, final String Function(SettingControl) commit, final Function() saveConfig) async {
-  List<SettingControl>? controlList = _configData.createSettingsControlList();
+Future<void> _showConfigDialog(final BuildContext context, AppThemeData appThemeData, final String fileName, final String Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit) async {
   return showDialog<void>(
-    context: context,
-    barrierColor: _configData.getPrimaryColour().shade300,
-    barrierDismissible: false, // user must tap button!
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: _configData.getPrimaryColour().shade600,
-        title: Text("Settings:", style: appThemeData.tsLarge),
-        content: SizedBox(
-          height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
-          width: MediaQuery.of(context).size.width,
-          child: SingleChildScrollView(
-              child: Column(
-            children: _configData.getSettingsWidgets(null, appThemeData, controlList, (value, detail) {
-              return "";
-            }),
-          )),
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: Text('Save', style: _configData.getAppThemeData().tsMedium),
-            onPressed: () {
-              if (controlList.isNotEmpty) {
-                int count = 0;
-                for (final c in controlList) {
-                  if (c.changed) {
-                    commit(c);
-                    count++;
-                  }
-                }
-                if (count > 0) {
-                  saveConfig();
-                }
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
+          title: Row(
+            children: [
+              Text("Settings:  Current Pallet:", style: appThemeData.tsLarge),
+              Icon(
+                Icons.circle_rounded,
+                color: appThemeData.primary.lightest,
+              ),
+              Icon(
+                Icons.circle_rounded,
+                color: appThemeData.primary.light,
+              ),
+              Icon(
+                Icons.circle_rounded,
+                color: appThemeData.primary.med,
+              ),
+              Icon(
+                Icons.circle_rounded,
+                color: appThemeData.primary.dark,
+              ),
+              Icon(
+                Icons.circle_rounded,
+                color: appThemeData.primary.darkest,
+              ),
+            ],
+          ),
+          content: ConfigInputPage(
+            appThemeData: appThemeData,
+            settingsControlList: SettingControlList(appThemeData.desktop, _configData.getJson()),
+            onValidate: validate,
+            onCommit: (settingsControlList, shouldSave) {
+              if (settingsControlList.canSaveOrApply) {
+                onCommit(settingsControlList, shouldSave);
               }
               Navigator.of(context).pop();
             },
+            height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
+            width: MediaQuery.of(context).size.width,
           ),
-          TextButton(
-            child: Text('Close', style: _configData.getAppThemeData().tsMedium),
-            onPressed: () {
-              if (controlList.isNotEmpty) {
-                for (final c in controlList) {
-                  if (c.changed) {
-                    commit(c);
-                  }
-                }
-              }
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    },
-  );
+        );
+      });
 }
 
 Future<void> _showLogDialog(final BuildContext context, final String log) async {
@@ -1167,12 +1189,12 @@ Future<void> _showLogDialog(final BuildContext context, final String log) async 
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        backgroundColor: _configData.getAppThemeData().primary.shade300,
+        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
         title: Text('Event Log', style: _configData.getAppThemeData().tsMedium),
         content: SingleChildScrollView(
             child: Container(
-          color: _configData.getAppThemeData().primary.shade100,
-          height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
+          color: _configData.getAppThemeData().primary.light,
+          height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight),
           width: MediaQuery.of(context).size.width,
           child: Markdown(
             controller: scrollController,
@@ -1220,7 +1242,7 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        backgroundColor: _configData.getPrimaryColour().shade300,
+        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
         title: Text('Previous Searches', style: _configData.getAppThemeData().tsMedium),
         content: SingleChildScrollView(
           child: ListBody(
@@ -1266,13 +1288,13 @@ Future<void> _showModalDialog(final BuildContext context, final String title, fi
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        backgroundColor: _configData.getPrimaryColour().shade300,
+        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
         title: Text(title, style: _configData.getAppThemeData().tsMedium),
         content: SingleChildScrollView(
           child: ListBody(
             children: [
               for (int i = 0; i < texts.length; i++) ...[
-                (texts[i].startsWith('#')) ? Container(alignment: Alignment.center, color: _configData.getPrimaryColour().shade500, child: Text(texts[i].substring(1), style: _configData.getAppThemeData().tsMedium)) : Text(texts[i], style: _configData.getAppThemeData().tsMedium),
+                (texts[i].startsWith('#')) ? Container(alignment: Alignment.center, color: _configData.getPrimaryColour().dark, child: Text(texts[i].substring(1), style: _configData.getAppThemeData().tsMedium)) : Text(texts[i], style: _configData.getAppThemeData().tsMedium),
               ]
             ],
           ),
@@ -1308,7 +1330,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        backgroundColor: _configData.getPrimaryColour().shade300,
+        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
         title: SizedBox(height: inputTextTitleStyleHeight, child: Text(title, style: _configData.getAppThemeData().tsMedium)),
         content: SingleChildScrollView(
           child: ListBody(

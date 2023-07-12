@@ -42,12 +42,12 @@ void main() {
     expect(DataLoad.getStringFromJson(s, appAdd2), "appAdd2add");
 
     expect(DataLoad.setValueForJsonPath(s, appAdd3, true), "");
-    expect(DataLoad.geBoolFromJson(s, appAdd3), true);
+    expect(DataLoad.getBoolFromJson(s, appAdd3), true);
     expect(DataLoad.getStringFromJson(s, appTitle), "title");
     expect(DataLoad.getStringFromJson(s, appAdd1), "appAdd1");
     expect(DataLoad.getStringFromJson(s, appAdd2), "appAdd2add");
     expect(DataLoad.setValueForJsonPath(s, appAdd3, false), "");
-    expect(DataLoad.geBoolFromJson(s, appAdd3), false);
+    expect(DataLoad.getBoolFromJson(s, appAdd3), false);
     expect(DataLoad.setValueForJsonPath(s, appAdd3, 99), "");
     expect(DataLoad.getNumFromJson(s, appAdd3), 99);
     expect(DataLoad.setValueForJsonPath(s, appAdd3, 99.9), "");
@@ -131,7 +131,7 @@ void main() {
   test('Test Get JSON bool', () async {
     try {
       var s = json_tools.jsonDecode(DataLoad.loadFromFile("test/data/config.json").value);
-      expect(DataLoad.geBoolFromJson(s, Path.fromList(["log", "active"])), true);
+      expect(DataLoad.getBoolFromJson(s, Path.fromList(["log", "active"])), true);
       expect(DataLoad.getNumFromJson(s, Path.fromList(["log", "active"])), 0);
       fail("Did not throw any Exception");
     } on JsonException catch (e) {

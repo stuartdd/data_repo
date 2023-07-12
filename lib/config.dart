@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'data_load.dart';
@@ -13,8 +11,9 @@ const String defaultDataFileName = "data.json";
 const String defaultAppStateFileName = "appState.json";
 const String defaultPrimaryColour = "blue";
 const String defaultSecondaryColour = "green";
-const String defaultHilightColour = "yellow";
+const String defaultHiLightColour = "yellow";
 const String defaultErrorColour = "red";
+const String defaultDarkMode = "false";
 const String defaultUserName = "User";
 const int defaultFetchTimeoutMillis = 2000;
 const String defaultDataFilePath = "";
@@ -35,57 +34,59 @@ const defaultConfig = """  {
         }
     } """;
 
-final _getDataUrlPath = Path.fromList(["file", "getDataUrl"]);
-final _postDataUrlPath = Path.fromList(["file", "postDataUrl"]);
-final _dataFileLocalNamePath = Path.fromList(["file", "datafile"]);
-final _dataFileLocalDirPath = Path.fromList(["file", "datafilePath"]);
-final _appStateFileNamePath = Path.fromList(["user", "appStateFile"]);
-final _appStateLocalDirPath = Path.fromList(["user", "appStatePath"]);
-final _userNamePath = Path.fromList(["user", "name"]);
-final _userIdPath = Path.fromList(["user", "id"]);
-final _titlePath = Path.fromList(["application", "title"]);
-final _appColoursPrimaryPath = Path.fromList(["application", "colours", "primary"]);
-final _appColoursSecondaryPath = Path.fromList(["application", "colours", "secondary"]);
-final _appColoursHiLightPath = Path.fromList(["application", "colours", "hilight"]);
-final _appColoursErrorPath = Path.fromList(["application", "colours", "error"]);
-final _dataFetchTimeoutMillisPath = Path.fromList(["application", "dataFetchTimeoutMillis"]);
+final getDataUrlPath = Path.fromList(["file", "getDataUrl"]);
+final postDataUrlPath = Path.fromList(["file", "postDataUrl"]);
+final dataFileLocalNamePath = Path.fromList(["file", "datafile"]);
+final dataFileLocalDirPath = Path.fromList(["file", "datafilePath"]);
+final appStateFileNamePath = Path.fromList(["user", "appStateFile"]);
+final appStateLocalDirPath = Path.fromList(["user", "appStatePath"]);
+final userNamePath = Path.fromList(["user", "name"]);
+final userIdPath = Path.fromList(["user", "id"]);
+final titlePath = Path.fromList(["application", "title"]);
+final appColoursDarkMode = Path.fromList(["application", "darkMode"]);
+final appColoursPrimaryPath = Path.fromList(["application", "colours", "primary"]);
+final appColoursSecondaryPath = Path.fromList(["application", "colours", "secondary"]);
+final appColoursHiLightPath = Path.fromList(["application", "colours", "hilight"]);
+final appColoursErrorPath = Path.fromList(["application", "colours", "error"]);
+final dataFetchTimeoutMillisPath = Path.fromList(["application", "dataFetchTimeoutMillis"]);
 
-final List<SettingDetail> _settingsData = [
-  SettingDetail("User Name", "The users proper name", _userNamePath, "ES", "User", true),
-  SettingDetail("Server URL (GET)", "The web address of the host server", _getDataUrlPath, "URL", defaultRemoteGetUrl, true),
-  SettingDetail("Server URL (SAVE)", "The web address of the host server", _postDataUrlPath, "URL", defaultRemotePostUrl, true),
-  SettingDetail("Local Data file path", "The directory for the data file", _dataFileLocalDirPath, "DIR", defaultDataFilePath, false),
-  SettingDetail("Data file Name", "The name of the server file", _dataFileLocalNamePath, "FILE", defaultDataFilePath, true),
-  SettingDetail("Primary Colour", "The main colour theme", _appColoursPrimaryPath, "COLOUR", defaultPrimaryColour, true),
-  SettingDetail("Preview Colour", "The Markdown 'Preview' colour", _appColoursSecondaryPath, "COLOUR", defaultSecondaryColour, true),
-  SettingDetail("Help Colour", "The Markdown 'Help' colour", _appColoursHiLightPath, "COLOUR", defaultHilightColour, true),
-  SettingDetail("Error Colour", "The Error colour theme", _appColoursErrorPath, "COLOUR", defaultErrorColour, true),
-];
+class ColorPallete {
+  final Color lightest;
+  final Color light;
+  final Color med;
+  final Color dark;
+  final Color darkest;
 
-const List<IconData> defaultTreeNodeIconData = [Icons.list_sharp, Icons.arrow_downward, Icons.arrow_forward];
+  const ColorPallete(this.lightest, this.light, this.med, this.dark, this.darkest);
 
-const Map<String, MaterialColor> _colourNames = <String, MaterialColor>{
-  'red': Colors.red,
-  'pink': Colors.pink,
-  'purple': Colors.purple,
-  'deepPurple': Colors.deepPurple,
-  'indigo': Colors.indigo,
-  'blue': Colors.blue,
-  'lightBlue': Colors.lightBlue,
-  'cyan': Colors.cyan,
-  'teal': Colors.teal,
-  'green': Colors.green,
-  'lightGreen': Colors.lightGreen,
-  'lime': Colors.lime,
-  'yellow': Colors.yellow,
-  'amber': Colors.amber,
-  'orange': Colors.orange,
-  'deepOrange': Colors.deepOrange,
-  'brown': Colors.brown,
-  // The grey swatch is intentionally omitted because when picking a color
-  // randomly from this list to colorize an application, picking grey suddenly
-  // makes the app look disabled.
-  'blueGrey': Colors.blueGrey,
+  factory ColorPallete.fromMaterialColor(MaterialColor mc) {
+    return ColorPallete(mc.shade200, mc.shade300, mc.shade500, mc.shade800, mc.shade900);
+  }
+}
+
+const List<IconData> defaultTreeNodeIconData = [Icons.list_sharp, Icons.arrow_downward, Icons.arrow_forward, Icons.tour_outlined];
+
+Map<String, ColorPallete> colourNames = <String, ColorPallete>{
+  'black': const ColorPallete(Colors.white, Colors.black12, Colors.black38, Colors.black54, Colors.black),
+  'white': const ColorPallete(Colors.black, Colors.black54, Colors.black38, Colors.black12, Colors.white),
+  'red': ColorPallete.fromMaterialColor(Colors.red),
+  'pink': ColorPallete.fromMaterialColor(Colors.pink),
+  'purple': ColorPallete.fromMaterialColor(Colors.purple),
+  'deepPurple': ColorPallete.fromMaterialColor(Colors.deepPurple),
+  'indigo': ColorPallete.fromMaterialColor(Colors.indigo),
+  'blue': ColorPallete.fromMaterialColor(Colors.blue),
+  'lightBlue': ColorPallete.fromMaterialColor(Colors.lightBlue),
+  'cyan': ColorPallete.fromMaterialColor(Colors.cyan),
+  'teal': ColorPallete.fromMaterialColor(Colors.teal),
+  'green': ColorPallete.fromMaterialColor(Colors.green),
+  'lightGreen': ColorPallete.fromMaterialColor(Colors.lightGreen),
+  'lime': ColorPallete.fromMaterialColor(Colors.lime),
+  'yellow': ColorPallete.fromMaterialColor(Colors.yellow),
+  'amber': ColorPallete.fromMaterialColor(Colors.amber),
+  'orange': ColorPallete.fromMaterialColor(Colors.orange),
+  'deepOrange': ColorPallete.fromMaterialColor(Colors.deepOrange),
+  'brown': ColorPallete.fromMaterialColor(Colors.brown),
+  'blueGrey': ColorPallete.fromMaterialColor(Colors.blueGrey),
 };
 
 class ColourNameException implements Exception {
@@ -97,44 +98,13 @@ class ColourNameException implements Exception {
   }
 }
 
-class SettingDetail {
-  final String title;
-  final String hint;
-  final Path path;
-  final String valueType;
-  final String fallback;
-  final bool desktopOnly;
-  const SettingDetail(this.title, this.hint, this.path, this.valueType, this.fallback, this.desktopOnly);
-}
-
-class SettingControl {
-  final SettingDetail detail;
-  final String oldValue;
-  var error = false;
-  final controller = TextEditingController();
-
-  SettingControl(this.detail, this.oldValue) {
-    controller.text = oldValue;
-  }
-  String get value {
-    return controller.text.trim();
-  }
-
-  bool get changed {
-    return oldValue.trim() != value;
-  }
-
-  @override
-  String toString() {
-    return "${error ? 'Error' : 'OK'}: ${changed ? '*' : ''} Old:'$oldValue' New:'$value' Path:${detail.path} ";
-  }
-}
-
 class AppThemeData {
-  final MaterialColor primary;
-  final MaterialColor secondary;
-  final MaterialColor hiLight;
-  final MaterialColor error;
+  final ColorPallete primary;
+  final ColorPallete secondary;
+  final ColorPallete hiLight;
+  final ColorPallete error;
+  final bool darkMode;
+  final bool desktop;
   late final TextStyle tsLarge;
   late final TextStyle tsLargeDisabled;
   late final TextStyle tsMedium;
@@ -150,25 +120,26 @@ class AppThemeData {
   late final double treeNodeHeight;
   late final List<Icon> treeNodeIcons;
 
-  AppThemeData._(this.primary, this.secondary, this.hiLight, this.error, String font, double scale, Color col, Color errC) {
+  AppThemeData._(this.primary, this.secondary, this.hiLight, this.error, String font, double scale, Color errC, this.darkMode, this.desktop) {
     tsScale = scale;
-    tsLarge = TextStyle(fontFamily: font, fontSize: (25.0 * scale), color: col);
-    tsLargeDisabled = TextStyle(fontFamily: font, fontSize: (25.0 * scale), color: col.withAlpha(10));
+    tsLarge = TextStyle(fontFamily: font, fontSize: (25.0 * scale), color: screenForegroundColour(true));
+    tsLargeDisabled = TextStyle(fontFamily: font, fontSize: (25.0 * scale), color: screenForegroundColour(false));
     tsLargeError = TextStyle(fontFamily: font, fontSize: (25.0 * scale), color: errC);
-    tsMedium = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: col);
-    tsMediumDisabled = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: col.withAlpha(10));
+    tsMedium = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: screenForegroundColour(true));
+    tsMediumDisabled = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: screenForegroundColour(false));
     tsMediumError = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: errC);
-    tsSmall = TextStyle(fontFamily: font, fontSize: (15.0 * scale), color: col);
-    tsSmallDisabled = TextStyle(fontFamily: font, fontSize: (15.0 * scale), color: col.withAlpha(10));
+    tsSmall = TextStyle(fontFamily: font, fontSize: (15.0 * scale), color: screenForegroundColour(true));
+    tsSmallDisabled = TextStyle(fontFamily: font, fontSize: (15.0 * scale), color: screenForegroundColour(false));
     tsSmallError = TextStyle(fontFamily: font, fontSize: (15.0 * scale), color: errC);
-    tsTreeViewLabel = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: col);
-    tsTreeViewParentLabel = TextStyle(fontFamily: font, fontSize: (25.0 * scale), fontWeight: FontWeight.w600, color: col);
+    tsTreeViewLabel = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: screenForegroundColour(true));
+    tsTreeViewParentLabel = TextStyle(fontFamily: font, fontSize: (25.0 * scale), fontWeight: FontWeight.w600, color: screenForegroundColour(true));
     treeNodeHeight = defaultTreeNodeHeight;
     treeNodeIcons = List.empty(growable: true);
     for (int i = 0; i < defaultTreeNodeIconData.length; i++) {
       treeNodeIcons.add(Icon(
         defaultTreeNodeIconData[i],
         size: treeNodeHeight - 11,
+        color: screenForegroundColour(true),
       ));
     }
     debugPrint("AppThemeData: Created!");
@@ -176,18 +147,33 @@ class AppThemeData {
 
   selectedAndHiLightColour(final bool sel, final bool upd) {
     if (upd) {
-      return sel ? secondary.shade300 : secondary.shade500;
+      return sel ? secondary.lightest : secondary.light;
     }
-    return sel ? primary.shade300 : primary.shade500;
+    return sel ? primary.lightest : primary.light;
   }
 
-  iconColour(final bool enabled) {
+  Color screenForegroundColour(final bool enabled) {
     if (enabled) {
-      return Colors.black;
+      return darkMode ? Colors.white : Colors.black;
     }
     return Colors.black26;
   }
 
+  Color get screenBackgroundColor {
+    return primary.med;
+  }
+
+  Color get dialogBackgroundColor {
+    return darkMode ? primary.dark : primary.lightest;
+  }
+
+  Color get cursorColor {
+    return darkMode ? Colors.black : Colors.white;
+  }
+
+  Color get screenBackgroundErrorColor {
+    return error.med;
+  }
 }
 
 class ConfigData {
@@ -208,10 +194,18 @@ class ConfigData {
   String _getDataFileUrl = "";
   String _postDataFileUrl = "";
   String _dataFileLocalDir = ""; // Where the data file is. Desktop: defined by config. Mobile: Always _applicationDefaultDir
-  MaterialColor _appColoursPrimary = Colors.blue;
-  MaterialColor _appColoursSecondary = Colors.green;
-  MaterialColor _appColoursHiLight = Colors.yellow;
-  MaterialColor _appColoursError = Colors.red;
+  ColorPallete _appColoursPrimary = ColorPallete.fromMaterialColor(Colors.blue);
+  ColorPallete _appColoursSecondary = ColorPallete.fromMaterialColor(Colors.green);
+  ColorPallete _appColoursHiLight = ColorPallete.fromMaterialColor(Colors.yellow);
+  ColorPallete _appColoursError = ColorPallete.fromMaterialColor(Colors.red);
+  bool _darkMode = false;
+
+  String screenModeColourName(final bool enabled) {
+    if (enabled) {
+      return _darkMode ? "white" : "black";
+    }
+    return "brown";
+  }
 
   ConfigData(this._applicationDefaultDir, this._configFileName, this._isDesktop, this.log) {
     log("__PLATFORM:__ ${_isDesktop ? 'DESKTOP' : 'MOBILE'}");
@@ -234,15 +228,15 @@ class ConfigData {
     _configJson = jsonDecode(resp.value);
 
     if (_isDesktop) {
-      _appStateLocalDir = DataLoad.getStringFromJson(getJson(), _appStateLocalDirPath, fallback: _applicationDefaultDir);
+      _appStateLocalDir = DataLoad.getStringFromJson(getJson(), appStateLocalDirPath, fallback: _applicationDefaultDir);
     } else {
       _appStateLocalDir = _applicationDefaultDir;
     }
-    _appStateFileName = DataLoad.getStringFromJson(getJson(), _appStateFileNamePath, fallback: defaultAppStateFileName);
+    _appStateFileName = DataLoad.getStringFromJson(getJson(),appStateFileNamePath, fallback: defaultAppStateFileName);
 
     update();
-    _title = DataLoad.getStringFromJson(getJson(), _titlePath, fallback: defaultAppTitle);
-    _dataFetchTimeoutMillis = DataLoad.getNumFromJson(_configJson, _dataFetchTimeoutMillisPath, fallback: defaultFetchTimeoutMillis) as int;
+    _title = DataLoad.getStringFromJson(getJson(), titlePath, fallback: defaultAppTitle);
+    _dataFetchTimeoutMillis = DataLoad.getNumFromJson(_configJson, dataFetchTimeoutMillisPath, fallback: defaultFetchTimeoutMillis) as int;
     log("__LOCAL DATA FILE:__ ${getDataFileLocal()}");
     log("__REMOTE DATA GET:__ ${getGetDataFileUrl()}");
     log("__REMOTE DATA POST:__ ${getPostDataFileUrl()}");
@@ -251,25 +245,26 @@ class ConfigData {
   }
 
   void update() {
-    _userName = DataLoad.getStringFromJson(_configJson, _userNamePath, fallback: defaultUserName, create: true);
-    _userId = DataLoad.getStringFromJson(_configJson, _userIdPath, fallback: defaultUserName.toLowerCase(), create: true);
-    _getDataFileUrl = DataLoad.getStringFromJson(_configJson, _getDataUrlPath, fallback: defaultRemoteGetUrl, create: true);
-    _postDataFileUrl = DataLoad.getStringFromJson(_configJson, _postDataUrlPath, fallback: defaultRemotePostUrl, create: true);
-    _dataFileName = DataLoad.getStringFromJson(_configJson, _dataFileLocalNamePath, fallback: defaultDataFileName, create: true);
+    _userName = DataLoad.getStringFromJson(_configJson, userNamePath, fallback: defaultUserName, create: true);
+    _userId = DataLoad.getStringFromJson(_configJson, userIdPath, fallback: defaultUserName.toLowerCase(), create: true);
+    _getDataFileUrl = DataLoad.getStringFromJson(_configJson, getDataUrlPath, fallback: defaultRemoteGetUrl, create: true);
+    _postDataFileUrl = DataLoad.getStringFromJson(_configJson, postDataUrlPath, fallback: defaultRemotePostUrl, create: true);
+    _dataFileName = DataLoad.getStringFromJson(_configJson, dataFileLocalNamePath, fallback: defaultDataFileName, create: true);
     if (_isDesktop) {
-      _dataFileLocalDir = DataLoad.getStringFromJson(_configJson, _dataFileLocalDirPath, fallback: _applicationDefaultDir, create: true);
+      _dataFileLocalDir = DataLoad.getStringFromJson(_configJson, dataFileLocalDirPath, fallback: _applicationDefaultDir, create: true);
     } else {
       _dataFileLocalDir = _applicationDefaultDir;
     }
-    _appColoursPrimary = validColour(DataLoad.getStringFromJson(_configJson, _appColoursPrimaryPath, fallback: "blue", create: true), _appColoursPrimaryPath);
-    _appColoursSecondary = validColour(DataLoad.getStringFromJson(_configJson, _appColoursSecondaryPath, fallback: "green", create: true), _appColoursSecondaryPath);
-    _appColoursHiLight = validColour(DataLoad.getStringFromJson(_configJson, _appColoursHiLightPath, fallback: "yellow", create: true), _appColoursHiLightPath);
-    _appColoursError = validColour(DataLoad.getStringFromJson(_configJson, _appColoursErrorPath, fallback: "red", create: true), _appColoursErrorPath);
+    _appColoursPrimary = validColour(DataLoad.getStringFromJson(_configJson, appColoursPrimaryPath, fallback: screenModeColourName(true), create: true), appColoursPrimaryPath);
+    _appColoursSecondary = validColour(DataLoad.getStringFromJson(_configJson, appColoursSecondaryPath, fallback: "green", create: true), appColoursSecondaryPath);
+    _appColoursHiLight = validColour(DataLoad.getStringFromJson(_configJson, appColoursHiLightPath, fallback: "yellow", create: true), appColoursHiLightPath);
+    _appColoursError = validColour(DataLoad.getStringFromJson(_configJson, appColoursErrorPath, fallback: "red", create: true), appColoursErrorPath);
+    _darkMode = DataLoad.getBoolFromJson(_configJson, appColoursDarkMode, fallback: false);
     _appThemeData = null;
   }
 
   AppThemeData getAppThemeData() {
-    _appThemeData ??= AppThemeData._(_appColoursPrimary, _appColoursSecondary, _appColoursHiLight, _appColoursError, defaultFontFamily, _isDesktop ? defaultFontScaleDesktop : defaultFontScaleMobile, Colors.black, Colors.red);
+    _appThemeData ??= AppThemeData._(_appColoursPrimary, _appColoursSecondary, _appColoursHiLight, _appColoursError, defaultFontFamily, _isDesktop ? defaultFontScaleDesktop : defaultFontScaleMobile, Colors.red, _darkMode, _isDesktop);
     return _appThemeData!;
   }
 
@@ -277,12 +272,12 @@ class ConfigData {
     return _configJson;
   }
 
-  MaterialColor getPrimaryColour() {
+  ColorPallete getPrimaryColour() {
     return _appColoursPrimary;
   }
 
-  MaterialColor validColour(String colourName, Path path) {
-    final c = _colourNames[colourName];
+  ColorPallete validColour(String colourName, Path path) {
+    final c = colourNames[colourName];
     if (c == null) {
       throw ColourNameException("Invalid colour name at path:${path.toString()}");
     }
@@ -358,132 +353,5 @@ class ConfigData {
     return "Url:${getGetDataFileUrl()} File:${getDataFileLocal()}";
   }
 
-  String _initialValidate(String value, SettingDetail detail, String Function(String, SettingDetail) onValidate) {
-    final vt = value.trim();
-    switch (detail.valueType) {
-      case "COLOUR":
-        {
-          if (!_colourNames.containsKey(value)) {
-            return "Invalid Colour Name";
-          }
-          break;
-        }
-      case "URL":
-        {
-          if (vt.isEmpty) {
-            return "URL name cannot be empty";
-          }
-          if (vt.length < 8 || !vt.toLowerCase().startsWith("http://")) {
-            return "Invalid URL. Must start http://";
-          }
-          break;
-        }
-      case "DIR":
-        {
-          if (vt.isEmpty) {
-            return "Directory name cannot be empty";
-          }
-          final exist = Directory(vt).existsSync();
-          if (!exist) {
-            return "Directory does not exist";
-          }
-          break;
-        }
-      case "FILE":
-        {
-          if (vt.isEmpty) {
-            return "File name cannot be empty";
-          }
-          break;
-        }
-    }
-    return onValidate(value, detail);
-  }
-
-  List<SettingControl> createSettingsControlList() {
-    final c = List<SettingControl>.empty(growable: true);
-    for (var settingDetail in _settingsData) {
-      if (_isDesktop || settingDetail.desktopOnly) {
-        c.add(SettingControl(settingDetail, DataLoad.getStringFromJson(getJson(), settingDetail.path, fallback: settingDetail.fallback)));
-      }
-    }
-    return c;
-  }
-
-  List<Widget> getSettingsWidgets(Key? key, AppThemeData appThemeData, List<SettingControl> settingsControl, String Function(String, SettingDetail) onValidate) {
-    final l = List<Widget>.empty(growable: true);
-    for (var scN in settingsControl) {
-      if (_isDesktop || scN.detail.desktopOnly) {
-        l.add(
-          Card(
-            margin: EdgeInsetsGeometry.lerp(null, null, 5),
-            child: ConfigInputField(
-              key: key,
-              settingsControl: scN,
-              appThemeData: appThemeData,
-              onChanged: (val, ocSc) {
-                final msg = _initialValidate(val, ocSc.detail, onValidate);
-                ocSc.error = msg.isNotEmpty;
-                return msg;
-              },
-            ),
-          ),
-        );
-      }
-    }
-    return l;
-  }
 }
 
-class ConfigInputField extends StatefulWidget {
-  const ConfigInputField({super.key, required this.settingsControl, required this.onChanged, required this.appThemeData});
-  final SettingControl settingsControl;
-  final String Function(String, SettingControl) onChanged;
-  final AppThemeData appThemeData;
-  @override
-  State<ConfigInputField> createState() => _ConfigInputFieldState();
-}
-
-class _ConfigInputFieldState extends State<ConfigInputField> {
-  String help = "";
-  @override
-  initState() {
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final h = help.isEmpty ? widget.settingsControl.detail.hint : "Error: $help";
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          color: widget.appThemeData.primary.shade300,
-          child: ListTile(
-            leading: (widget.settingsControl.changed || help.isNotEmpty) ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
-            title: Text(widget.settingsControl.detail.title, style: widget.appThemeData.tsLarge),
-            subtitle: Text(h, style: help.isEmpty ? widget.appThemeData.tsSmall : widget.appThemeData.tsSmallError),
-          ),
-        ),
-        Container(
-          color: Colors.black,
-          height: 2,
-        ),
-        Container(
-          color: widget.appThemeData.primary.shade100,
-          padding: const EdgeInsets.all(5.0),
-          child: TextField(
-            controller: widget.settingsControl.controller,
-            style: help.isEmpty ? widget.appThemeData.tsMedium : widget.appThemeData.tsMediumError,
-            onChanged: (newValue) {
-              setState(() {
-                help = widget.onChanged(newValue, widget.settingsControl);
-              });
-            },
-            decoration: const InputDecoration.collapsed(hintText: "Value"),
-          ),
-        ),
-      ],
-    );
-  }
-}

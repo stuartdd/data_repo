@@ -6,7 +6,7 @@ class MyTreeNode {
   final String label;
   final String pathKey;
   final MyTreeNode? parent;
-  final leaf;
+  final bool leaf;
   late final List<MyTreeNode> children;
   bool expanded = true;
   int index = 0;
@@ -28,11 +28,11 @@ class MyTreeNode {
     if (parent == null) {
       return Path.empty();
     }
-    if (parent!.children == null) {
+    if (parent!.children.isEmpty) {
       return Path.empty();
     }
     final c = parent!.children;
-    for (var i = (c.length-1); i >= 0; i--) {
+    for (var i = (c.length - 1); i >= 0; i--) {
       if (c[i].pathKey == pathKey) {
         if (i < 1) {
           return Path.empty();
@@ -50,7 +50,7 @@ class MyTreeNode {
     if (parent == null) {
       return Path.empty();
     }
-    if (parent!.children == null) {
+    if (parent!.children.isEmpty) {
       return Path.empty();
     }
     final c = parent!.children;
@@ -106,6 +106,17 @@ class MyTreeNode {
     return false;
   }
 
+  bool get hasLeafNodes {
+    if (children.isNotEmpty) {
+      for (int i = 0; i < children.length; i++) {
+        if (children[i].isLeaf) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   bool get isLeaf {
     return leaf;
   }
@@ -124,13 +135,13 @@ class MyTreeNode {
     return c == 0;
   }
 
-  void expandAll(bool exp) {
+  void expandAll(final bool exp) {
     visitEachNode((node) {
       node.expanded = exp;
     });
   }
 
-  void expandParent(bool exp) {
+  void expandParent(final bool exp) {
     visitEachParent((node) {
       node.expanded = exp;
     });
@@ -162,7 +173,7 @@ class MyTreeNode {
     return p.cloneReversed();
   }
 
-  bool searchMatch(String s) {
+  bool searchMatch(final String s) {
     if (s.isEmpty) {
       return true;
     }
@@ -183,13 +194,13 @@ class MyTreeNode {
     return null;
   }
 
-  MyTreeNode? findByPath(Path path) {
+  MyTreeNode? findByPath(final Path path) {
     if (path.isEmpty || isEmpty) {
       return null;
     }
     MyTreeNode n = this;
     MyTreeNode? nn;
-    for (int i = 0; i < path.count; i++) {
+    for (int i = 0; i < path.length; i++) {
       nn = n.findByLabel(path.peek(i));
       if (nn == null) {
         return null;
@@ -199,7 +210,7 @@ class MyTreeNode {
     return n;
   }
 
-  void visitEachNode(void Function(MyTreeNode) func) {
+  void visitEachNode(final void Function(MyTreeNode) func) {
     for (var element in children) {
       func(element);
       if (element.isNotEmpty) {
@@ -208,7 +219,7 @@ class MyTreeNode {
     }
   }
 
-  void visitEachParent(void Function(MyTreeNode) func) {
+  void visitEachParent(final void Function(MyTreeNode) func) {
     var p = parent;
     while (p != null) {
       func(p);
@@ -216,17 +227,17 @@ class MyTreeNode {
     }
   }
 
-  static MyTreeNode fromMap(Map<String, dynamic> mapNode) {
+  static MyTreeNode fromMap(final Map<String, dynamic> mapNode) {
     debugPrint("IN:MyTreeNode fromMap");
-    final parent = MyTreeNode.empty();
-    _fromMapR(mapNode, parent);
-    return parent;
+    final treeNode = MyTreeNode.empty();
+    _fromMapR(mapNode, treeNode);
+    return treeNode;
   }
 
-  static void _fromMapR(Map<String, dynamic> mapNode, MyTreeNode parent) {
+  static void _fromMapR(final Map<String, dynamic> mapNode, final MyTreeNode treeNode) {
     mapNode.forEach((key, value) {
-      final nn = MyTreeNode(key, key, parent, value is! Map);
-      parent.children.add(nn);
+      final nn = MyTreeNode(key, key, treeNode, value is! Map);
+      treeNode.children.add(nn);
       if (value is Map) {
         _fromMapR(value as Map<String, dynamic>, nn);
       }
@@ -241,6 +252,8 @@ Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeD
       height: rowHeight,
       color: appThemeData.selectedAndHiLightColour(selected, hiLight),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        textBaseline: TextBaseline.alphabetic,
         children: [
           SizedBox(width: 20.0 * (pathLen - 1)),
           IconButton(
@@ -251,6 +264,11 @@ Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeD
                 onClick(node, !node.canExpand);
               },
               icon: appThemeData.treeNodeIcons[node.iconIndex]),
+          node.hasLeafNodes ? IconButton(
+              onPressed: () {
+                onClick(node, true);
+              },
+              icon: appThemeData.treeNodeIcons[appThemeData.treeNodeIcons.length-1]) : const SizedBox(width: 0,),
           TextButton(
             child: Text(
               node.label,
@@ -291,28 +309,30 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
     int c = 0;
     widget.nodes.visitEachNode(
       (aNode) {
-        if (aNode.searchMatch(widget.search)) {
-          final w = widget.buildNode(
-            c,
-            aNode,
-            widget.appThemeData,
-            widget.rowHeight,
-            widget.selectedNode.isEqual(aNode.path),
-            aNode.pathLen,
-            widget.pathListProperties.propertiesForPath(aNode.path).changed,
-            (node, select) {
-              setState(() {
-                widget.onSelect(node);
-              });
-            },
-          );
-          if (w != null) {
-            children.add(w);
-            children.add(Container(
-              height: 1,
-              color: widget.appThemeData.primary.shade800,
-            ));
-            c++;
+        if (!widget.pathListProperties.propertiesForPath(aNode.path).cut) {
+          if (aNode.searchMatch(widget.search)) {
+            final w = widget.buildNode(
+              c,
+              aNode,
+              widget.appThemeData,
+              widget.rowHeight,
+              widget.selectedNode.isEqual(aNode.path),
+              aNode.pathLen,
+              widget.pathListProperties.propertiesForPath(aNode.path).changed,
+              (node, select) {
+                setState(() {
+                  widget.onSelect(node);
+                });
+              },
+            );
+            if (w != null) {
+              children.add(w);
+              children.add(Container(
+                height: 1,
+                color: widget.appThemeData.primary.med,
+              ));
+              c++;
+            }
           }
         }
       },

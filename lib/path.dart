@@ -1,9 +1,9 @@
 class PathProperties {
-  bool _renamed = false;
-  bool _updated = false;
+  bool renamed = false;
+  bool updated = false;
   bool groupSelect = false;
   bool cut = false;
-  PathProperties(this._updated, this.groupSelect, this.cut, this._renamed);
+  PathProperties(this.updated, this.groupSelect, this.cut, this.renamed);
 
   factory PathProperties.clear() {
     return PathProperties(false, false, false, false);
@@ -11,12 +11,12 @@ class PathProperties {
 
   @override
   String toString() {
-    return "rename:$_renamed updated:$_updated group:$groupSelect cut:$cut";
+    return "rename:$renamed updated:$updated group:$groupSelect cut:$cut";
   }
 
   void clear() {
-    _renamed = false;
-    _updated = false;
+    renamed = false;
+    updated = false;
     cut = false;
     groupSelect = false;
   }
@@ -26,32 +26,18 @@ class PathProperties {
   }
 
   bool get isNotEmpty {
-    return _renamed || _updated || groupSelect || cut;
+    return renamed || updated || groupSelect || cut;
   }
 
   bool get changed {
-    return _updated || _renamed;
-  }
-
-  bool get updated {
-    return _updated;
-  }
-
-  void set updated(bool b) {
-    _updated = b;
-  }
-
-  void set renamed(bool b) {
-    _renamed = b;
-  }
-
-  bool get renamed {
-    return _renamed;
+    return updated || renamed;
   }
 }
 
 class PathPropertiesList {
   final Map<String, PathProperties> _list = {};
+  final void Function(String)? log;
+  PathPropertiesList({this.log});
 
   bool get isEmpty {
     return _list.isEmpty;
@@ -75,12 +61,18 @@ class PathPropertiesList {
 
   void clear() {
     _list.clear();
+    if (log != null) {
+      log!("__NODE__ LIST CLEARED");
+    }
   }
 
-  void setGroupSelect(Path p) {
+  void setGroupSelect(final Path p) {
     final ps = p.toString();
     final pfp = _propertiesForPath(ps);
     pfp.groupSelect = !pfp.groupSelect;
+    if (log != null) {
+      log!("__NODE__ GROUP [$p] ${pfp.groupSelect ? 'ON' : 'OFF'}");
+    }
     if (pfp.isEmpty) {
       _list.remove(ps);
     } else {
@@ -88,10 +80,13 @@ class PathPropertiesList {
     }
   }
 
-  void setCut(Path p, bool set) {
+  void setCut(final Path p, final bool set) {
     final ps = p.toString();
     final pfp = _propertiesForPath(ps);
     pfp.cut = set;
+    if (log != null) {
+      log!("__NODE__ CUT [$p] ${pfp.cut ? 'YES' : 'NO'}");
+    }
     if (pfp.isEmpty) {
       _list.remove(ps);
     } else {
@@ -99,25 +94,31 @@ class PathPropertiesList {
     }
   }
 
-  void setRenamed(Path p) {
+  void setRenamed(final Path p) {
     final ps = p.toString();
     final pfp = _propertiesForPath(ps);
-    pfp._renamed = true;
+    pfp.renamed = true;
+    if (log != null) {
+      log!("__NODE__ RENAME [$p] ${pfp.renamed ? 'YES' : 'NO'}");
+    }
     _list[ps] = pfp;
   }
 
-  void setUpdated(Path p) {
+  void setUpdated(final Path p) {
     final ps = p.toString();
     final pfp = _propertiesForPath(ps);
-    pfp._updated = true;
+    pfp.updated = true;
+    if (log != null) {
+      log!("__NODE__ UPDATED [$p]  ${pfp.updated ? 'YES' : 'NO'}");
+    }
     _list[ps] = pfp;
   }
 
-  PathProperties propertiesForPath(Path p) {
+  PathProperties propertiesForPath(final Path p) {
     return _propertiesForPath(p.toString());
   }
 
-  PathProperties _propertiesForPath(String p) {
+  PathProperties _propertiesForPath(final String p) {
     var plp = _list[p];
     plp ??= PathProperties.clear();
     return plp;
@@ -131,7 +132,7 @@ class PathNodes {
   final bool error;
   PathNodes(this.nodes, this.error);
 
-  factory PathNodes.from(Map<String, dynamic> json, Path path) {
+  factory PathNodes.from(final Map<String, dynamic> json, final Path path) {
     if (path.isEmpty) {
       return PathNodes([], true);
     }
@@ -160,7 +161,7 @@ class PathNodes {
     return PathNodes([], true);
   }
 
-  bool alreadyContainsName(String name) {
+  bool alreadyContainsName(final String name) {
     if (lastNodeIsMap) {
       if (lastNodeAsMap!.containsKey(name)) {
         return true;
@@ -238,31 +239,31 @@ class PathNodes {
 
 class Path {
   final List<String> pathList = List.filled(initialSize, "", growable: false);
-  int count = 0;
+  int _count = 0;
 
   Path(List<String> list) {
-    count = 0;
+    _count = 0;
     for (int i = 0; i < list.length; i++) {
       if (list[i].isNotEmpty) {
         pathList[i] = list[i];
-        count++;
+        _count++;
       }
     }
   }
 
-  PathNodes pathNodes(Map<String, dynamic> m) {
+  PathNodes pathNodes(final Map<String, dynamic> m) {
     return PathNodes.from(m, this);
   }
 
-  bool isNotEqual(Path other) {
+  bool isNotEqual(final Path other) {
     return !isEqual(other);
   }
 
   bool isEqual(Path other) {
-    if (count != other.count) {
+    if (_count != other._count) {
       return false;
     }
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < _count; i++) {
       if (pathList[i] != other.pathList[i]) {
         return false;
       }
@@ -270,9 +271,9 @@ class Path {
     return true;
   }
 
-  Path cloneAppendList(List<String> app) {
+  Path cloneAppendList(final List<String> app) {
     final p = Path.empty();
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < _count; i++) {
       p.push(pathList[i]);
     }
     for (int i = 0; i < app.length; i++) {
@@ -281,9 +282,9 @@ class Path {
     return p;
   }
 
-  Path cloneRename(String newName) {
+  Path cloneRename(final String newName) {
     final p = Path.empty();
-    for (int i = 0; i < count - 1; i++) {
+    for (int i = 0; i < _count - 1; i++) {
       p.push(pathList[i]);
     }
     p.push(newName);
@@ -292,7 +293,7 @@ class Path {
 
   Path cloneReversed() {
     final p = Path.empty();
-    for (int i = count - 1; i >= 0; i--) {
+    for (int i = _count - 1; i >= 0; i--) {
       p.push(pathList[i]);
     }
     return p;
@@ -300,7 +301,7 @@ class Path {
 
   Path cloneParentPath() {
     final p = Path.empty();
-    for (int i = 0; i < count - 1; i++) {
+    for (int i = 0; i < _count - 1; i++) {
       p.push(pathList[i]);
     }
     return p;
@@ -310,20 +311,20 @@ class Path {
     return Path([]);
   }
 
-  factory Path.fromDotPath(String dotPath) {
+  factory Path.fromDotPath(final String dotPath) {
     return Path(dotPath.split('.'));
   }
 
-  factory Path.fromList(List<String> list) {
+  factory Path.fromList(final List<String> list) {
     return Path(list);
   }
 
-  bool isInMap(Map<String, dynamic> map) {
-    if (count == 0) {
+  bool isInMap(final Map<String, dynamic> map) {
+    if (_count == 0) {
       return false;
     }
     var m = map;
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < _count; i++) {
       var x = m[pathList[i]];
       if (x == null) {
         return false;
@@ -334,51 +335,51 @@ class Path {
   }
 
   bool get hasParent {
-    return (count > 1);
+    return (_count > 1);
   }
 
   int get length {
-    return count;
+    return _count;
   }
 
   bool get isEmpty {
-    return (count == 0);
+    return (_count == 0);
   }
 
   bool get isNotEmpty {
-    return (count > 0);
+    return (_count > 0);
   }
 
-  String peek(int i) {
-    if (i >= 0 && i < count) {
+  String peek(final int i) {
+    if (i >= 0 && i < _count) {
       return pathList[i];
     }
     return "";
   }
 
   String get root {
-    if (count == 0) {
+    if (_count == 0) {
       return "";
     }
     return pathList[0];
   }
 
   String get last {
-    if (count == 0) {
+    if (_count == 0) {
       return "";
     }
-    return pathList[count - 1];
+    return pathList[_count - 1];
   }
 
-  void push(String p) {
-    pathList[count] = p;
-    count++;
+  void push(final String p) {
+    pathList[_count] = p;
+    _count++;
   }
 
   String pop() {
-    if (count > 0) {
-      count--;
-      return pathList[count];
+    if (_count > 0) {
+      _count--;
+      return pathList[_count];
     }
     return "";
   }
@@ -386,9 +387,9 @@ class Path {
   @override
   String toString() {
     StringBuffer sb = StringBuffer();
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < _count; i++) {
       sb.write(pathList[i]);
-      if (i < (count - 1)) {
+      if (i < (_count - 1)) {
         sb.write(".");
       }
     }

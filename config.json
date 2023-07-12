@@ -1,13 +1,14 @@
 {
   "application": {
     "title": "Data Repository",
-    "dataFetchTimeoutMillis": 500,
+    "dataFetchTimeoutMillis": 5003,
     "colours": {
-      "primary": "blue",
+      "primary": "brown",
       "secondary": "green",
       "hilight": "yellow",
       "error": "red"
-    }
+    },
+    "darkMode": false
   },
   "user": {
     "name": "User",

@@ -23,7 +23,7 @@ class DisplayData {
   factory DisplayData.error(final AppThemeData appThemeData, final String message) {
     return DisplayData(
         Container(
-          color: appThemeData.error,
+          color: appThemeData.error.med,
           child: Center(child: Text(message, style: appThemeData.tsLarge)),
         ),
         ScrollController(),
@@ -80,7 +80,7 @@ DisplayData createSplitView(
     detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, pathPropertiesList, appThemeData, nodeCopyBin, onDataAction);
   } else {
     detailContainer = Container(
-      color: appThemeData.error.shade900,
+      color: appThemeData.error.darkest,
       child: const Center(child: Text("Selected Node was not found in the data")),
     );
   }
@@ -194,7 +194,7 @@ Widget createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCop
           dataAction(DetailAction(ActionType.select, true, pathRight));
         },
         tooltip: "Right (${pathRight.toString()})",
-        iconData: Icons.south_east,
+        iconData: Icons.subdirectory_arrow_right,
         appThemeData: appThemeData,
       ),
     ],

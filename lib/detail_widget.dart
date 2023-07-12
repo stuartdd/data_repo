@@ -107,12 +107,12 @@ class _DetailWidgetState extends State<DetailWidget> {
     return _detailForMap(widget.appThemeData, hiLight, widget.isHorizontal);
   }
 
-  Widget _rowForString(final String value, final materialColor, final TextStyle ts) {
+  Widget _rowForString(final String value, final ColorPallete materialColor, final TextStyle ts) {
     return Row(
       children: [
         for (int i = 0; i < value.length; i++) ...[
           Container(
-            color: (i % 2 == 0) ? materialColor.shade300 : materialColor.shade400,
+            color: (i % 2 == 0) ? materialColor.light : materialColor.dark,
             width: (i < 9) ? 20 : 32,
             child: Text(
               (i < 9) ? value[i] : " ${value[i]}",
@@ -128,12 +128,12 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _rowForPosition(final int last, final MaterialColor materialColor, final TextStyle ts) {
+  Widget _rowForPosition(final int last, final ColorPallete materialColor, final TextStyle ts) {
     return Row(
       children: [
         for (int i = 0; i < last; i++) ...[
           Container(
-            color: (i % 2 == 0) ? materialColor.shade300 : materialColor.shade400,
+            color: (i % 2 == 0) ? materialColor.med : materialColor.dark,
             width: (i < 9) ? 20 : 32,
             child: Text(
               "${i + 1}",
@@ -191,7 +191,7 @@ class _DetailWidgetState extends State<DetailWidget> {
 
   Widget _detailForValue(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
     return Card(
-      color: appThemeData.primary.shade600,
+      color: appThemeData.primary.dark,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         ListTile(
           leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.dataAction),
@@ -262,7 +262,7 @@ class _DetailWidgetState extends State<DetailWidget> {
   Widget _detailForMap(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
     return SizedBox(
       child: Card(
-          color: appThemeData.primary.shade300,
+          color: appThemeData.primary.dark,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ListTile(
               leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.dataAction),

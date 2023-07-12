@@ -313,9 +313,12 @@ class DataLoad {
     throw JsonException(message: "getNumFromJson: Node found [$node] was NOT a Number node", path);
   }
 
-  static bool geBoolFromJson(Map<String, dynamic> json, Path path) {
+  static bool getBoolFromJson(Map<String, dynamic> json, Path path, {bool? fallback}) {
     final node = getNodeFromJson(json, path);
     if (node == null) {
+      if (fallback != null) {
+        return fallback;
+      }
       throw JsonException(message: "geBoolFromJson: bool Node was NOT found", path);
     }
     if (node is bool) {
