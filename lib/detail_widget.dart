@@ -37,7 +37,7 @@ class DataValueDisplayRow {
     if (editMode) {
       return name;
     }
-    return name.substring(0, (_name.length - displayTypeData.markerLength));
+    return name.substring(0, (_name.length - displayTypeData.extensionLength));
   }
 
   String get value {
@@ -107,12 +107,12 @@ class _DetailWidgetState extends State<DetailWidget> {
     return _detailForMap(widget.appThemeData, hiLight, widget.isHorizontal);
   }
 
-  Widget _rowForString(final String value, final ColorPallete materialColor, final TextStyle ts) {
+  Widget _rowForString(final String value, final AppThemeData appThemeData, final bool updated, final TextStyle ts) {
     return Row(
       children: [
         for (int i = 0; i < value.length; i++) ...[
           Container(
-            color: (i % 2 == 0) ? materialColor.light : materialColor.dark,
+            color: appThemeData.primaryOrSecondaryPallet(updated).light,
             width: (i < 9) ? 20 : 32,
             child: Text(
               (i < 9) ? value[i] : " ${value[i]}",
@@ -120,7 +120,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ),
           ),
           Container(
-            color: Colors.black,
+            color: appThemeData.screenForegroundColour(true),
             width: 2,
           ),
         ],
@@ -128,12 +128,12 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _rowForPosition(final int last, final ColorPallete materialColor, final TextStyle ts) {
+  Widget _rowForPosition(final int last, final AppThemeData appThemeData, final bool updated, final TextStyle ts) {
     return Row(
       children: [
         for (int i = 0; i < last; i++) ...[
           Container(
-            color: (i % 2 == 0) ? materialColor.med : materialColor.dark,
+            color: (i % 2 == 0) ? appThemeData.primaryOrSecondaryPallet(updated).med : appThemeData.primaryOrSecondaryPallet(updated).medDark,
             width: (i < 9) ? 20 : 32,
             child: Text(
               "${i + 1}",
@@ -141,7 +141,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ),
           ),
           Container(
-            color: Colors.black,
+            color: appThemeData.screenForegroundColour(true),
             width: 2,
           ),
         ],
@@ -156,12 +156,12 @@ class _DetailWidgetState extends State<DetailWidget> {
         color: appThemeData.selectedAndHiLightColour(true, plp.updated),
         child: Column(
           children: [
-            _rowForPosition(dataValueRow.value.length, appThemeData.primary, appThemeData.tsMedium),
+            _rowForPosition(dataValueRow.value.length, appThemeData, plp.updated, appThemeData.tsMedium),
             Container(
               color: Colors.black,
               height: 2,
             ),
-            _rowForString(dataValueRow.value, appThemeData.primary, appThemeData.tsMedium),
+            _rowForString(dataValueRow.value, appThemeData, plp.updated, appThemeData.tsMedium),
           ],
         ),
       );
@@ -185,16 +185,15 @@ class _DetailWidgetState extends State<DetailWidget> {
       margin: const EdgeInsets.all(5.0),
       color: appThemeData.selectedAndHiLightColour(true, plp.updated),
       child: Padding(padding: const EdgeInsets.all(5.0), child: Text(dataValueRow.value, style: appThemeData.tsLarge)),
-
     );
   }
 
   Widget _detailForValue(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
     return Card(
-      color: appThemeData.primary.dark,
+      color: appThemeData.detailBackgroundColor,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         ListTile(
-          leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.dataAction),
+          leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
           title: Container(
             padding: const EdgeInsets.all(5.0),
             color: appThemeData.selectedAndHiLightColour(true, plp.renamed),
@@ -262,10 +261,10 @@ class _DetailWidgetState extends State<DetailWidget> {
   Widget _detailForMap(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
     return SizedBox(
       child: Card(
-          color: appThemeData.primary.dark,
+          color: appThemeData.detailBackgroundColor,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ListTile(
-              leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.dataAction),
+              leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
               title: Container(
                 padding: const EdgeInsets.all(5.0),
                 color: appThemeData.selectedAndHiLightColour(true, plp.renamed),
@@ -302,8 +301,9 @@ class _DetailWidgetState extends State<DetailWidget> {
   }
 }
 
-Widget groupButton(PathProperties plp, bool value, Path path, final Path Function(DetailAction) dataAction) {
+Widget groupButton(PathProperties plp, bool value, Path path, AppThemeData appThemeData, final Path Function(DetailAction) dataAction) {
   return IconButton(
+    color: appThemeData.screenForegroundColour(true),
     icon: plp.groupSelect ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
     tooltip: plp.groupSelect ? 'Remove from group select' : 'Add to group select',
     onPressed: () {

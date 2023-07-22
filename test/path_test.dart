@@ -5,18 +5,82 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:data_repo/path.dart';
 import 'dart:convert' as json_tools;
 
-void check(final PathProperties p, final bool empty, final bool chg, final bool upd, final bool ren, final bool cut, final bool grp) {
+void check(final PathProperties p, final bool empty, final bool chg, final bool upd, final bool ren, final bool grp) {
   expect(p.isEmpty, empty);
   expect(p.isNotEmpty, !empty);
   expect(p.changed, chg);
   expect(p.updated, upd);
   expect(p.renamed, ren);
-  expect(p.cut, cut);
   expect(p.groupSelect, grp);
 }
 
 void main() {
   //
+  test('Test PathProperties List', () async {
+    final pAB = Path.fromDotPath("A.B");
+    final pXY = Path.fromDotPath("X.Y");
+    PathPropertiesList ppl = PathPropertiesList();
+    expect(ppl.isEmpty, true);
+    expect(ppl.isNotEmpty, false);
+
+    ppl.setRenamed(pAB);
+    expect(ppl.propertiesForPath(pAB).renamed, true);
+    expect(ppl.propertiesForPath(pXY).renamed, false);
+    expect(ppl.propertiesForPath(pAB).canUndoRename, false);
+    expect(ppl.propertiesForPath(pXY).canUndoRename, false);
+    expect(ppl.propertiesForPath(pAB).updated, false);
+    expect(ppl.propertiesForPath(pXY).updated, false);
+    expect(ppl.propertiesForPath(pAB).canUndoUpdate, false);
+    expect(ppl.propertiesForPath(pXY).canUndoUpdate, false);
+    ppl.setUpdated(pXY);
+    expect(ppl.propertiesForPath(pAB).renamed, true);
+    expect(ppl.propertiesForPath(pXY).renamed, false);
+    expect(ppl.propertiesForPath(pAB).canUndoRename, false);
+    expect(ppl.propertiesForPath(pXY).canUndoRename, false);
+    expect(ppl.propertiesForPath(pAB).updated, false);
+    expect(ppl.propertiesForPath(pXY).updated, true);
+    expect(ppl.propertiesForPath(pAB).canUndoUpdate, false);
+    expect(ppl.propertiesForPath(pXY).canUndoUpdate, false);
+
+    ppl = PathPropertiesList();
+    expect(ppl.isEmpty, true);
+    expect(ppl.isNotEmpty, false);
+    ppl.setRenamed(pAB, from: "initialRename");
+    expect(ppl.propertiesForPath(pAB).renamed, true);
+    expect(ppl.propertiesForPath(pXY).renamed, false);
+    expect(ppl.propertiesForPath(pAB).canUndoRename, true);
+    expect(ppl.propertiesForPath(pAB).renamedFrom, "initialRename");
+    expect(ppl.propertiesForPath(pXY).canUndoRename, false);
+
+    expect(ppl.propertiesForPath(pAB).updated, false);
+    expect(ppl.propertiesForPath(pXY).updated, false);
+    expect(ppl.propertiesForPath(pAB).canUndoUpdate, false);
+    expect(ppl.propertiesForPath(pXY).canUndoUpdate, false);
+
+    ppl.setUpdated(pXY, from: "initialUpdated");
+    expect(ppl.propertiesForPath(pAB).renamed, true);
+    expect(ppl.propertiesForPath(pXY).renamed, false);
+
+    expect(ppl.propertiesForPath(pAB).canUndoRename, true);
+    expect(ppl.propertiesForPath(pXY).canUndoRename, false);
+    expect(ppl.propertiesForPath(pXY).updatedFrom, "initialUpdated");
+
+    expect(ppl.propertiesForPath(pAB).updated, false);
+    expect(ppl.propertiesForPath(pXY).updated, true);
+    expect(ppl.propertiesForPath(pAB).canUndoUpdate, false);
+    expect(ppl.propertiesForPath(pXY).canUndoUpdate, true);
+
+    ppl.setUpdated(pXY, from: "secondUpdated");
+    expect(ppl.propertiesForPath(pXY).updatedFrom, "initialUpdated");
+    expect(ppl.propertiesForPath(pAB).updated, false);
+    expect(ppl.propertiesForPath(pXY).updated, true);
+    expect(ppl.propertiesForPath(pAB).canUndoUpdate, false);
+    expect(ppl.propertiesForPath(pXY).canUndoUpdate, true);
+
+    ppl.setRenamed(pAB, from: "secondRename");
+    expect(ppl.propertiesForPath(pAB).renamedFrom, "initialRename");
+  });
+
   test('Test PathProperties List', () async {
     final pAB = Path.fromDotPath("A.B");
     final pXY = Path.fromDotPath("X.Y");
@@ -27,88 +91,65 @@ void main() {
     ppl.setRenamed(pAB);
     expect(ppl.isEmpty, false);
     expect(ppl.isNotEmpty, true);
-    check(ppl.propertiesForPath(pAB), false, true, false, true, false, false);
+    check(ppl.propertiesForPath(pAB), false, true, false, true, false);
     ppl.setUpdated(pAB);
-    check(ppl.propertiesForPath(pAB), false, true, true, true, false, false);
-    check(ppl.propertiesForPath(pXY), true, false, false, false, false, false);
+    check(ppl.propertiesForPath(pAB), false, true, true, true, false);
+    check(ppl.propertiesForPath(pXY), true, false, false, false, false);
 
     ppl.clear();
-    check(ppl.propertiesForPath(pAB), true, false, false, false, false, false);
-    expect(ppl.isEmpty, true);
-    expect(ppl.isNotEmpty, false);
-
-    ppl.setCut(pAB, true);
-    check(ppl.propertiesForPath(pAB), false, false, false, false, true, false);
-    ppl.setCut(pAB, false);
-    check(ppl.propertiesForPath(pAB), true, false, false, false, false, false);
+    check(ppl.propertiesForPath(pAB), true, false, false, false, false);
     expect(ppl.isEmpty, true);
     expect(ppl.isNotEmpty, false);
 
     ppl.setGroupSelect(pXY);
     ppl.setGroupSelect(pAB);
-    check(ppl.propertiesForPath(pAB), false, false, false, false, false, true);
+    check(ppl.propertiesForPath(pAB), false, false, false, false, true);
     ppl.setGroupSelect(pAB);
-    check(ppl.propertiesForPath(pAB), true, false, false, false, false, false);
-    check(ppl.propertiesForPath(pXY), false, false, false, false, false, true);
+    check(ppl.propertiesForPath(pAB), true, false, false, false, false);
+    check(ppl.propertiesForPath(pXY), false, false, false, false, true);
     expect(ppl.isEmpty, false);
     expect(ppl.isNotEmpty, true);
 
-    ppl.setCut(pAB,true);
     ppl.setGroupSelect(pAB);
-    check(ppl.propertiesForPath(pAB), false, false, false, false, true, true);
+    check(ppl.propertiesForPath(pAB), false, false, false, false, true);
     ppl.setGroupSelect(pAB);
-    check(ppl.propertiesForPath(pAB), false, false, false, false, true, false);
-    ppl.setCut(pAB,false);
-    check(ppl.propertiesForPath(pAB), true, false, false, false, false, false);
-    check(ppl.propertiesForPath(pXY), false, false, false, false, false, true);
+    check(ppl.propertiesForPath(pAB), true, false, false, false, false);
+
+    check(ppl.propertiesForPath(pAB), true, false, false, false, false);
+    check(ppl.propertiesForPath(pXY), false, false, false, false, true);
     expect(ppl.isEmpty, false);
     expect(ppl.isNotEmpty, true);
 
     ppl.setUpdated(pAB);
-    ppl.setCut(pAB,true);
+
     ppl.setGroupSelect(pAB);
-    check(ppl.propertiesForPath(pAB), false, true, true, false, true, true);
+    check(ppl.propertiesForPath(pAB), false, true, true, false, true);
     ppl.setGroupSelect(pAB);
-    check(ppl.propertiesForPath(pAB), false, true, true, false, true, false);
-    ppl.setCut(pAB,false);
-    check(ppl.propertiesForPath(pAB), false, true, true, false, false, false);
-    check(ppl.propertiesForPath(pXY), false, false, false, false, false, true);
+    check(ppl.propertiesForPath(pAB), false, true, true, false, false);
+
+    check(ppl.propertiesForPath(pAB), false, true, true, false, false);
+    check(ppl.propertiesForPath(pXY), false, false, false, false, true);
     expect(ppl.isEmpty, false);
     expect(ppl.isNotEmpty, true);
 
     ppl.clear();
-    check(ppl.propertiesForPath(pAB), true, false, false, false, false, false);
-    check(ppl.propertiesForPath(pXY), true, false, false, false, false, false);
+    check(ppl.propertiesForPath(pAB), true, false, false, false, false);
+    check(ppl.propertiesForPath(pXY), true, false, false, false, false);
     expect(ppl.isEmpty, true);
     expect(ppl.isNotEmpty, false);
-
   });
 
   test('Test PathProperties', () async {
-    var p = PathProperties.clear();
-    check(p, true, false, false, false, false, false);
-    p.cut = true;
-    check(p, false, false, false, false, true, false);
+    var p = PathProperties.empty();
+    check(p, true, false, false, false, false);
     p.groupSelect = true;
-    check(p, false, false, false, false, true, true);
-    p.updated = true;
-    check(p, false, true, true, false, true, true);
-    p.renamed = true;
-    check(p, false, true, true, true, true, true);
+    check(p, false, false, false, false, true);
+    p.updatedFrom = "ABC";
+    expect(p.canUndoUpdate, true);
+    expect(p.canUndoRename, false);
 
     p.clear();
-    check(p, true, false, false, false, false, false);
-    p.updated = true;
-    check(p, false, true, true, false, false, false);
-    p.renamed = true;
-    check(p, false, true, true, true, false, false);
-
-    p.clear();
-    check(p, true, false, false, false, false, false);
-    p.renamed = true;
-    check(p, false, true, false, true, false, false);
-    p.updated = true;
-    check(p, false, true, true, true, false, false);
+    check(p, true, false, false, false, false);
   });
 
   test('Test Path Nodes', () async {

@@ -15,7 +15,7 @@ const String defaultHiLightColour = "yellow";
 const String defaultErrorColour = "red";
 const String defaultDarkMode = "false";
 const String defaultUserName = "User";
-const int defaultFetchTimeoutMillis = 2000;
+const int defaultFetchTimeoutMillis = 1000;
 const String defaultDataFilePath = "";
 const String defaultAppTitle = "Data Repo";
 const String defaultFontFamily = "Code128";
@@ -50,43 +50,46 @@ final appColoursHiLightPath = Path.fromList(["application", "colours", "hilight"
 final appColoursErrorPath = Path.fromList(["application", "colours", "error"]);
 final dataFetchTimeoutMillisPath = Path.fromList(["application", "dataFetchTimeoutMillis"]);
 
-class ColorPallete {
+class ColorPallet {
+  final String colorName;
   final Color lightest;
   final Color light;
+  final Color medLight;
   final Color med;
+  final Color medDark;
   final Color dark;
   final Color darkest;
 
-  const ColorPallete(this.lightest, this.light, this.med, this.dark, this.darkest);
+  const ColorPallet(this.colorName, this.lightest, this.light, this.medLight, this.med, this.medDark, this.dark, this.darkest);
 
-  factory ColorPallete.fromMaterialColor(MaterialColor mc) {
-    return ColorPallete(mc.shade200, mc.shade300, mc.shade500, mc.shade800, mc.shade900);
+  factory ColorPallet.fromMaterialColor(MaterialColor mc, String colorName) {
+    return ColorPallet(colorName, mc.shade200, mc.shade300, mc.shade400, mc.shade500, mc.shade600, mc.shade800, mc.shade900);
   }
 }
 
 const List<IconData> defaultTreeNodeIconData = [Icons.list_sharp, Icons.arrow_downward, Icons.arrow_forward, Icons.tour_outlined];
 
-Map<String, ColorPallete> colourNames = <String, ColorPallete>{
-  'black': const ColorPallete(Colors.white, Colors.black12, Colors.black38, Colors.black54, Colors.black),
-  'white': const ColorPallete(Colors.black, Colors.black54, Colors.black38, Colors.black12, Colors.white),
-  'red': ColorPallete.fromMaterialColor(Colors.red),
-  'pink': ColorPallete.fromMaterialColor(Colors.pink),
-  'purple': ColorPallete.fromMaterialColor(Colors.purple),
-  'deepPurple': ColorPallete.fromMaterialColor(Colors.deepPurple),
-  'indigo': ColorPallete.fromMaterialColor(Colors.indigo),
-  'blue': ColorPallete.fromMaterialColor(Colors.blue),
-  'lightBlue': ColorPallete.fromMaterialColor(Colors.lightBlue),
-  'cyan': ColorPallete.fromMaterialColor(Colors.cyan),
-  'teal': ColorPallete.fromMaterialColor(Colors.teal),
-  'green': ColorPallete.fromMaterialColor(Colors.green),
-  'lightGreen': ColorPallete.fromMaterialColor(Colors.lightGreen),
-  'lime': ColorPallete.fromMaterialColor(Colors.lime),
-  'yellow': ColorPallete.fromMaterialColor(Colors.yellow),
-  'amber': ColorPallete.fromMaterialColor(Colors.amber),
-  'orange': ColorPallete.fromMaterialColor(Colors.orange),
-  'deepOrange': ColorPallete.fromMaterialColor(Colors.deepOrange),
-  'brown': ColorPallete.fromMaterialColor(Colors.brown),
-  'blueGrey': ColorPallete.fromMaterialColor(Colors.blueGrey),
+Map<String, ColorPallet> colourNames = <String, ColorPallet>{
+  'black': const ColorPallet("white", Colors.white, Colors.black12, Colors.black26, Colors.black38, Colors.black45, Colors.black54, Colors.black),
+  'white': const ColorPallet("black", Colors.black, Colors.black54, Colors.black45, Colors.black38, Colors.black26, Colors.black12, Colors.white),
+  'red': ColorPallet.fromMaterialColor(Colors.red, "red"),
+  'pink': ColorPallet.fromMaterialColor(Colors.pink, 'pink'),
+  'purple': ColorPallet.fromMaterialColor(Colors.purple, 'purple'),
+  'deepPurple': ColorPallet.fromMaterialColor(Colors.deepPurple, 'deepPurple'),
+  'indigo': ColorPallet.fromMaterialColor(Colors.indigo, 'indigo'),
+  'blue': ColorPallet.fromMaterialColor(Colors.blue, 'blue'),
+  'lightBlue': ColorPallet.fromMaterialColor(Colors.lightBlue, 'lightBlue'),
+  'cyan': ColorPallet.fromMaterialColor(Colors.cyan, 'cyan'),
+  'teal': ColorPallet.fromMaterialColor(Colors.teal, 'teal'),
+  'green': ColorPallet.fromMaterialColor(Colors.green, 'green'),
+  'lightGreen': ColorPallet.fromMaterialColor(Colors.lightGreen, 'lightGreen'),
+  'lime': ColorPallet.fromMaterialColor(Colors.lime, 'lime'),
+  'yellow': ColorPallet.fromMaterialColor(Colors.yellow, 'yellow'),
+  'amber': ColorPallet.fromMaterialColor(Colors.amber, 'amber'),
+  'orange': ColorPallet.fromMaterialColor(Colors.orange, 'orange'),
+  'deepOrange': ColorPallet.fromMaterialColor(Colors.deepOrange, 'deepOrange'),
+  'brown': ColorPallet.fromMaterialColor(Colors.brown, 'brown'),
+  'blueGrey': ColorPallet.fromMaterialColor(Colors.blueGrey, 'blueGrey'),
 };
 
 class ColourNameException implements Exception {
@@ -99,10 +102,10 @@ class ColourNameException implements Exception {
 }
 
 class AppThemeData {
-  final ColorPallete primary;
-  final ColorPallete secondary;
-  final ColorPallete hiLight;
-  final ColorPallete error;
+  final ColorPallet primary;
+  final ColorPallet secondary;
+  final ColorPallet hiLight;
+  final ColorPallet error;
   final bool darkMode;
   final bool desktop;
   late final TextStyle tsLarge;
@@ -163,8 +166,16 @@ class AppThemeData {
     return primary.med;
   }
 
+  ColorPallet primaryOrSecondaryPallet(bool sec) {
+    return sec ? secondary: primary;
+  }
+
   Color get dialogBackgroundColor {
-    return darkMode ? primary.dark : primary.lightest;
+    return primary.med;
+  }
+
+  Color get detailBackgroundColor {
+    return primary.light;
   }
 
   Color get cursorColor {
@@ -173,6 +184,14 @@ class AppThemeData {
 
   Color get screenBackgroundErrorColor {
     return error.med;
+  }
+
+  ColorPallet getColorPalletForName(String name) {
+    final cp = colourNames[name];
+    if (cp != null) {
+      return cp;
+    }
+    return ColorPallet.fromMaterialColor(Colors.red, "red");
   }
 }
 
@@ -194,10 +213,10 @@ class ConfigData {
   String _getDataFileUrl = "";
   String _postDataFileUrl = "";
   String _dataFileLocalDir = ""; // Where the data file is. Desktop: defined by config. Mobile: Always _applicationDefaultDir
-  ColorPallete _appColoursPrimary = ColorPallete.fromMaterialColor(Colors.blue);
-  ColorPallete _appColoursSecondary = ColorPallete.fromMaterialColor(Colors.green);
-  ColorPallete _appColoursHiLight = ColorPallete.fromMaterialColor(Colors.yellow);
-  ColorPallete _appColoursError = ColorPallete.fromMaterialColor(Colors.red);
+  ColorPallet _appColoursPrimary = ColorPallet.fromMaterialColor(Colors.blue, 'blue');
+  ColorPallet _appColoursSecondary = ColorPallet.fromMaterialColor(Colors.green, 'green');
+  ColorPallet _appColoursHiLight = ColorPallet.fromMaterialColor(Colors.yellow, 'yellow');
+  ColorPallet _appColoursError = ColorPallet.fromMaterialColor(Colors.red, 'red');
   bool _darkMode = false;
 
   String screenModeColourName(final bool enabled) {
@@ -232,7 +251,7 @@ class ConfigData {
     } else {
       _appStateLocalDir = _applicationDefaultDir;
     }
-    _appStateFileName = DataLoad.getStringFromJson(getJson(),appStateFileNamePath, fallback: defaultAppStateFileName);
+    _appStateFileName = DataLoad.getStringFromJson(getJson(), appStateFileNamePath, fallback: defaultAppStateFileName);
 
     update();
     _title = DataLoad.getStringFromJson(getJson(), titlePath, fallback: defaultAppTitle);
@@ -272,11 +291,11 @@ class ConfigData {
     return _configJson;
   }
 
-  ColorPallete getPrimaryColour() {
+  ColorPallet getPrimaryColour() {
     return _appColoursPrimary;
   }
 
-  ColorPallete validColour(String colourName, Path path) {
+  ColorPallet validColour(String colourName, Path path) {
     final c = colourNames[colourName];
     if (c == null) {
       throw ColourNameException("Invalid colour name at path:${path.toString()}");
@@ -352,6 +371,4 @@ class ConfigData {
   String toString() {
     return "Url:${getGetDataFileUrl()} File:${getDataFileLocal()}";
   }
-
 }
-

@@ -13,24 +13,25 @@ import 'path.dart';
 //    Other display types as required
 // This data is structured so
 //
-enum DisplayType { simpleDisplay, positionalString, markDown }
+enum DisplayType {simpleDisplay, positionalString, markDown }
 
 const int maxIntValue = -1 >>> 1;
 
 class DisplayTypeData {
   final DisplayType displayType;
-  final String marker;
-  final int markerLength;
+  final String extension;
+  final int extensionLength;
   final String description;
-  const DisplayTypeData({required this.displayType, required this.marker, required this.markerLength, required this.description});
+  const DisplayTypeData({required this.displayType, required this.extension, required this.extensionLength, required this.description});
 }
 
 const positionalStringMarker = ".pl";
 const markDownMarker = ".md";
+const simpleMarker = "";
 
-const DisplayTypeData simpleDisplayData = DisplayTypeData(displayType: DisplayType.simpleDisplay, marker: '', markerLength: 0, description: 'Simple Value [str,int,bool]');
-const DisplayTypeData positionalStringData = DisplayTypeData(displayType: DisplayType.positionalString, marker: positionalStringMarker, markerLength: positionalStringMarker.length, description: 'Positional List');
-const DisplayTypeData markDownData = DisplayTypeData(displayType: DisplayType.markDown, marker: markDownMarker, markerLength: markDownMarker.length, description: 'Markdown Text');
+const DisplayTypeData simpleDisplayData = DisplayTypeData(displayType: DisplayType.simpleDisplay, extension: simpleMarker, extensionLength: simpleMarker.length, description: 'Simple Value [str,int,bool]');
+const DisplayTypeData positionalStringData = DisplayTypeData(displayType: DisplayType.positionalString, extension: positionalStringMarker, extensionLength: positionalStringMarker.length, description: 'Positional List');
+const DisplayTypeData markDownData = DisplayTypeData(displayType: DisplayType.markDown, extension: markDownMarker, extensionLength: markDownMarker.length, description: 'Markdown Text');
 const Map<String, DisplayTypeData> displayTypeMap = {
   positionalStringMarker: positionalStringData,
   markDownMarker: markDownData,
@@ -125,12 +126,12 @@ class OptionsTypeData {
 }
 
 // Values for Native types
-const OptionsTypeData optionTypeDataString = OptionsTypeData(String, "String", "Text");
+const OptionsTypeData optionTypeDataString = OptionsTypeData(String, "", "Text");
 const OptionsTypeData optionTypeDataBool = OptionsTypeData(bool, "bool", "Yes or No", min: 2, max: 3);
 const OptionsTypeData optionTypeDataDouble = OptionsTypeData(double, "double", "Decimal number");
 const OptionsTypeData optionTypeDataInt = OptionsTypeData(int, "int", "Integer number");
 // Values to identify special case String values as Positional Lists or Markdown
-const OptionsTypeData optionTypeDataSimple = OptionsTypeData(String, positionalStringMarker, "Simple", suffix: positionalStringMarker);
+const OptionsTypeData optionTypeDataSimple = OptionsTypeData(String, simpleMarker, "Simple", suffix: simpleMarker);
 const OptionsTypeData optionTypeDataPositional = OptionsTypeData(String, positionalStringMarker, "Positional List", suffix: positionalStringMarker);
 const OptionsTypeData optionTypeDataMarkDown = OptionsTypeData(String, markDownMarker, "Multi Line Markdown", suffix: markDownMarker);
 // Values for adding elements as groups or values

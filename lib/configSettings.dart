@@ -6,13 +6,13 @@ import 'path.dart';
 import 'config.dart';
 
 final List<SettingDetail> _settingsData = [
-  SettingDetail("User Name", "The users proper name", userNamePath, "ES", "User", true),
+//  SettingDetail("User Name", "The users proper name", userNamePath, "ES", "User", true),
   SettingDetail("Server URL (GET)", "The web address of the host server", getDataUrlPath, "URL", defaultRemoteGetUrl, true),
-  SettingDetail("Server Timeout Milliseconds", "The host server timeout", dataFetchTimeoutMillisPath, "INT", defaultFetchTimeoutMillis.toString(), false),
   SettingDetail("Server URL (SAVE)", "The web address of the host server", postDataUrlPath, "URL", defaultRemotePostUrl, true),
+  SettingDetail("Server Timeout Milliseconds", "The host server timeout", dataFetchTimeoutMillisPath, "INT", defaultFetchTimeoutMillis.toString(), false),
   SettingDetail("Local Data file path", "The directory for the data file", dataFileLocalDirPath, "DIR", defaultDataFilePath, false),
   SettingDetail("Data file Name", "The name of the server file", dataFileLocalNamePath, "FILE", defaultDataFilePath, true),
-  SettingDetail("Screen Mode", "Icons/Text White or Black. Click below to change", appColoursDarkMode, "BOOL", defaultDarkMode, false, trueValue: "Currently Light", falseValue: "Currently Dark"),
+  SettingDetail("Screen Mode", "Icons/Text White or Black. Click below to change", appColoursDarkMode, "BOOL", defaultDarkMode, true, trueValue: "Currently Light", falseValue: "Currently Dark"),
   SettingDetail("Primary Colour", "The main colour theme", appColoursPrimaryPath, "COLOUR", defaultPrimaryColour, true),
   SettingDetail("Preview Colour", "The Markdown 'Preview' colour", appColoursSecondaryPath, "COLOUR", defaultSecondaryColour, true),
   SettingDetail("Help Colour", "The Markdown 'Help' colour", appColoursHiLightPath, "COLOUR", defaultHiLightColour, true),
@@ -48,8 +48,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
       widget.appThemeData,
       widget.settingsControlList,
       (stringValue, settingDetail) {
-        setState(() {
-        });
+        setState(() {});
         return widget.onValidate(stringValue, settingDetail);
       },
     );
@@ -114,7 +113,6 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
               settingsControl: scN,
               appThemeData: appThemeData,
               onChanged: (val, ocSc) {
-                debugPrint("$val");
                 final msg = _initialValidate(val, ocSc.detail, onValidate);
                 setState(() {
                   ocSc.error = msg.isNotEmpty;
@@ -151,19 +149,15 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
         Container(
           color: widget.appThemeData.primary.light,
           child: ListTile(
-            leading: (widget.settingsControl.changed || help.isNotEmpty) ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
+            leading: (widget.settingsControl.changed || help.isNotEmpty) ? Icon(Icons.star, color: widget.appThemeData.screenForegroundColour(true)) :  Icon(Icons.radio_button_unchecked, color: widget.appThemeData.screenForegroundColour(false)),
             title: Text(widget.settingsControl.detail.title, style: widget.appThemeData.tsLarge),
             subtitle: Text(h, style: help.isEmpty ? widget.appThemeData.tsSmall : widget.appThemeData.tsLargeError),
           ),
         ),
+        _configInputField(widget.settingsControl.detail.detailType),
         Container(
-          color: Colors.black,
-          height: 2,
-        ),
-        Container(
-          color: widget.appThemeData.primary.med,
-          padding: const EdgeInsets.all(5.0),
-          child: _configInputField(widget.settingsControl.detail.detailType),
+          color: widget.appThemeData.screenForegroundColour(true),
+          height: 1,
         ),
       ],
     );
@@ -172,32 +166,67 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
   Widget _configInputField(String type) {
     if (type == "BOOL") {
       final set = _stringToBool(widget.settingsControl.getStringValue);
-      final iconData = set ? const Icon(Icons.circle_outlined) : const Icon(Icons.circle_rounded);
-       return Row(
-        children: [
-          Text(widget.settingsControl.getBoolString(set), style: widget.appThemeData.tsLarge),
-          IconButton(
-            icon: iconData,
-            onPressed: () {
-              final val = (!set).toString();
-              help = widget.onChanged(val, widget.settingsControl);
-              if (help.isEmpty) {
-                widget.settingsControl.setStringValue(val);
-              }
-            },
-          ),
-        ],
+      final iconData = set ? Icon(Icons.circle_outlined,  color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.circle_rounded,  color: widget.appThemeData.screenForegroundColour(true));
+      return Container(
+        color: widget.appThemeData.primary.med,
+        padding: const EdgeInsets.all(5.0),
+        child: Row(
+          children: [
+            Text(widget.settingsControl.getBoolString(set), style: widget.appThemeData.tsLarge),
+            IconButton(
+              icon: iconData,
+              onPressed: () {
+                final val = (!set).toString();
+                help = widget.onChanged(val, widget.settingsControl);
+                if (help.isEmpty) {
+                  widget.settingsControl.setStringValue(val);
+                }
+              },
+            ),
+          ],
+        ),
       );
     }
 
-    return TextField(
-      controller: widget.settingsControl.getTextController,
-      style: help.isEmpty ? widget.appThemeData.tsLarge : widget.appThemeData.tsLargeError,
-      onChanged: (newValue) {
-        help = widget.onChanged(newValue, widget.settingsControl);
-      },
-      cursorColor: widget.appThemeData.cursorColor,
-      decoration: const InputDecoration.collapsed(hintText: "Value"),
+    if (type == "COLOUR") {
+      final p = widget.appThemeData.getColorPalletForName(widget.settingsControl.getStringValue);
+      return Container(
+        color: p.med,
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.all(5.0),
+        child: DropdownButton(
+          items: _createDropDownColorList(widget.appThemeData),
+          isDense: true,
+          elevation: 16,
+          dropdownColor:widget.appThemeData.dialogBackgroundColor,
+          value: widget.settingsControl.getStringValue,
+          style: widget.appThemeData.tsLarge,
+          underline: const SizedBox(
+            height: 0,
+          ),
+          iconSize: widget.appThemeData.tsLarge.fontSize! * 1.5,
+          iconEnabledColor: widget.appThemeData.screenForegroundColour(true),
+          onChanged: (newValue) {
+            help = widget.onChanged(newValue!, widget.settingsControl);
+            if (help.isEmpty) {
+              widget.settingsControl.setStringValue(newValue);
+            }
+          },
+        ),
+      );
+    }
+    return Container(
+      color: widget.appThemeData.primary.med,
+      padding: const EdgeInsets.all(5.0),
+      child: TextField(
+        controller: widget.settingsControl.getTextController,
+        style: help.isEmpty ? widget.appThemeData.tsLarge : widget.appThemeData.tsLargeError,
+        onChanged: (newValue) {
+          help = widget.onChanged(newValue, widget.settingsControl);
+        },
+        cursorColor: widget.appThemeData.cursorColor,
+        decoration: const InputDecoration.collapsed(hintText: "Value"),
+      ),
     );
   }
 }
@@ -213,7 +242,7 @@ class SettingControlList {
             list.add(SettingControl(settingDetail, DataLoad.getBoolFromJson(configJson, settingDetail.path, fallback: _stringToBool(settingDetail.fallback)).toString()));
             break;
           case "INT":
-            list.add(SettingControl(settingDetail, DataLoad.getNumFromJson(configJson, settingDetail.path, fallback: _stringToNum(settingDetail.fallback)).toString()));
+            list.add(SettingControl(settingDetail, DataLoad.getNumFromJson(configJson, settingDetail.path, fallback: num.parse(settingDetail.fallback)).toString()));
             break;
           default:
             list.add(SettingControl(settingDetail, DataLoad.getStringFromJson(configJson, settingDetail.path, fallback: settingDetail.fallback)));
@@ -299,7 +328,7 @@ class SettingControl {
       return (getStringValue.toLowerCase() == "true");
     }
     if (detail.detailType == "INT") {
-      return (_stringToNum(getStringValue));
+      return (num.parse(getStringValue));
     }
     return getStringValue;
   }
@@ -326,18 +355,26 @@ class SettingControl {
   }
 }
 
+List<DropdownMenuItem<String>> _createDropDownColorList(AppThemeData appThemeData) {
+  final List<DropdownMenuItem<String>> dll = List.empty(growable: true);
+  for (var element in colourNames.keys) {
+    dll.add(DropdownMenuItem<String>(
+      value: element,
+      child: Text(
+        element,
+        style: appThemeData.tsLarge,
+      ),
+    ));
+  }
+  return dll;
+}
+
 bool _stringToBool(String text) {
   final txt = text.trim().toLowerCase();
   if (txt == "true" || txt == "yes") {
     return true;
   }
   return false;
-}
-
-num _stringToNum(String text) {
-  final txt = text.trim().toLowerCase();
-  final v  = num.parse(text);
-  return v;
 }
 
 String _initialValidate(String value, SettingDetail detail, String Function(String, SettingDetail) onValidate) {
@@ -350,7 +387,7 @@ String _initialValidate(String value, SettingDetail detail, String Function(Stri
           if (v is! int) {
             return "Should be an integer";
           }
-        } catch(e) {
+        } catch (e) {
           return "Invalid number";
         }
         break;

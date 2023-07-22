@@ -1,23 +1,22 @@
+const _updatedNotForUnDo = "~";
 class PathProperties {
-  bool renamed = false;
-  bool updated = false;
+  String renamedFrom = "";
+  String updatedFrom = "";
   bool groupSelect = false;
-  bool cut = false;
-  PathProperties(this.updated, this.groupSelect, this.cut, this.renamed);
+  PathProperties(this.updatedFrom, this.groupSelect, this.renamedFrom);
 
-  factory PathProperties.clear() {
-    return PathProperties(false, false, false, false);
+  factory PathProperties.empty() {
+    return PathProperties("", false, "");
   }
 
   @override
   String toString() {
-    return "rename:$renamed updated:$updated group:$groupSelect cut:$cut";
+    return "rename:$renamed updated:$updated group:$groupSelect";
   }
 
   void clear() {
-    renamed = false;
-    updated = false;
-    cut = false;
+    renamedFrom = "";
+    updatedFrom = "";
     groupSelect = false;
   }
 
@@ -26,7 +25,23 @@ class PathProperties {
   }
 
   bool get isNotEmpty {
-    return renamed || updated || groupSelect || cut;
+    return renamed || updated || groupSelect;
+  }
+
+  bool get renamed {
+    return renamedFrom.isNotEmpty;
+  }
+
+  bool get canUndoRename {
+    return (renamedFrom != _updatedNotForUnDo) && renamedFrom.isNotEmpty;
+  }
+
+  bool get canUndoUpdate {
+    return (updatedFrom != _updatedNotForUnDo) && updatedFrom.isNotEmpty;
+  }
+
+  bool get updated {
+    return updatedFrom.isNotEmpty;
   }
 
   bool get changed {
@@ -80,34 +95,38 @@ class PathPropertiesList {
     }
   }
 
-  void setCut(final Path p, final bool set) {
-    final ps = p.toString();
-    final pfp = _propertiesForPath(ps);
-    pfp.cut = set;
-    if (log != null) {
-      log!("__NODE__ CUT [$p] ${pfp.cut ? 'YES' : 'NO'}");
-    }
-    if (pfp.isEmpty) {
-      _list.remove(ps);
-    } else {
-      _list[ps] = pfp;
-    }
-  }
+  // void setCut(final Path p, final bool set) {
+  //   final ps = p.toString();
+  //   final pfp = _propertiesForPath(ps);
+  //   pfp.cut = set;
+  //   if (log != null) {
+  //     log!("__NODE__ CUT [$p] ${pfp.cut ? 'YES' : 'NO'}");
+  //   }
+  //   if (pfp.isEmpty) {
+  //     _list.remove(ps);
+  //   } else {
+  //     _list[ps] = pfp;
+  //   }
+  // }
 
-  void setRenamed(final Path p) {
+  void setRenamed(final Path p, {String from = _updatedNotForUnDo}) {
     final ps = p.toString();
     final pfp = _propertiesForPath(ps);
-    pfp.renamed = true;
+    if (!pfp.canUndoRename) {
+      pfp.renamedFrom = from;
+    }
     if (log != null) {
       log!("__NODE__ RENAME [$p] ${pfp.renamed ? 'YES' : 'NO'}");
     }
     _list[ps] = pfp;
   }
 
-  void setUpdated(final Path p) {
+  void setUpdated(final Path p, {String from = _updatedNotForUnDo}) {
     final ps = p.toString();
     final pfp = _propertiesForPath(ps);
-    pfp.updated = true;
+    if (!pfp.canUndoUpdate) {
+      pfp.updatedFrom = from;
+    }
     if (log != null) {
       log!("__NODE__ UPDATED [$p]  ${pfp.updated ? 'YES' : 'NO'}");
     }
@@ -120,7 +139,7 @@ class PathPropertiesList {
 
   PathProperties _propertiesForPath(final String p) {
     var plp = _list[p];
-    plp ??= PathProperties.clear();
+    plp ??= PathProperties.empty();
     return plp;
   }
 }

@@ -8,7 +8,9 @@ class MyTreeNode {
   final MyTreeNode? parent;
   final bool leaf;
   late final List<MyTreeNode> children;
+
   bool expanded = true;
+  bool required = true;
   int index = 0;
 
   MyTreeNode(this.pathKey, this.label, this.parent, this.leaf, {index = 0}) {
@@ -17,11 +19,99 @@ class MyTreeNode {
 
   @override
   String toString() {
-    return "${path.toString()} $canExpand ${children.length}";
+    return "Label:$label PathKey:$pathKey Leaf:$leaf Children:${children.length} Req:$required";
+  }
+
+  static MyTreeNode fromMap(final Map<String, dynamic> mapNode) {
+    debugPrint("IN:MyTreeNode fromMap");
+    final treeNode = MyTreeNode.empty();
+    _fromMapR(mapNode, treeNode);
+    return treeNode;
+  }
+
+  static void _fromMapR(final Map<String, dynamic> mapNode, final MyTreeNode treeNode) {
+    mapNode.forEach((key, value) {
+      final nn = MyTreeNode(key, key, treeNode, value is! Map);
+      treeNode.children.add(nn);
+      if (value is Map) {
+        _fromMapR(value as Map<String, dynamic>, nn);
+      }
+    });
+  }
+
+  factory MyTreeNode.cloneWithoutChildren(final MyTreeNode n, final MyTreeNode? parent) {
+    final nn = MyTreeNode(n.pathKey, n.label, parent, n.leaf);
+    nn.expanded = n.expanded;
+    nn.index = n.index;
+    nn.required = n.required;
+    return nn;
   }
 
   factory MyTreeNode.empty() {
     return MyTreeNode("", "", null, false);
+  }
+
+  MyTreeNode firstSelectableNode() {
+    for (int i = 0; i < children.length; i++) {
+      if (children[i].isNotLeaf) {
+        return children[i];
+      }
+    }
+    return MyTreeNode("root", "root", null, false);
+  }
+
+  MyTreeNode clone(final bool requiredOnly) {
+    final clonedParent = MyTreeNode.cloneWithoutChildren(this, null);
+    _cloneWithParent(clonedParent, requiredOnly);
+    return clonedParent;
+  }
+
+  void _cloneWithParent(MyTreeNode clonedParent, final bool requiredOnly) {
+    for (var c in children) {
+      if (requiredOnly) {
+        if (c.required) {
+          final clonedC = MyTreeNode.cloneWithoutChildren(c, clonedParent);
+          clonedParent.children.add(clonedC);
+          c._cloneWithParent(clonedC, requiredOnly);
+        }
+      } else {
+        final clonedC = MyTreeNode.cloneWithoutChildren(c, clonedParent);
+        clonedParent.children.add(clonedC);
+        c._cloneWithParent(clonedC, requiredOnly);
+      }
+    }
+  }
+
+  MyTreeNode clearFilter() {
+    visitEachSubNode((node) {
+      node.required = true;
+    });
+    return this;
+  }
+
+  MyTreeNode applyFilter(String filter, final bool toLowerCase, final bool Function(String, bool, MyTreeNode) match) {
+    final String s;
+    if (toLowerCase) {
+      s = filter.trim().toLowerCase();
+    } else {
+      s = filter.trim();
+    }
+
+    if (s.isEmpty) {
+      return clearFilter();
+    }
+
+    visitEachSubNode((node) {
+      final b = match(s, toLowerCase, node);
+      node.required = b;
+      if (b) {
+        node.visitEachParentNode((pn) {
+          pn.required = true;
+        });
+      }
+    });
+
+    return clone(true);
   }
 
   Path get up {
@@ -87,6 +177,10 @@ class MyTreeNode {
     return 0;
   }
 
+  bool get isRoot {
+    return parent == null;
+  }
+
   bool get isNotEmpty {
     return children.isNotEmpty;
   }
@@ -127,7 +221,7 @@ class MyTreeNode {
 
   bool get parentIsExpanded {
     int c = 0;
-    visitEachParent((p) {
+    visitEachParentNode((p) {
       if (!p.expanded) {
         c++;
       }
@@ -136,13 +230,13 @@ class MyTreeNode {
   }
 
   void expandAll(final bool exp) {
-    visitEachNode((node) {
+    visitEachSubNode((node) {
       node.expanded = exp;
     });
   }
 
   void expandParent(final bool exp) {
-    visitEachParent((node) {
+    visitEachParentNode((node) {
       node.expanded = exp;
     });
   }
@@ -210,38 +304,33 @@ class MyTreeNode {
     return n;
   }
 
-  void visitEachNode(final void Function(MyTreeNode) func) {
+  void visitEachSubNode(final void Function(MyTreeNode) func) {
     for (var element in children) {
       func(element);
       if (element.isNotEmpty) {
-        element.visitEachNode(func);
+        element.visitEachSubNode(func);
       }
     }
   }
 
-  void visitEachParent(final void Function(MyTreeNode) func) {
+  void visitEachLeafNode(final void Function(MyTreeNode) func) {
+    for (var element in children) {
+      if (element.isLeaf) {
+        func(element);
+      } else {
+        if (element.isNotEmpty) {
+          element.visitEachLeafNode(func);
+        }
+      }
+    }
+  }
+
+  void visitEachParentNode(final void Function(MyTreeNode) func) {
     var p = parent;
     while (p != null) {
       func(p);
       p = p.parent;
     }
-  }
-
-  static MyTreeNode fromMap(final Map<String, dynamic> mapNode) {
-    debugPrint("IN:MyTreeNode fromMap");
-    final treeNode = MyTreeNode.empty();
-    _fromMapR(mapNode, treeNode);
-    return treeNode;
-  }
-
-  static void _fromMapR(final Map<String, dynamic> mapNode, final MyTreeNode treeNode) {
-    mapNode.forEach((key, value) {
-      final nn = MyTreeNode(key, key, treeNode, value is! Map);
-      treeNode.children.add(nn);
-      if (value is Map) {
-        _fromMapR(value as Map<String, dynamic>, nn);
-      }
-    });
   }
 }
 
@@ -264,11 +353,15 @@ Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeD
                 onClick(node, !node.canExpand);
               },
               icon: appThemeData.treeNodeIcons[node.iconIndex]),
-          node.hasLeafNodes ? IconButton(
-              onPressed: () {
-                onClick(node, true);
-              },
-              icon: appThemeData.treeNodeIcons[appThemeData.treeNodeIcons.length-1]) : const SizedBox(width: 0,),
+          node.hasLeafNodes
+              ? IconButton(
+                  onPressed: () {
+                    onClick(node, true);
+                  },
+                  icon: appThemeData.treeNodeIcons[appThemeData.treeNodeIcons.length - 1])
+              : const SizedBox(
+                  width: 0,
+                ),
           TextButton(
             child: Text(
               node.label,
@@ -286,16 +379,15 @@ Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeD
 }
 
 class MyTreeNodeWidgetList extends StatefulWidget {
-  const MyTreeNodeWidgetList(this.nodes, this.selectedNode, this.appThemeData, this.rowHeight, this.onSelect, this.pathListProperties, {super.key, this.search = "", this.buildNode = buildNodeDefault, this.onSearchComplete});
+  const MyTreeNodeWidgetList(this.rootNode, this.selectedNode, this.selectedNodePath, this.appThemeData, this.rowHeight, this.onSelect, this.pathListProperties, {super.key, this.buildNode = buildNodeDefault});
   final Widget? Function(int, MyTreeNode, AppThemeData, double, bool, int, bool, Function(MyTreeNode, bool)) buildNode;
   final void Function(MyTreeNode) onSelect;
-  final void Function(String, int)? onSearchComplete;
   final AppThemeData appThemeData;
-  final MyTreeNode nodes;
+  final MyTreeNode rootNode;
   final double rowHeight;
-  final Path selectedNode;
+  final MyTreeNode selectedNode;
+  final Path selectedNodePath;
   final PathPropertiesList pathListProperties;
-  final String search;
   @override
   State<MyTreeNodeWidgetList> createState() => _MyTreeNodeWidgetListState();
 }
@@ -305,41 +397,36 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
 
   @override
   Widget build(BuildContext context) {
+
     final List<Widget> children = List.empty(growable: true);
     int c = 0;
-    widget.nodes.visitEachNode(
+    widget.rootNode.visitEachSubNode(
       (aNode) {
-        if (!widget.pathListProperties.propertiesForPath(aNode.path).cut) {
-          if (aNode.searchMatch(widget.search)) {
-            final w = widget.buildNode(
-              c,
-              aNode,
-              widget.appThemeData,
-              widget.rowHeight,
-              widget.selectedNode.isEqual(aNode.path),
-              aNode.pathLen,
-              widget.pathListProperties.propertiesForPath(aNode.path).changed,
-              (node, select) {
-                setState(() {
-                  widget.onSelect(node);
-                });
-              },
-            );
-            if (w != null) {
-              children.add(w);
-              children.add(Container(
-                height: 1,
-                color: widget.appThemeData.primary.med,
-              ));
-              c++;
-            }
-          }
+        final aNodePath = aNode.path;
+        final w = widget.buildNode(
+          c,
+          aNode,
+          widget.appThemeData,
+          widget.rowHeight,
+          widget.selectedNodePath.isEqual(aNodePath),
+          aNode.pathLen,
+          widget.pathListProperties.propertiesForPath(aNodePath).changed,
+          (node, select) {
+            setState(() {
+              widget.onSelect(node);
+            });
+          },
+        );
+        if (w != null) {
+          children.add(w);
+          children.add(Container(
+            height: 1,
+            color: widget.appThemeData.primary.med,
+          ));
+          c++;
         }
       },
     );
-    if (widget.onSearchComplete != null && widget.search.isNotEmpty) {
-      widget.onSearchComplete!(widget.search, c);
-    }
     return ListBody(
       children: children,
     );

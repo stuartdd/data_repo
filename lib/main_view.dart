@@ -46,14 +46,12 @@ class MyTreeWidget extends StatelessWidget {
 
 /// Creates both Left and Right panes.
 DisplayData createSplitView(
-    final Map<String, dynamic> originalData, // The original data from the file TODO Remove originalData. Use rootTreeNode instead
-    final MyTreeNode rootTreeNode,
-    final String user, // The user (The root node name)
-    final String filter, // The search text
-    final Path selectedPath, // The currently selected path
+    final Map<String, dynamic> jsonDataMap, // The original data from the file TODO Remove jsonDataMap. Use rootTreeNode instead
+    final MyTreeNode treeNodeDataRoot,
+    final MyTreeNode selectedTreeNode,
     final bool isEditDataDisplay,
     final bool horizontal, // Display horizontal or vertical split pane
-    final double initPos, // The split pane divider position
+    final double splitPaneDivPosition, // The split pane divider position
     final AppThemeData appThemeData, // The colour scheme
     final NodeCopyBin nodeCopyBin,
     final PathPropertiesList pathPropertiesList,
@@ -61,21 +59,26 @@ DisplayData createSplitView(
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final Path Function(DetailAction) onDataAction,
     final Widget Function(BuildContext, Node<dynamic>) buildNode,
-    final void Function(String, int) searchResults,
     final void Function(String) log) {
   // Called when one of the detail buttons is pressed
   /// Left right or Top bottom
-  final SplitViewMode splitViewMode = horizontal ? SplitViewMode.Horizontal : SplitViewMode.Vertical;
-  final SplitViewController splitViewController = SplitViewController(weights: [initPos, 1 - initPos], limits: [WeightLimit(min: splitMinTree, max: 1.0), WeightLimit(min: splitMinDetail, max: 1.0)]);
-
-  if (originalData.isEmpty) {
+  ///
+  if (jsonDataMap.isEmpty) {
     log("__DATA:__ No data loaded");
     return DisplayData.error(appThemeData, ("No data has been loaded"));
   }
+  if (treeNodeDataRoot.isEmpty) {
+    log("__DATA:__ No data to dispaly");
+    return DisplayData.error(appThemeData, ("No data to display"));
+  }
+
+  final selectedPath = selectedTreeNode.path;
+  final SplitViewMode splitViewMode = horizontal ? SplitViewMode.Horizontal : SplitViewMode.Vertical;
+  final SplitViewController splitViewController = SplitViewController(weights: [splitPaneDivPosition, 1 - splitPaneDivPosition], limits: [WeightLimit(min: splitMinTree, max: 1.0), WeightLimit(min: splitMinDetail, max: 1.0)]);
 
   /// Create the detail.
   final Widget detailContainer;
-  final node = DataLoad.getNodeFromJson(originalData, selectedPath);
+  final node = DataLoad.getNodeFromJson(jsonDataMap, selectedPath);
   if (node != null) {
     detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, pathPropertiesList, appThemeData, nodeCopyBin, onDataAction);
   } else {
@@ -87,7 +90,8 @@ DisplayData createSplitView(
 
   final scrollController = ScrollController();
   final listView = MyTreeNodeWidgetList(
-    rootTreeNode,
+    treeNodeDataRoot,
+    selectedTreeNode,
     selectedPath,
     appThemeData,
     appThemeData.treeNodeHeight,
@@ -95,12 +99,6 @@ DisplayData createSplitView(
       onSelect(selectedNode.path);
     },
     pathPropertiesList,
-    search: filter,
-    onSearchComplete: (searchExpression, rowCount) {
-      if (searchExpression.isNotEmpty) {
-        searchResults(searchExpression, rowCount);
-      }
-    },
   );
 
   final scroller = SingleChildScrollView(
@@ -147,6 +145,7 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
 }
 
 Widget createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCopyBin, final AppThemeData appThemeData, bool isEditDataDisplay, bool beforeDataLoaded, final Path Function(DetailAction) dataAction) {
+
   final pathUp = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "up"));
   final pathDown = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "down"));
   final pathRight = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "right"));
@@ -201,7 +200,10 @@ Widget createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCop
   );
 }
 
-Widget _createDetailContainer(final Map<String, dynamic> selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, NodeCopyBin copyBin, final Path Function(DetailAction) dataAction) {
+Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, NodeCopyBin copyBin, final Path Function(DetailAction) dataAction) {
+  if (selectedNode is! Map<String, dynamic>) {
+    throw JsonException(selectedPath, message: "Selected path should be a map");
+  }
   List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath);
   properties.sort(
     (a, b) {

@@ -5,8 +5,6 @@ import 'data_types.dart';
 import 'path.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
-const _buttonBorderStyle = BorderSide(color: Colors.black, width: 2);
-const _buttonBorderStyleGrey = BorderSide(color: Colors.grey, width: 2);
 // const _styleSmall = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.black);
 // const _styleSmallDisabled = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.grey);
 // const _inputTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 30.0, color: Colors.black);
@@ -143,23 +141,17 @@ class _DetailButtonState extends State<DetailButton> {
 }
 
 class OptionListWidget extends StatefulWidget {
-  late final List<OptionsTypeData> _optionList;
-  late final OptionsTypeData _selectedOption;
-  late final void Function(String, OptionsTypeData) _onSelect;
+  final List<OptionsTypeData> optionList;
+  final OptionsTypeData selectedOption;
+  final void Function(String, OptionsTypeData) onSelect;
   final AppThemeData appThemeData;
-
-  OptionListWidget({super.key, required final List<OptionsTypeData> options, required final OptionsTypeData selectedOption, required final void Function(String, OptionsTypeData) onSelect, required this.appThemeData}) {
-    _optionList = options;
-    _selectedOption = selectedOption;
-    _onSelect = onSelect;
-  }
-
+  const OptionListWidget({super.key, required this.optionList, required this.selectedOption, required this.onSelect, required this.appThemeData});
   // Find the element type index for a given type name.
   //    -1 indicated not found
-  int _findElementTypeIndex(String key) {
-    if (_optionList.isNotEmpty) {
-      for (int i = 0; i < _optionList.length; i++) {
-        if (_optionList[i].key == key) {
+  int _findIndexFroOption(String key) {
+    if (optionList.isNotEmpty) {
+      for (int i = 0; i < optionList.length; i++) {
+        if (optionList[i].key == key) {
           return i;
         }
       }
@@ -177,12 +169,12 @@ class _OptionListWidgetState extends State<OptionListWidget> {
   @override
   initState() {
     super.initState();
-    _currentSelect = widget._selectedOption;
+    _currentSelect = widget.selectedOption;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget._optionList.isEmpty) {
+    if (widget.optionList.isEmpty) {
       return const SizedBox(
         height: 0,
         width: 0,
@@ -190,21 +182,24 @@ class _OptionListWidgetState extends State<OptionListWidget> {
     }
     return Column(
       children: <Widget>[
-        for (int i = 0; i < widget._optionList.length; i++) ...[
+        for (int i = 0; i < widget.optionList.length; i++) ...[
           RadioListTile<String>(
             title: Text(
-              widget._optionList[i].description,
+              widget.optionList[i].description,
               style: widget.appThemeData.tsMedium,
             ),
-            value: widget._optionList[i].key,
+            value: widget.optionList[i].key,
+            activeColor:widget.appThemeData.screenForegroundColour(true),
+            dense: true,
             groupValue: _currentSelect.key,
             onChanged: (String? value) {
               setState(() {
                 if (value != null) {
-                  final i = widget._findElementTypeIndex(value);
+                  debugPrint("Select $value");
+                  final i = widget._findIndexFroOption(value);
                   if (i >= 0) {
-                    _currentSelect = widget._optionList[i];
-                    widget._onSelect(value, widget._optionList[i]);
+                    _currentSelect = widget.optionList[i];
+                    widget.onSelect(value, widget.optionList[i]);
                   }
                 }
               });
@@ -289,6 +284,7 @@ class _MarkDownInputField extends State<MarkDownInputField> {
               controller: controller,
               keyboardType: TextInputType.multiline,
               style: widget.appThemeData.tsMedium,
+              cursorColor: widget.appThemeData.cursorColor,
               maxLines: null,
               expands: true,
               onChanged: (value) {
@@ -389,7 +385,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
       children: [
         OptionListWidget(
             appThemeData: widget.appThemeData,
-            options: widget.options,
+            optionList: widget.options,
             selectedOption: widget.initialOption,
             onSelect: (value, sel) {
               currentOption = sel;
@@ -423,7 +419,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
         (currentOption.elementType == bool)
             ? OptionListWidget(
                 appThemeData: widget.appThemeData,
-                options: optionsForYesNo,
+                optionList: optionsForYesNo,
                 selectedOption: OptionsTypeData.toTrueFalse(current),
                 onSelect: (value, option) {
                   current = option.key;
@@ -433,6 +429,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
             : TextField(
                 controller: widget.controller,
                 style: widget.appThemeData.tsMedium,
+                cursorColor: widget.appThemeData.cursorColor,
                 onChanged: (value) {
                   current = value;
                   _validate();
