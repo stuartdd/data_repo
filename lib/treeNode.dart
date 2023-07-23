@@ -89,6 +89,13 @@ class MyTreeNode {
     return this;
   }
 
+  void setRequiredNodeAndSubNodes(bool req) {
+    required = true;
+    visitEachSubNode((sn) {
+      sn.required = true;
+    });
+  }
+
   MyTreeNode applyFilter(String filter, final bool toLowerCase, final bool Function(String, bool, MyTreeNode) match) {
     final String s;
     if (toLowerCase) {

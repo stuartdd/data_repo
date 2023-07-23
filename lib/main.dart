@@ -145,6 +145,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   String _password = "";
   String _search = "";
+  String _previousSearch = "";
   bool _beforeDataLoaded = true;
   bool _dataWasUpdated = false;
   bool _isEditDataDisplay = false;
@@ -153,6 +154,7 @@ class _MyHomePageState extends State<MyHomePage> {
   ScrollController _treeViewScrollController = ScrollController();
   DataContainer _loadedData = DataContainer.empty();
   MyTreeNode _treeNodeDataRoot = MyTreeNode.empty();
+  MyTreeNode _filteredTree = MyTreeNode.empty();
   SuccessState _globalSuccessState = SuccessState(true);
   MyTreeNode _selectedTreeNode = MyTreeNode.empty();
   Path _selectedPath = Path.empty();
@@ -204,6 +206,9 @@ class _MyHomePageState extends State<MyHomePage> {
         _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
         log("__ERROR__ Selected node [$path] was not found");
       } else {
+        if (!n.required) {
+          n.setRequiredNodeAndSubNodes(true);
+        }
         if (n.isLeaf) {
           _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
           log("__ERROR__ Selected node [$path] was a data node");
@@ -529,6 +534,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
         _pathPropertiesList.setUpdated(p);
         _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+        selectNode(path: p);
       }
       _globalSuccessState = SuccessState(true, message: "Pasted: '$name' into: '${path.last}'");
     });
@@ -621,14 +627,20 @@ class _MyHomePageState extends State<MyHomePage> {
     // if (_pathPropertiesList.isNotEmpty) {
     //   debugPrint(_pathPropertiesList.toString());
     // }
-    final filteredTree = _treeNodeDataRoot.applyFilter(_search, true, (match, tolowerCase, node) {
-      if (tolowerCase) {
-        return (node.label.toLowerCase().contains(match));
-      }
-      return (node.label.contains(match));
-    });
-    _noDataToDisplay = filteredTree.isEmpty;
+    if (_previousSearch == _search) {
+      _filteredTree = _treeNodeDataRoot.clone(true);
+    }
+    else {
+      _filteredTree = _treeNodeDataRoot.applyFilter(_search, true, (match, tolowerCase, node) {
+        if (tolowerCase) {
+          return (node.label.toLowerCase().contains(match));
+        }
+        return (node.label.contains(match));
+      });
+    }
+    _noDataToDisplay = _filteredTree.isEmpty;
     if (_noDataToDisplay) {
+      _previousSearch="[$_search]";
       _isEditDataDisplay = false;
       _navBarHeight = 0;
     } else {
@@ -636,12 +648,13 @@ class _MyHomePageState extends State<MyHomePage> {
         _applicationState.addLastFind(_search, 10);
         _applicationState.writeAppStateConfigFile(false);
       }
+      _previousSearch = _search;
       _navBarHeight = navBarHeight;
     }
 
     final DisplayData displayData = createSplitView(
       _loadedData.dataMap,
-      filteredTree,
+      _filteredTree,
       _selectedTreeNode,
       _isEditDataDisplay,
       _configData.isDesktop(),
