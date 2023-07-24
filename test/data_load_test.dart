@@ -6,7 +6,7 @@ import 'package:data_repo/path.dart';
 import 'dart:convert' as json_tools;
 
 void log(String text) {
-  debugPrint(text);
+ debugPrint(text);
 }
 
 void main() {

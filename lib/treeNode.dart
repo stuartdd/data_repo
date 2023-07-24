@@ -10,7 +10,7 @@ class MyTreeNode {
   late final List<MyTreeNode> children;
 
   bool expanded = true;
-  bool required = true;
+  bool _required = true;
   int index = 0;
 
   MyTreeNode(this.pathKey, this.label, this.parent, this.leaf, {index = 0}) {
@@ -19,11 +19,10 @@ class MyTreeNode {
 
   @override
   String toString() {
-    return "Label:$label PathKey:$pathKey Leaf:$leaf Children:${children.length} Req:$required";
+    return "Label:$label PathKey:$pathKey Leaf:$leaf Children:${children.length} Req:$required Exp:$expanded";
   }
 
   static MyTreeNode fromMap(final Map<String, dynamic> mapNode) {
-    debugPrint("IN:MyTreeNode fromMap");
     final treeNode = MyTreeNode.empty();
     _fromMapR(mapNode, treeNode);
     return treeNode;
@@ -43,7 +42,7 @@ class MyTreeNode {
     final nn = MyTreeNode(n.pathKey, n.label, parent, n.leaf);
     nn.expanded = n.expanded;
     nn.index = n.index;
-    nn.required = n.required;
+    nn._required = n._required;
     return nn;
   }
 
@@ -60,7 +59,7 @@ class MyTreeNode {
     return MyTreeNode("root", "root", null, false);
   }
 
-  MyTreeNode clone(final bool requiredOnly) {
+  MyTreeNode clone({final bool requiredOnly = false}) {
     final clonedParent = MyTreeNode.cloneWithoutChildren(this, null);
     _cloneWithParent(clonedParent, requiredOnly);
     return clonedParent;
@@ -69,7 +68,7 @@ class MyTreeNode {
   void _cloneWithParent(MyTreeNode clonedParent, final bool requiredOnly) {
     for (var c in children) {
       if (requiredOnly) {
-        if (c.required) {
+        if (c._required) {
           final clonedC = MyTreeNode.cloneWithoutChildren(c, clonedParent);
           clonedParent.children.add(clonedC);
           c._cloneWithParent(clonedC, requiredOnly);
@@ -84,16 +83,9 @@ class MyTreeNode {
 
   MyTreeNode clearFilter() {
     visitEachSubNode((node) {
-      node.required = true;
+      node._required = true;
     });
     return this;
-  }
-
-  void setRequiredNodeAndSubNodes(bool req) {
-    required = true;
-    visitEachSubNode((sn) {
-      sn.required = true;
-    });
   }
 
   MyTreeNode applyFilter(String filter, final bool toLowerCase, final bool Function(String, bool, MyTreeNode) match) {
@@ -105,20 +97,20 @@ class MyTreeNode {
     }
 
     if (s.isEmpty) {
-      return clearFilter();
+      clearFilter();
+      return this;
     }
 
     visitEachSubNode((node) {
       final b = match(s, toLowerCase, node);
-      node.required = b;
+      node._required = b;
       if (b) {
         node.visitEachParentNode((pn) {
-          pn.required = true;
+          pn._required = true;
         });
       }
     });
-
-    return clone(true);
+    return clone(requiredOnly: true);
   }
 
   Path get up {
@@ -188,6 +180,23 @@ class MyTreeNode {
     return parent == null;
   }
 
+  bool get isRequired {
+    return _required;
+  }
+
+  bool get isNotRequired {
+    return !_required;
+  }
+
+  void setRequired(bool req, {bool recursive = false}) {
+    _required = req;
+    if (recursive) {
+      visitEachSubNode((sn) {
+        sn._required = req;
+      });
+    }
+  }
+
   bool get isNotEmpty {
     return children.isNotEmpty;
   }
@@ -197,9 +206,13 @@ class MyTreeNode {
   }
 
   bool get canExpand {
+    return hasMapNodes;
+  }
+
+  bool get hasLeafNodes {
     if (children.isNotEmpty) {
       for (int i = 0; i < children.length; i++) {
-        if (children[i].isNotEmpty) {
+        if (children[i].isLeaf) {
           return true;
         }
       }
@@ -207,10 +220,10 @@ class MyTreeNode {
     return false;
   }
 
-  bool get hasLeafNodes {
+  bool get hasMapNodes {
     if (children.isNotEmpty) {
       for (int i = 0; i < children.length; i++) {
-        if (children[i].isLeaf) {
+        if (children[i].isNotLeaf) {
           return true;
         }
       }
@@ -274,16 +287,6 @@ class MyTreeNode {
     return p.cloneReversed();
   }
 
-  bool searchMatch(final String s) {
-    if (s.isEmpty) {
-      return true;
-    }
-    if (label.toLowerCase().contains(s.toLowerCase())) {
-      return true;
-    }
-    return false;
-  }
-
   MyTreeNode? findByLabel(String l) {
     if (isNotEmpty) {
       for (var element in children) {
@@ -341,7 +344,7 @@ class MyTreeNode {
   }
 }
 
-Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeData appThemeData, final double rowHeight, final bool selected, final int pathLen, final bool hiLight, final Function(MyTreeNode, bool) onClick) {
+Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeData appThemeData, final double rowHeight, final bool selected, final int pathLen, final bool hiLight, final Function(Path) onClick, final Function(Path) onExpand) {
   if (node.parentIsExpanded && node.isNotLeaf) {
     node.index = index;
     return Container(
@@ -354,16 +357,13 @@ Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeD
           SizedBox(width: 20.0 * (pathLen - 1)),
           IconButton(
               onPressed: () {
-                if (node.canExpand) {
-                  node.expanded = !node.expanded;
-                }
-                onClick(node, !node.canExpand);
+                onExpand(node.path);
               },
               icon: appThemeData.treeNodeIcons[node.iconIndex]),
           node.hasLeafNodes
               ? IconButton(
                   onPressed: () {
-                    onClick(node, true);
+                    onClick(node.path);
                   },
                   icon: appThemeData.treeNodeIcons[appThemeData.treeNodeIcons.length - 1])
               : const SizedBox(
@@ -375,7 +375,7 @@ Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeD
               style: node.canExpand ? appThemeData.tsTreeViewParentLabel : appThemeData.tsTreeViewLabel,
             ),
             onPressed: () {
-              onClick(node, true);
+              onClick(node.path);
             },
           ),
         ],
@@ -386,9 +386,10 @@ Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeD
 }
 
 class MyTreeNodeWidgetList extends StatefulWidget {
-  const MyTreeNodeWidgetList(this.rootNode, this.selectedNode, this.selectedNodePath, this.appThemeData, this.rowHeight, this.onSelect, this.pathListProperties, {super.key, this.buildNode = buildNodeDefault});
-  final Widget? Function(int, MyTreeNode, AppThemeData, double, bool, int, bool, Function(MyTreeNode, bool)) buildNode;
-  final void Function(MyTreeNode) onSelect;
+  const MyTreeNodeWidgetList(this.rootNode, this.selectedNode, this.selectedNodePath, this.appThemeData, this.rowHeight, this.onSelect, this.onExpand, this.pathListProperties, {super.key, this.buildNode = buildNodeDefault});
+  final Widget? Function(int, MyTreeNode, AppThemeData, double, bool, int, bool, Function(Path), Function(Path)) buildNode;
+  final void Function(Path) onSelect;
+  final void Function(Path) onExpand;
   final AppThemeData appThemeData;
   final MyTreeNode rootNode;
   final double rowHeight;
@@ -404,7 +405,6 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
 
   @override
   Widget build(BuildContext context) {
-
     final List<Widget> children = List.empty(growable: true);
     int c = 0;
     widget.rootNode.visitEachSubNode(
@@ -418,10 +418,11 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
           widget.selectedNodePath.isEqual(aNodePath),
           aNode.pathLen,
           widget.pathListProperties.propertiesForPath(aNodePath).changed,
-          (node, select) {
-            setState(() {
-              widget.onSelect(node);
-            });
+          (selectPath) {
+            widget.onSelect(selectPath);
+          },
+          (expandPath) {
+            widget.onExpand(expandPath);
           },
         );
         if (w != null) {

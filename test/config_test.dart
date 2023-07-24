@@ -7,20 +7,43 @@ import 'package:data_repo/data_load.dart';
 import 'package:data_repo/appState.dart';
 
 void log(String text) {
-  debugPrint(text);
+ debugPrint(text);
 }
 
 void main() {
+
+
+  test('Test ApplicationScreen', () async {
+    ApplicationScreen as = ApplicationScreen(1, 2, 3, 4, 432);
+    expect(as.posIsNotEqual(1.0, 2.0, 3.0, 4.0), false);
+    expect(as.posIsNotEqual(2.0, 2.0, 3.0, 4.0), true);
+    expect(as.posIsNotEqual(1.0, 1.0, 3.0, 4.0), true);
+    expect(as.posIsNotEqual(1.0, 2.0, 4.0, 4.0), true);
+    expect(as.posIsNotEqual(1.0, 2.0, 3.0, 3.0), true);
+    expect(as.divIsNotEqual(0.432), false);
+    expect(as.divIsNotEqual(0.4321), false);
+    expect(as.divIsNotEqual(0.4325), true);
+    expect(as.divIsNotEqual(0.0), true);
+    expect(as.divIsNotEqual(0.021), true);
+
+    expect(as.x, 1);
+    expect(as.y, 2);
+    expect(as.w, 3);
+    expect(as.h, 4);
+    expect(as.divPos, 0.432);
+
+  });
+
   test('Test Write Application State', () async {
-    final sc1 = ApplicationState(ApplicationScreen(10, 20, 30, 40, 100), ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
+    final sc1 = ApplicationState(ApplicationScreen(10, 20, 30, 40, 400), ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
     try {
       await sc1.deleteAppStateConfigFile();
     } catch (e) {
       // Expecting exception unless test failed previously
     }
     final scStr1 = sc1.toString();
-    expect(scStr1, '{"screen":{"x":10.0,"y":20.0,"w":30.0,"h":40.0,"hDiv":100.0},"lastFind":["Last1","Last2","Last3"]}');
-    await sc1.writeAppStateConfigFile(true);
+    expect(scStr1, '{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":400},"lastFind":["Last1","Last2","Last3"]}');
+    await sc1.writeAppStateConfigFile();
 
     final sc2 = await ApplicationState.readAppStateConfigFile("test/data/as.tmp", log);
     final scStr2 = sc2.toString();
@@ -44,13 +67,13 @@ void main() {
   test('Test Screen', () async {
     final sc1 = ApplicationScreen(10, 20, 30, 40, 100);
     final scStr1 = sc1.toString();
-    expect(scStr1, '{"x":10.0,"y":20.0,"w":30.0,"h":40.0,"hDiv":100.0}');
+    expect(scStr1, '{"x":10,"y":20,"w":30,"h":40,"divPos":100}');
     final map1 = json_tools.jsonDecode(scStr1);
     final sc2 = ApplicationScreen.fromJson(map1);
     final scStr2 = sc2.toString();
-    expect(scStr2, '{"x":10.0,"y":20.0,"w":30.0,"h":40.0,"hDiv":100.0}');
+    expect(scStr2, '{"x":10,"y":20,"w":30,"h":40,"divPos":100}');
     try {
-      final map1 = json_tools.jsonDecode('{"z":10,"y":20,"w":30,"h":40,"hDiv":100}');
+      final map1 = json_tools.jsonDecode('{"z":10,"y":20,"w":30,"h":40,"divPos":100}');
       ApplicationScreen.fromJson(map1);
       fail("Did not throw any Exception");
     } on JsonException catch (e) {
@@ -67,13 +90,13 @@ void main() {
   test('Test Application State', () async {
     final sc1 = ApplicationState(ApplicationScreen(10, 20, 30, 40, 100), ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
     final scStr1 = sc1.toString();
-    expect(scStr1, '{"screen":{"x":10.0,"y":20.0,"w":30.0,"h":40.0,"hDiv":100.0},"lastFind":["Last1","Last2","Last3"]}');
+    expect(scStr1, '{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"lastFind":["Last1","Last2","Last3"]}');
     final map1 = json_tools.jsonDecode(scStr1);
     final sc2 = ApplicationState.fromJson(map1, "test/data/as.tmp", true, log);
     final scStr2 = sc2.toString();
-    expect(scStr2, '{"screen":{"x":10.0,"y":20.0,"w":30.0,"h":40.0,"hDiv":100.0},"lastFind":["Last1","Last2","Last3"]}');
+    expect(scStr2, '{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"lastFind":["Last1","Last2","Last3"]}');
     try {
-      final map1 = json_tools.jsonDecode('{"screen":{"x":10.0,"y":20.0,"w":30.0,"h":40.0,"hDiv":100.0},"lasFind":["Last1","Last2","Last3"]}');
+      final map1 = json_tools.jsonDecode('{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"lasFind":["Last1","Last2","Last3"]}');
       ApplicationState.fromJson(map1, "test/data/as.tmp", true, log);
       fail("Did not throw any Exception");
     } on JsonException catch (e) {
@@ -87,7 +110,7 @@ void main() {
     }
 
     try {
-      final map1 = json_tools.jsonDecode('{"screens":{"x":10,"y":20,"w":30,"h":40,"hDiv":100},"lastFind":["Last1","Last2","Last3"]}');
+      final map1 = json_tools.jsonDecode('{"screens":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"lastFind":["Last1","Last2","Last3"]}');
       ApplicationState.fromJson(map1, "test/data/as.tmp", true, log);
       fail("Did not throw any Exception");
     } on JsonException catch (e) {

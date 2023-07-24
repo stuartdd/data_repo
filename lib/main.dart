@@ -62,7 +62,7 @@ void main() async {
         minimumSize: Size(200, 200),
         titleBarStyle: TitleBarStyle.normal,
       );
-      setWindowFrame(Rect.fromLTWH(_applicationState.screen.x, _applicationState.screen.y, _applicationState.screen.w, _applicationState.screen.h));
+      setWindowFrame(Rect.fromLTWH(_applicationState.screen.x.toDouble(), _applicationState.screen.y.toDouble(), _applicationState.screen.w.toDouble(), _applicationState.screen.h.toDouble()));
     }
   } catch (e) {
     debugPrint(e.toString());
@@ -80,12 +80,12 @@ class MyApp extends StatelessWidget with WindowListener {
       case 'maximize':
       case 'minimize':
         {
-          _applicationState.setShouldUpdateScreen(false);
+          _applicationState.screenNotMaximised = false;
           break;
         }
       case 'unmaximize':
         {
-          _applicationState.setShouldUpdateScreen(true);
+          _applicationState.screenNotMaximised = true;
           break;
         }
       case 'close':
@@ -96,10 +96,9 @@ class MyApp extends StatelessWidget with WindowListener {
       case 'resize':
         {
           if (_configData.isDesktop()) {
+            _applicationState.screenNotMaximised = true;
             final info = await getWindowInfo();
-            if (_applicationState.updateScreenState(info.frame.left, info.frame.top, info.frame.width, info.frame.height)) {
-              await _applicationState.writeAppStateConfigFile(false);
-            }
+            _applicationState.updateScreenPos(info.frame.left, info.frame.top, info.frame.width, info.frame.height);
           }
           break;
         }
@@ -146,6 +145,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _password = "";
   String _search = "";
   String _previousSearch = "";
+
   bool _beforeDataLoaded = true;
   bool _dataWasUpdated = false;
   bool _isEditDataDisplay = false;
@@ -154,7 +154,7 @@ class _MyHomePageState extends State<MyHomePage> {
   ScrollController _treeViewScrollController = ScrollController();
   DataContainer _loadedData = DataContainer.empty();
   MyTreeNode _treeNodeDataRoot = MyTreeNode.empty();
-  MyTreeNode _filteredTree = MyTreeNode.empty();
+  MyTreeNode _filteredNodeDataRoot = MyTreeNode.empty();
   SuccessState _globalSuccessState = SuccessState(true);
   MyTreeNode _selectedTreeNode = MyTreeNode.empty();
   Path _selectedPath = Path.empty();
@@ -165,20 +165,24 @@ class _MyHomePageState extends State<MyHomePage> {
     if (sel.isEmpty) {
       return p;
     }
+    final n = _filteredNodeDataRoot.findByPath(sel);
+    if (n == null) {
+      return p;
+    }
     switch (dir) {
       case "right":
         {
-          p = _selectedTreeNode.firstChild;
+          p = n.firstChild;
           break;
         }
       case "down":
         {
-          p = _selectedTreeNode.down;
+          p = n.down;
           break;
         }
       case "up":
         {
-          p = _selectedTreeNode.up;
+          p = n.up;
           break;
         }
     }
@@ -206,13 +210,13 @@ class _MyHomePageState extends State<MyHomePage> {
         _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
         log("__ERROR__ Selected node [$path] was not found");
       } else {
-        if (!n.required) {
-          n.setRequiredNodeAndSubNodes(true);
-        }
         if (n.isLeaf) {
           _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
           log("__ERROR__ Selected node [$path] was a data node");
         } else {
+          if (n.isNotRequired) {
+            n.setRequired(true, recursive: true);
+          }
           _selectedTreeNode = n;
         }
       }
@@ -233,9 +237,19 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void _selectNodetState(final Path path) {
+  void _selectNodeState(final Path path) {
     setState(() {
       selectNode(path: path);
+    });
+  }
+
+  void _expandNodeState(final Path path) {
+    setState(() {
+      final n = _treeNodeDataRoot.findByPath(path);
+      if (n != null) {
+        n.expanded = !n.expanded;
+        selectNode(path: path);
+      }
     });
   }
 
@@ -243,6 +257,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (st == _search) {
       return;
     }
+    _previousSearch = "[$_search]"; // Need search and previousSearch to be different so filter is applied
     if (st.isEmpty) {
       log("__SEARCH__ cleared");
       selectNode();
@@ -352,11 +367,26 @@ class _MyHomePageState extends State<MyHomePage> {
       _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
       _treeNodeDataRoot.expandAll(true);
       _treeNodeDataRoot.clearFilter();
+      _filteredNodeDataRoot = MyTreeNode.empty();
       _noDataToDisplay = _treeNodeDataRoot.isEmpty;
       _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
       _selectedPath = _selectedTreeNode.path;
       _globalSuccessState = SuccessState(true, message: "${filePrefixData.encrypted ? "Encrypted " : ""} ${_loadedData.source} File loaded: ${_loadedData.timeStampString}", log: log);
     });
+  }
+
+  void _refreshTreeNodeDataRoot() {
+    final temp = MyTreeNode.fromMap(_loadedData.dataMap);
+    temp.visitEachSubNode((node) {
+      final refNode = _treeNodeDataRoot.findByPath(node.path);
+      if (refNode != null) {
+        node.setRequired(refNode.isRequired);
+        if (node.canExpand) {
+          node.expanded = refNode.expanded;
+        }
+      }
+    });
+    _treeNodeDataRoot = temp;
   }
 
   void _handleAddState(final Path path, final String name, final OptionsTypeData type) async {
@@ -382,12 +412,10 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           mapNodes.lastNodeAsMap![name] = "undefined";
           _dataWasUpdated = true;
-          _pathPropertiesList.setUpdated(
-            path,
-          );
+          _pathPropertiesList.setUpdated(path);
           _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
-          _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+          _refreshTreeNodeDataRoot();
           selectNode(path: path);
           _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log: log);
         });
@@ -400,7 +428,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _pathPropertiesList.setUpdated(path);
           _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
-          _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+          _refreshTreeNodeDataRoot();
           selectNode(path: path);
           _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log: log);
         });
@@ -464,7 +492,7 @@ class _MyHomePageState extends State<MyHomePage> {
         var parentPath = newPath.cloneParentPath();
         _pathPropertiesList.setRenamed(newPath);
         _pathPropertiesList.setRenamed(parentPath);
-        _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+        _refreshTreeNodeDataRoot();
         selectNode(path: parentPath);
         _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: log);
       });
@@ -500,7 +528,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
         _dataWasUpdated = true;
         _pathPropertiesList.setUpdated(parentPath);
-        _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+        _refreshTreeNodeDataRoot();
         selectNode(path: parentPath);
         _globalSuccessState = SuccessState(true, message: "Removed: '${path.last}'");
       });
@@ -524,7 +552,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _dataWasUpdated = true;
       _pathPropertiesList.setUpdated(path);
       _pathPropertiesList.setUpdated(newPath);
-      _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+      _refreshTreeNodeDataRoot();
       selectNode(path: newPath);
       if (_nodeCopyBin.cut) {
         final p = _handleDelete(_nodeCopyBin.copyFromPath);
@@ -533,7 +561,7 @@ class _MyHomePageState extends State<MyHomePage> {
           return;
         }
         _pathPropertiesList.setUpdated(p);
-        _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+        _refreshTreeNodeDataRoot();
         selectNode(path: p);
       }
       _globalSuccessState = SuccessState(true, message: "Pasted: '$name' into: '${path.last}'");
@@ -583,7 +611,7 @@ class _MyHomePageState extends State<MyHomePage> {
           }
           _pathPropertiesList.setUpdated(detailActionData.path);
           _pathPropertiesList.setUpdated(detailActionData.path.cloneParentPath());
-          _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+          _refreshTreeNodeDataRoot();
           selectNode(path: detailActionData.path.cloneParentPath());
           _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.getLastPathElement()} updated");
         } catch (e, s) {
@@ -624,50 +652,44 @@ class _MyHomePageState extends State<MyHomePage> {
       return await _shouldExitHandler();
     });
 
-    // if (_pathPropertiesList.isNotEmpty) {
-    //   debugPrint(_pathPropertiesList.toString());
-    // }
-    if (_previousSearch == _search) {
-      _filteredTree = _treeNodeDataRoot.clone(true);
-    }
-    else {
-      _filteredTree = _treeNodeDataRoot.applyFilter(_search, true, (match, tolowerCase, node) {
+    if (_previousSearch != _search || _filteredNodeDataRoot.isEmpty) {
+      _previousSearch = _search;
+      _filteredNodeDataRoot = _treeNodeDataRoot.applyFilter(_search, true, (match, tolowerCase, node) {
         if (tolowerCase) {
           return (node.label.toLowerCase().contains(match));
         }
         return (node.label.contains(match));
       });
+    } else {
+      _filteredNodeDataRoot = _treeNodeDataRoot.clone(requiredOnly: true);
     }
-    _noDataToDisplay = _filteredTree.isEmpty;
+
+    _noDataToDisplay = _filteredNodeDataRoot.isEmpty;
     if (_noDataToDisplay) {
-      _previousSearch="[$_search]";
       _isEditDataDisplay = false;
       _navBarHeight = 0;
     } else {
       if (_search.isNotEmpty) {
         _applicationState.addLastFind(_search, 10);
-        _applicationState.writeAppStateConfigFile(false);
       }
-      _previousSearch = _search;
       _navBarHeight = navBarHeight;
     }
 
     final DisplayData displayData = createSplitView(
       _loadedData.dataMap,
-      _filteredTree,
+      _filteredNodeDataRoot,
       _selectedTreeNode,
       _isEditDataDisplay,
       _configData.isDesktop(),
-      _applicationState.screen.hDiv,
+      _applicationState.screen.divPos,
       _configData.getAppThemeData(),
       _nodeCopyBin,
       _pathPropertiesList,
-      _selectNodetState, // On tree selection
+      _selectNodeState,
+      _expandNodeState,
       (divPos) {
         // On divider change
-        if (_applicationState.updateDividerPosState(divPos)) {
-          _applicationState.writeAppStateConfigFile(false);
-        }
+        _applicationState.updateDividerPosState(divPos);
       },
       (detailActionData) {
         // On selected detail page action
@@ -694,7 +716,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.select:
             {
-              _selectNodetState(detailActionData.path);
+              _selectNodeState(detailActionData.path);
               selectNode();
               break;
             }
@@ -1078,29 +1100,33 @@ class _MyHomePageState extends State<MyHomePage> {
                     ? const SizedBox(
                         height: 0,
                       )
-                    : _noDataToDisplay ? SizedBox(height: 0,) :Container(
-                        height: _navBarHeight,
-                        color: appBackgroundColor,
-                        child: createNodeNavButtonBar(_selectedPath, _nodeCopyBin, _configData.getAppThemeData(), _isEditDataDisplay, _beforeDataLoaded, (detailActionData) {
-                          switch (detailActionData.action) {
-                            case ActionType.select:
-                              {
-                                _selectNodetState(detailActionData.path);
-                                selectNode();
-                                break;
+                    : _noDataToDisplay
+                        ? SizedBox(
+                            height: 0,
+                          )
+                        : Container(
+                            height: _navBarHeight,
+                            color: appBackgroundColor,
+                            child: createNodeNavButtonBar(_selectedPath, _nodeCopyBin, _configData.getAppThemeData(), _isEditDataDisplay, _beforeDataLoaded, (detailActionData) {
+                              switch (detailActionData.action) {
+                                case ActionType.select:
+                                  {
+                                    _selectNodeState(detailActionData.path);
+                                    selectNode();
+                                    break;
+                                  }
+                                case ActionType.querySelect:
+                                  {
+                                    return querySelect(detailActionData.path, detailActionData.additional);
+                                  }
+                                default:
+                                  {
+                                    return Path.empty();
+                                  }
                               }
-                            case ActionType.querySelect:
-                              {
-                                return querySelect(detailActionData.path, detailActionData.additional);
-                              }
-                            default:
-                              {
-                                return Path.empty();
-                              }
-                          }
-                          return Path.empty();
-                        }),
-                      ),
+                              return Path.empty();
+                            }),
+                          ),
                 _beforeDataLoaded
                     ? const SizedBox(
                         height: 0,

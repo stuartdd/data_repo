@@ -56,6 +56,7 @@ DisplayData createSplitView(
     final NodeCopyBin nodeCopyBin,
     final PathPropertiesList pathPropertiesList,
     final Function(Path) onSelect, // Called when a tree node in selected
+    final Function(Path) onExpand, // Called when a tree node in selected
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final Path Function(DetailAction) onDataAction,
     final Widget Function(BuildContext, Node<dynamic>) buildNode,
@@ -95,8 +96,11 @@ DisplayData createSplitView(
     selectedPath,
     appThemeData,
     appThemeData.treeNodeHeight,
-    (selectedNode) {
-      onSelect(selectedNode.path);
+    (selectedNodePath) {
+      onSelect(selectedNodePath);
+    },
+    (expandNodePath) {
+      onExpand(expandNodePath);
     },
     pathPropertiesList,
   );
@@ -145,7 +149,6 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
 }
 
 Widget createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCopyBin, final AppThemeData appThemeData, bool isEditDataDisplay, bool beforeDataLoaded, final Path Function(DetailAction) dataAction) {
-
   final pathUp = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "up"));
   final pathDown = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "down"));
   final pathRight = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "right"));

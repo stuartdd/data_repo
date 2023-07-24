@@ -7,22 +7,42 @@ import 'data_load.dart';
 import 'path.dart';
 import 'dart:io';
 
+const double _divScale = 1000;
+
 class ApplicationScreen {
-  ApplicationScreen(this.x, this.y, this.w, this.h, this.hDiv);
-  final double x;
-  final double y;
-  final double w;
-  final double h;
-  final double hDiv;
+  final int x;
+  final int y;
+  final int w;
+  final int h;
+  final int _div;
+
+  static int _convertDiv(double div) {
+    return (div * _divScale).round();
+  }
+
+  ApplicationScreen(this.x, this.y, this.w, this.h, this._div);
+
 
   @override
   String toString() {
-    return '{"x":$x,"y":$y,"w":$w,"h":$h,"hDiv":$hDiv}';
+    return '{"x":$x,"y":$y,"w":$w,"h":$h,"divPos":$_div}';
+  }
+
+  double get divPos {
+    return _div.toDouble() / _divScale;
+  }
+
+  bool posIsNotEqual(double ox, oy, ow, oh) {
+    return (x != ox.round() || y != oy.round() || w != ow.round() || h != oh.round());
+  }
+
+  bool divIsNotEqual(double d) {
+    return (_div != _convertDiv(d));
   }
 
   factory ApplicationScreen.fromJson(final dynamic map) {
     try {
-      return ApplicationScreen(map['x'] as double, map['y'] as double, map['w'] as double, map['h'] as double, map['hDiv'] as double);
+      return ApplicationScreen(map['x'] as int, map['y'] as int, map['w'] as int, map['h'] as int, map['divPos'] as int);
     } catch (e) {
       throw JsonException(message: "Cannot create ApplicationScreen from Json", null);
     }
@@ -30,16 +50,27 @@ class ApplicationScreen {
 }
 
 class ApplicationState {
-  ApplicationState(this.screen, this._lastFind, this._appStateConfigFileName, this.log);
   final String _appStateConfigFileName;
   final Function(String) log;
-  List<String> _lastFind;
-  ApplicationScreen screen;
-  Timer? countdownTimer;
-  bool _shouldWriteFile = true;
-  bool _shouldUpdateScreen = true;
-  int settleTime = 4;
+  late final Timer? countdownTimer;
+  List<String> _lastFind; // A new list is created when a fine is added.
+  ApplicationScreen screen; // A new Screen is created each time the screen is updated.
+  bool _shouldWriteFile = false;
+  bool _screenNotMaximised = true;
 
+  ApplicationState(this.screen, this._lastFind, this._appStateConfigFileName, this.log) {
+    countdownTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (_shouldWriteFile) {
+        writeAppStateConfigFile();
+      }
+    });
+  }
+
+  Future<void> writeAppStateConfigFile() async {
+    _shouldWriteFile = false;
+    File(_appStateConfigFileName).writeAsString(toString());
+    debugPrint("Write state: $this");
+  }
   // Called by main to locate the user file storage location
   //   On Android and IOS this is the only place we should store files.
   //   On Desktop this is the current path;
@@ -62,27 +93,27 @@ class ApplicationState {
       content = await File(appStateConfigFileName).readAsString();
       log("__APP STATE:__ Read from $appStateConfigFileName");
     } catch (e) {
-        if (e is PathNotFoundException) {
-          log("__APP STATE:__ ${isDesktop?"Desktop":"Mobile"} Default State. Not Found $appStateConfigFileName");
-        } else {
-          log("__STATE EXCEPTION:__ $appStateConfigFileName");
-          log("__E:__ $e");
-        }
-        if (isDesktop) {
-          return ApplicationState(
+      if (e is PathNotFoundException) {
+        log("__APP STATE:__ ${isDesktop ? "Desktop" : "Mobile"} Default State. Not Found $appStateConfigFileName");
+      } else {
+        log("__STATE EXCEPTION:__ $appStateConfigFileName");
+        log("__E:__ $e");
+      }
+      if (isDesktop) {
+        return ApplicationState(
           ApplicationScreen(
             100,
             100,
             500,
             500,
-            0.4,
+            400,
           ),
-          ["Desktop"],
+          [], // Last Find
           appStateConfigFileName,
           log,
         );
       } else {
-        return ApplicationState(ApplicationScreen(0, 0, -1, -1, 0.4), ["Mobile"], appStateConfigFileName, log);
+        return ApplicationState(ApplicationScreen(0, 0, -1, -1, 400), [], appStateConfigFileName, log);
       }
     }
     final json = jsonDecode(content);
@@ -90,21 +121,8 @@ class ApplicationState {
     return ApplicationState.fromJson(json, appStateConfigFileName, isDesktop, log);
   }
 
-  Future<bool> writeAppStateConfigFile(final bool now) async {
-    if (now) {
-      File(_appStateConfigFileName).writeAsString(toString());
-      return true;
-    }
-    countdownTimer ??= Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_shouldWriteFile && settleTime <= 0) {
-        _shouldWriteFile = false;
-        debugPrint("Write state: $this.toString()");
-        File(_appStateConfigFileName).writeAsString(toString());
-      }
-      settleTime--;
-    });
-    _shouldWriteFile = true;
-    return true;
+  set screenNotMaximised(bool notMax) {
+    _screenNotMaximised = notMax;
   }
 
   Future<bool> deleteAppStateConfigFile() async {
@@ -112,35 +130,25 @@ class ApplicationState {
     return true;
   }
 
-  bool updateDividerPosState(final double hDiv) {
-    if (hDiv == screen.hDiv) {
-      return false;
+  void updateDividerPosState(final double d) {
+    if (screen.divIsNotEqual(d)) {
+      _shouldWriteFile = true;
+      screen = ApplicationScreen(screen.x, screen.y, screen.w, screen.h, ApplicationScreen._convertDiv(d));
     }
-    screen = ApplicationScreen(screen.x, screen.y, screen.w, screen.h, hDiv);
-    return true;
   }
 
-  bool updateScreenState(final double x, y, w, h) {
-    if (_shouldUpdateScreen) {
-      if (x == screen.x && y == screen.y && w == screen.w && h == screen.h) {
-        return false;
-      }
+  void updateScreenPos(final double x, y, w, h) {
+    if (_screenNotMaximised && appIsDesktop() && screen.posIsNotEqual(x, y, w, h)) {
       screen = ApplicationScreen(
-        x,
-        y,
-        w,
-        h,
-        screen.hDiv,
+        x.round(),
+        y.round(),
+        w.round(),
+        h.round(),
+        screen._div,
       );
-      return true;
+      _shouldWriteFile = true;
     }
-    return false;
   }
-
-  void setShouldUpdateScreen(final bool yes) {
-    _shouldUpdateScreen = yes;
-  }
-
 
   void addLastFind(final String find, final int max) {
     if (find.isEmpty) {
@@ -156,6 +164,7 @@ class ApplicationState {
         break;
       }
     }
+    _shouldWriteFile = true;
     _lastFind = newList;
   }
 

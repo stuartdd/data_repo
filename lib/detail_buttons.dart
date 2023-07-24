@@ -58,6 +58,12 @@ class _DetailIconButton extends State<DetailIconButton> {
   bool grey = false;
 
   @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (widget.show) {
       return IconButton(
@@ -75,12 +81,16 @@ class _DetailIconButton extends State<DetailIconButton> {
             grey = true;
           });
           Timer(const Duration(milliseconds: 5), () {
-            widget.onPressed();
-            Timer(Duration(milliseconds: 15 + widget.timerMs), () {
-              setState(() {
-                grey = false;
+            if (mounted) {
+              widget.onPressed();
+              Timer(Duration(milliseconds: 15 + widget.timerMs), () {
+                if (mounted) {
+                  setState(() {
+                    grey = false;
+                  });
+                }
               });
-            });
+            }
           });
         },
       );
@@ -189,7 +199,7 @@ class _OptionListWidgetState extends State<OptionListWidget> {
               style: widget.appThemeData.tsMedium,
             ),
             value: widget.optionList[i].key,
-            activeColor:widget.appThemeData.screenForegroundColour(true),
+            activeColor: widget.appThemeData.screenForegroundColour(true),
             dense: true,
             groupValue: _currentSelect.key,
             onChanged: (String? value) {
