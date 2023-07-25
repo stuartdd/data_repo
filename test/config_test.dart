@@ -6,15 +6,27 @@ import 'dart:convert' as json_tools;
 import 'package:data_repo/data_load.dart';
 import 'package:data_repo/appState.dart';
 
+StringBuffer eventLog = StringBuffer();
 void log(String text) {
- debugPrint(text);
+  debugPrint(text);
+  eventLog.write("|");
+  eventLog.write(text);
+  eventLog.writeln('|');
 }
 
 void main() {
 
 
   test('Test ApplicationScreen', () async {
-    ApplicationScreen as = ApplicationScreen(1, 2, 3, 4, 432);
+    ApplicationScreen xx = const ApplicationScreen(1, 2, 3, 4, 432, false);
+    expect(xx.isDefault, false);
+    expect(xx.isDesktop, false);
+
+    ApplicationScreen as = const ApplicationScreen(1, 2, 3, 4, 432, true, isDefault: true);
+    expect(as.isDefault, true);
+    expect(as.isDesktop, true);
+
+
     expect(as.posIsNotEqual(1.0, 2.0, 3.0, 4.0), false);
     expect(as.posIsNotEqual(2.0, 2.0, 3.0, 4.0), true);
     expect(as.posIsNotEqual(1.0, 1.0, 3.0, 4.0), true);
@@ -35,7 +47,7 @@ void main() {
   });
 
   test('Test Write Application State', () async {
-    final sc1 = ApplicationState(ApplicationScreen(10, 20, 30, 40, 400), ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
+    final sc1 = ApplicationState(const ApplicationScreen(10, 20, 30, 40, 400, false), ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
     try {
       await sc1.deleteAppStateConfigFile();
     } catch (e) {
@@ -65,76 +77,60 @@ void main() {
   });
 
   test('Test Screen', () async {
-    final sc1 = ApplicationScreen(10, 20, 30, 40, 100);
+    const sc1 = ApplicationScreen(10, 20, 30, 40, 100, true);
     final scStr1 = sc1.toString();
     expect(scStr1, '{"x":10,"y":20,"w":30,"h":40,"divPos":100}');
     final map1 = json_tools.jsonDecode(scStr1);
-    final sc2 = ApplicationScreen.fromJson(map1);
+    final sc2 = ApplicationScreen.fromJson(map1, true, log);
     final scStr2 = sc2.toString();
     expect(scStr2, '{"x":10,"y":20,"w":30,"h":40,"divPos":100}');
-    try {
-      final map1 = json_tools.jsonDecode('{"z":10,"y":20,"w":30,"h":40,"divPos":100}');
-      ApplicationScreen.fromJson(map1);
-      fail("Did not throw any Exception");
-    } on JsonException catch (e) {
-      assertContainsAll(["Cannot create ApplicationScreen from Json"], e.toString());
-    } on TestFailure catch (e) {
-      fail("TestFailure $e : ${e.runtimeType.toString()}");
-    } on TypeError catch (e) {
-      assertContainsAll(["ype 'Null' is not a subtype of type 'int'"], e.toString());
-    } catch (e) {
-      fail("E $e : ${e.runtimeType.toString()}");
-    }
-  });
+
+    eventLog.clear();
+    var as = ApplicationScreen.fromJson(json_tools.jsonDecode('{"g":10,"y":20,"w":30,"h":40,"divPos":100}'), true, log);
+    expect(eventLog.toString().contains("Failed to parse Application State 'screen'"), true);
+    expect(as.isDefault, true);
+
+    eventLog.clear();
+    as = ApplicationScreen.fromJson(json_tools.jsonDecode('{"x":10,"y":20,"w":30,"h":40,"xxx":100}'), true, log);
+    expect(eventLog.toString().contains("Failed to parse Application State 'screen'"), true);
+    expect(as.isDefault, true);
+
+    eventLog.clear();
+    as = ApplicationScreen.fromJson(json_tools.jsonDecode('{"x":10,"y":20,"w":30,"h":40,"divPos":100.9}'), true, log);
+    expect(eventLog.toString().contains("Failed to parse Application State 'screen'"), true);
+    expect(as.isDefault, true);
+   });
 
   test('Test Application State', () async {
-    final sc1 = ApplicationState(ApplicationScreen(10, 20, 30, 40, 100), ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
+    final sc1 = ApplicationState(const ApplicationScreen(10, 20, 30, 40, 100, true), ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
     final scStr1 = sc1.toString();
     expect(scStr1, '{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"lastFind":["Last1","Last2","Last3"]}');
     final map1 = json_tools.jsonDecode(scStr1);
     final sc2 = ApplicationState.fromJson(map1, "test/data/as.tmp", true, log);
     final scStr2 = sc2.toString();
     expect(scStr2, '{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"lastFind":["Last1","Last2","Last3"]}');
-    try {
-      final map1 = json_tools.jsonDecode('{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"lasFind":["Last1","Last2","Last3"]}');
-      ApplicationState.fromJson(map1, "test/data/as.tmp", true, log);
-      fail("Did not throw any Exception");
-    } on JsonException catch (e) {
-      assertContainsAll(["Cannot locate 'lastFind'"], e.toString());
-    } on TestFailure catch (e) {
-      fail("TestFailure $e : ${e.runtimeType.toString()}");
-    } on TypeError catch (e) {
-      assertContainsAll(["is not a subtype of type 'List<String>'"], e.toString());
-    } catch (e) {
-      fail("E $e : ${e.runtimeType.toString()}");
-    }
 
-    try {
-      final map1 = json_tools.jsonDecode('{"screens":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"lastFind":["Last1","Last2","Last3"]}');
-      ApplicationState.fromJson(map1, "test/data/as.tmp", true, log);
-      fail("Did not throw any Exception");
-    } on JsonException catch (e) {
-      assertContainsAll(["Cannot locate 'screen'"], e.toString());
-    } on TestFailure catch (e) {
-      fail("TestFailure $e : ${e.runtimeType.toString()}");
-    } on TypeError catch (e) {
-      assertContainsAll(["is not a subtype of type 'List<String>'"], e.toString());
-    } catch (e) {
-      fail("E $e : ${e.runtimeType.toString()}");
-    }
+    eventLog.clear();
+    var m1 = json_tools.jsonDecode('{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"lasFind":["Last1","Last2","Last3"]}');
+    var as =  ApplicationState.fromJson(m1, "test/data/as.tmp", true, log);
+    expect(eventLog.toString().contains("Failed to find Application State 'lastFind'"), true);
+    expect(eventLog.toString().contains("Using default Desktop Screen"), false);
+    expect(as.screen.isDefault, false);
 
-    try {
-      final map1 = json_tools.jsonDecode('{"screen":{"x":10,"y":20,"w":30,"h":40,"xxx":100},"lastFind":["Last1","Last2","Last3"]}');
-      ApplicationState.fromJson(map1, "test/data/as.tmp", true, log);
-      fail("Did not throw any Exception");
-    } on JsonException catch (e) {
-      assertContainsAll(["Cannot create ApplicationScreen"], e.toString());
-    } on TestFailure catch (e) {
-      fail("TestFailure $e : ${e.runtimeType.toString()}");
-    } on TypeError catch (e) {
-      assertContainsAll(["is not a subtype of type 'List<String>'"], e.toString());
-    } catch (e) {
-      fail("E $e : ${e.runtimeType.toString()}");
-    }
+    eventLog.clear();
+    m1 = json_tools.jsonDecode('{"sceen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"lastFind":["Last1","Last2","Last3"]}');
+    as =  ApplicationState.fromJson(m1, "test/data/as.tmp", false, log);
+    expect(eventLog.toString().contains("Failed to find Application State 'screen'"), true);
+    expect(eventLog.toString().contains("Using default Mobile Screen"), true);
+    expect(as.screen.isDefault, true);
+    expect(as.screen.isDesktop, false);
+
+    eventLog.clear();
+    m1 = json_tools.jsonDecode('{"screen":{"x":10,"y":20,"w":30,"h":40,"xxx":100},"lastFind":["Last1","Last2","Last3"]}');
+    as =  ApplicationState.fromJson(m1, "test/data/as.tmp", true, log);
+    expect(eventLog.toString().contains("Failed to parse Application State 'screen'"), true);
+    expect(eventLog.toString().contains("Using default Desktop Screen"), true);
+    expect(as.screen.isDefault, true);
+    expect(as.screen.isDesktop, true);
   });
 }

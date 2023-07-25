@@ -8,6 +8,8 @@ import 'path.dart';
 import 'dart:io';
 
 const double _divScale = 1000;
+const _desktopDefault = ApplicationScreen(100, 100, 500, 500, 400, true, isDefault: true);
+const _mobileDefault = ApplicationScreen(0, 0, -1, -1, 400, false, isDefault: true);
 
 class ApplicationScreen {
   final int x;
@@ -15,13 +17,21 @@ class ApplicationScreen {
   final int w;
   final int h;
   final int _div;
+  final bool isDefault;
+  final bool isDesktop;
 
   static int _convertDiv(double div) {
     return (div * _divScale).round();
   }
 
-  ApplicationScreen(this.x, this.y, this.w, this.h, this._div);
+  const ApplicationScreen(this.x, this.y, this.w, this.h, this._div, this.isDesktop, {this.isDefault = false});
 
+  factory ApplicationScreen.empty(bool isDesktop) {
+    if (isDesktop) {
+      return _desktopDefault;
+    }
+    return _mobileDefault;
+  }
 
   @override
   String toString() {
@@ -40,11 +50,12 @@ class ApplicationScreen {
     return (_div != _convertDiv(d));
   }
 
-  factory ApplicationScreen.fromJson(final dynamic map) {
+  factory ApplicationScreen.fromJson(final dynamic map, bool isDesktop, void Function(String) log) {
     try {
-      return ApplicationScreen(map['x'] as int, map['y'] as int, map['w'] as int, map['h'] as int, map['divPos'] as int);
+      return ApplicationScreen(map['x'] as int, map['y'] as int, map['w'] as int, map['h'] as int, map['divPos'] as int, isDesktop);
     } catch (e) {
-      throw JsonException(message: "Cannot create ApplicationScreen from Json", null);
+      log("__APP STATE:__ Failed to parse Application State 'screen' json");
+      return ApplicationScreen.empty(isDesktop);
     }
   }
 }
@@ -71,6 +82,7 @@ class ApplicationState {
     File(_appStateConfigFileName).writeAsString(toString());
     debugPrint("Write state: $this");
   }
+
   // Called by main to locate the user file storage location
   //   On Android and IOS this is the only place we should store files.
   //   On Desktop this is the current path;
@@ -92,33 +104,43 @@ class ApplicationState {
     try {
       content = await File(appStateConfigFileName).readAsString();
       log("__APP STATE:__ Read from $appStateConfigFileName");
+      final json = jsonDecode(content);
+      log("__APP STATE__ Parsed OK");
+      return ApplicationState.fromJson(json, appStateConfigFileName, isDesktop, log);
     } catch (e) {
       if (e is PathNotFoundException) {
-        log("__APP STATE:__ ${isDesktop ? "Desktop" : "Mobile"} Default State. Not Found $appStateConfigFileName");
+        log("__APP STATE:__ ${isDesktop ? "Desktop" : "Mobile"} File Not Found $appStateConfigFileName");
       } else {
-        log("__STATE EXCEPTION:__ $appStateConfigFileName");
+        log("__APP STATE EXCEPTION:__ ${isDesktop ? 'Desktop' : 'Mobile'} File $appStateConfigFileName ignored");
         log("__E:__ $e");
       }
-      if (isDesktop) {
-        return ApplicationState(
-          ApplicationScreen(
-            100,
-            100,
-            500,
-            500,
-            400,
-          ),
-          [], // Last Find
-          appStateConfigFileName,
-          log,
-        );
-      } else {
-        return ApplicationState(ApplicationScreen(0, 0, -1, -1, 400), [], appStateConfigFileName, log);
-      }
+      log("__APP STATE:__ Using default  ${isDesktop ? "Desktop" : "Mobile"} State");
+      return ApplicationState(ApplicationScreen.empty(isDesktop), [], appStateConfigFileName, log);
     }
-    final json = jsonDecode(content);
-    log("__APP STATE__ Parsed OK");
-    return ApplicationState.fromJson(json, appStateConfigFileName, isDesktop, log);
+  }
+
+  factory ApplicationState.fromJson(final dynamic map, final String fileName, final bool isDesktop, final Function(String) log) {
+    dynamic lastFineMap = map["lastFind"];
+    final List<String> lastFindList = List.empty(growable: true);
+    if (lastFineMap != null) {
+      lastFineMap.forEach((v) {
+        lastFindList.add(v.toString());
+      });
+    } else {
+      log("__APP STATE:__ Failed to find Application State 'lastFind' json");
+    }
+    dynamic applicationScreenMap = map['screen'];
+    final ApplicationScreen applicationScreen;
+    if (applicationScreenMap == null) {
+      log("__APP STATE:__ Failed to find Application State 'screen' json");
+      applicationScreen = ApplicationScreen.empty(isDesktop);
+    } else {
+      applicationScreen = ApplicationScreen.fromJson(applicationScreenMap, isDesktop, log);
+    }
+    if (applicationScreen.isDefault) {
+      log("__APP STATE:__ Using default ${isDesktop ? "Desktop" : "Mobile"} Screen");
+    }
+    return ApplicationState(applicationScreen, lastFindList, fileName, log);
   }
 
   set screenNotMaximised(bool notMax) {
@@ -133,19 +155,13 @@ class ApplicationState {
   void updateDividerPosState(final double d) {
     if (screen.divIsNotEqual(d)) {
       _shouldWriteFile = true;
-      screen = ApplicationScreen(screen.x, screen.y, screen.w, screen.h, ApplicationScreen._convertDiv(d));
+      screen = ApplicationScreen(screen.x, screen.y, screen.w, screen.h, ApplicationScreen._convertDiv(d), screen.isDesktop, isDefault: false);
     }
   }
 
   void updateScreenPos(final double x, y, w, h) {
     if (_screenNotMaximised && appIsDesktop() && screen.posIsNotEqual(x, y, w, h)) {
-      screen = ApplicationScreen(
-        x.round(),
-        y.round(),
-        w.round(),
-        h.round(),
-        screen._div,
-      );
+      screen = ApplicationScreen(x.round(), y.round(), w.round(), h.round(), screen._div, screen.isDesktop, isDefault: false);
       _shouldWriteFile = true;
     }
   }
@@ -177,22 +193,4 @@ class ApplicationState {
     return '{"screen":$screen,"lastFind":${jsonEncode(_lastFind)}}';
   }
 
-  factory ApplicationState.fromJson(final dynamic map, final String fileName, final bool isDesktop, final Function(String) log) {
-    dynamic lf = map["lastFind"];
-    if (lf == null) {
-      throw JsonException(message: "Cannot locate 'lastFind' list in Json", Path.fromList(["lastFind"]));
-    }
-    List<String> ls = [];
-    lf.forEach((v) {
-      ls.add(v.toString());
-    });
-
-    dynamic ms = map['screen'];
-    if (ms == null) {
-      throw JsonException(message: "Cannot locate 'screen' Map in Json", Path.fromList(["screen"]));
-    }
-    final as = ApplicationScreen.fromJson(ms);
-
-    return ApplicationState(as, ls, fileName, log);
-  }
 }
