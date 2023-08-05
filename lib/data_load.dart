@@ -11,14 +11,14 @@ const timeStampPrefixClear = "${timeStampPrefix}C:";
 const timeStampPrefixEnc = "${timeStampPrefix}E:";
 const JsonEncoder formattedJsonEncoder = JsonEncoder.withIndent('  ');
 
-class FilePrefixData {
+class FileDataPrefix {
   final bool hasData;
   final int timeStamp;
   final int startPos;
   final bool encrypted;
-  FilePrefixData(this.hasData, this.timeStamp, this.startPos, this.encrypted);
+  FileDataPrefix(this.hasData, this.timeStamp, this.startPos, this.encrypted);
 
-  factory FilePrefixData.fromString(String s) {
+  factory FileDataPrefix.fromString(String s) {
     bool hasTimeStampData = false;
     bool enc = false;
     int pos = 0;
@@ -46,19 +46,19 @@ class FilePrefixData {
       }
       try {
         ts = int.parse(sb.toString());
-        return FilePrefixData(true, ts, p1 + 1, enc);
+        return FileDataPrefix(true, ts, p1 + 1, enc);
       } catch (e) {
-        return FilePrefixData.empty();
+        return FileDataPrefix.empty();
       }
     }
-    return FilePrefixData.empty();
+    return FileDataPrefix.empty();
   }
 
-  factory FilePrefixData.empty() {
-    return FilePrefixData(false, -1, 0, false);
+  factory FileDataPrefix.empty() {
+    return FileDataPrefix(false, -1, 0, false);
   }
 
-  bool isLaterThan(FilePrefixData other) {
+  bool isLaterThan(FileDataPrefix other) {
     if (timeStamp == -1) {
       return false;
     }
@@ -93,16 +93,17 @@ class DataLoadException implements Exception {
 }
 
 class DataContainer {
-  final String source;
+  final String remoteSourcePath;
+  final String localSourcePath;
   late final int _timeStamp;
   late final String _password;
   late final Map<String, dynamic> _dataMap;
 
   factory DataContainer.empty() {
-    return DataContainer("", FilePrefixData.empty(), "", "");
+    return DataContainer("", FileDataPrefix.empty(), "", "", "");
   }
 
-  DataContainer(final String fileContents, final FilePrefixData filePrefixData, this.source, final String pw) {
+  DataContainer(final String fileContents, final FileDataPrefix filePrefixData, this.remoteSourcePath, this.localSourcePath, final String pw) {
     _password = pw;
     _timeStamp = filePrefixData.timeStamp;
     _dataMap = DataLoad.convertStringToMap(fileContents, pw);
@@ -145,7 +146,7 @@ class DataLoad {
     String tsString = "";
     if (addTimeStamp) {
       final ts = DateTime.timestamp().millisecondsSinceEpoch;
-      tsString = "${pw.isEmpty?timeStampPrefixClear:timeStampPrefixEnc}$ts:";
+      tsString = "${pw.isEmpty ? timeStampPrefixClear : timeStampPrefixEnc}$ts:";
     }
     if (pw.isEmpty) {
       return "$tsString${formattedJsonEncoder.convert(json)}";
@@ -170,12 +171,31 @@ class DataLoad {
       final uri = Uri.parse(url);
       var response = await http.post(uri, headers: {"Content-Type": "application/json"}, body: body);
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return SuccessState(true, message: "Remote file sent: Status:${response.statusCode} [${response.body}]", log: log);
+        return SuccessState(true, path: url, message: "Remote file sent: Status:${response.statusCode} [${response.body}]", log: log);
       } else {
-        return SuccessState(false, message: "Remote file send:${response.statusCode} [${response.body}]", log: log);
+        return SuccessState(false, path: url, message: "Remote file send:${response.statusCode} [${response.body}]", log: log);
       }
     } catch (e) {
-      return SuccessState(false, message: "Remote file send", exception: e as Exception, log: log);
+      return SuccessState(false, path: url, message: "Remote file send", exception: e as Exception, log: log);
+    }
+  }
+
+  static Future<String> testHttpGet(final String url, String pre) async {
+    try {
+      String resp = "";
+      final uri = Uri.parse(url);
+      final response = await http.get(uri).timeout(
+        const Duration(milliseconds: 1000),
+        onTimeout: () {
+          return http.Response('${pre}Timeout:', StatusCode.REQUEST_TIMEOUT);
+        },
+      );
+      if (response.statusCode != StatusCode.OK) {
+        return "${pre}Status:${response.statusCode} ${getStatusMessage(response.statusCode)}";
+      }
+      return resp;
+    } catch (e) {
+      return "$pre$e";
     }
   }
 
@@ -189,48 +209,48 @@ class DataLoad {
         },
       );
       if (response.statusCode != StatusCode.OK) {
-        return SuccessState(false, message: "Remote Data loaded Failed. Status:${response.statusCode} Msg:${getStatusMessage(response.statusCode)}", log: log);
+        return SuccessState(false, path: url, message: "Remote Data loaded Failed. Status:${response.statusCode} Msg:${getStatusMessage(response.statusCode)}", log: log);
       }
       final body = response.body.trim();
       if (body.isEmpty) {
-        return SuccessState(false, message: "Remote Data was empty:", log: log);
+        return SuccessState(false, path: url, message: "Remote Data was empty:", log: log);
       }
 
       if (prefix.isNotEmpty && body.startsWith(prefix)) {
-        return SuccessState(true, value: body.substring(prefix.length), message: "Remote Data loaded OK", log: log);
+        return SuccessState(true, path: url, fileContent: body.substring(prefix.length), message: "Remote Data loaded OK", log: log);
       }
       final body100 = body.length > 100 ? body.substring(0, 100).toLowerCase() : body;
       if (body100.contains("<html>") || body100.contains("<!DOCTYPE")) {
-        return SuccessState(false, message: "Remote Data Load contains html:", log: log);
+        return SuccessState(false, path: url, message: "Remote Data Load contains html:", log: log);
       }
       if (body.startsWith('{') || body.startsWith('[') || body.startsWith(timeStampPrefix)) {
-        return SuccessState(true, value: body, message: "Remote Data loaded OK", log: log);
+        return SuccessState(true, path: url, fileContent: body, message: "Remote Data loaded OK", log: log);
       }
-      return SuccessState(false, message: "Remote Data Load was not JSON:", log: log);
+      return SuccessState(false, path: url, message: "Remote Data Load was not JSON:", log: log);
     } catch (e) {
-      return SuccessState(false, message: "Remote Data Load:", exception: e as Exception, log: log);
+      return SuccessState(false, path: url, message: "Remote Data Load:", exception: e as Exception, log: log);
     }
   }
 
   static SuccessState saveToFile(final String fileName, final String contents) {
     try {
       File(fileName).writeAsStringSync(contents);
-      return SuccessState(true, message: "Data Saved OK");
+      return SuccessState(true, path: fileName, message: "Data Saved OK");
     } catch (e, s) {
       stderr.write("DataLoad:saveToFile: $e\n$s");
-      return SuccessState(false, message: e.toString(), exception: e as Exception);
+      return SuccessState(false, path: fileName, message: e.toString(), exception: e as Exception);
     }
   }
 
   static SuccessState loadFromFile(String fileName, {void Function(String)? log}) {
     try {
       final contents = File(fileName).readAsStringSync();
-      return SuccessState(true, value: contents, message: "Local Data loaded OK", log: log);
+      return SuccessState(true, path: fileName, fileContent: contents, message: "Local Data loaded OK", log: log);
     } catch (e) {
       if (e is PathNotFoundException) {
-        return SuccessState(false, message: "Local Data file not found", value: "", exception: e, log: log);
+        return SuccessState(false, path: fileName, message: "Local Data file not found", fileContent: "", exception: e, log: log);
       }
-      return SuccessState(false, message: "Exception loading Local Data file", value: "", exception: e as Exception, log: log);
+      return SuccessState(false, path: fileName, message: "Exception loading Local Data file", fileContent: "", exception: e as Exception, log: log);
     }
   }
 

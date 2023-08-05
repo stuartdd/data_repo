@@ -132,9 +132,11 @@ class _DetailButtonState extends State<DetailButton> {
                   grey = true;
                 });
                 Timer(Duration(milliseconds: 15 + widget.timerMs), () {
-                  setState(() {
-                    grey = false;
-                  });
+                  if (mounted) {
+                    setState(() {
+                      grey = false;
+                    });
+                  }
                 });
               },
               style: OutlinedButton.styleFrom(side: style),

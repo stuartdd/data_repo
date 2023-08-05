@@ -314,10 +314,11 @@ class NodeCopyBin {
 
 class SuccessState {
   final String message;
-  final String value;
+  final String path;
+  final String fileContent;
   final bool _isSuccess;
   late final Exception? _exception;
-  SuccessState(this._isSuccess, {this.message = "", this.value = "", Exception? exception, void Function(String)? log}) {
+  SuccessState(this._isSuccess, {this.message = "", this.fileContent = "", this.path = "", Exception? exception, void Function(String)? log}) {
     _exception = exception;
     if (log != null) {
       if (_exception != null) {
@@ -389,7 +390,7 @@ class SuccessState {
     if (isSuccess != other.isSuccess) {
       return true;
     }
-    if (value != other.value) {
+    if (fileContent != other.fileContent) {
       return true;
     }
     if (message != other.message) {

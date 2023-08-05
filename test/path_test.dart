@@ -153,7 +153,7 @@ void main() {
   });
 
   test('Test Path Nodes', () async {
-    var s = json_tools.jsonDecode(DataLoad.loadFromFile("test/data/data04.json").value);
+    var s = json_tools.jsonDecode(DataLoad.loadFromFile("test/data/data04.json").fileContent);
     var p = PathNodes.from(s, Path.empty());
     expect(p.error, true);
     expect(p.isNotEmpty, false);

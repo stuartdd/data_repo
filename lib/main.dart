@@ -270,83 +270,98 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _saveDataState() async {
     final String content = DataLoad.convertMapToStringWithTs(_loadedData.dataMap, _loadedData.password);
-    final ss = DataLoad.saveToFile(_configData.getDataFileLocal(), content);
-    if (ss.isSuccess) {
-      log("__OK:__ Local Data saved");
-    }
-    final pp = await DataLoad.toHttpPost(_configData.getPostDataFileUrl(), content, log: log);
-    if (pp.isSuccess) {
-      log("__OK:__ Remote Data saved");
-    }
-    String m = "Remote Save";
-    bool success = true;
-    if (pp.isSuccess) {
-      m = "$m OK. Local Save";
+    final localSaveState = DataLoad.saveToFile(_configData.getDataFileLocal(), content);
+    int success = 0;
+    final String lm;
+    final String rm;
+    if (localSaveState.isSuccess) {
+      success++;
+      lm = "Local Save OK";
     } else {
-      success = false;
-      m = "$m FAIL. Local Save";
+      lm = "Local Save FAIL";
     }
-    if (ss.isSuccess) {
-      m = "$m OK";
-    } else {
-      success = false;
-      m = "$m FAIL";
+    final remoteSaveState = await DataLoad.toHttpPost(_configData.getPostDataFileUrl(), content, log: log);
+    if (remoteSaveState.isSuccess) {
+      success++;
+      rm = "Remote Save OK";
+    }else {
+      rm = "Remote Save FAIL";
     }
     setState(() {
-      if (success) {
+      log("__SAVE:__ $lm. $rm");
+      if (success > 0) {
         _dataWasUpdated = false;
         _pathPropertiesList.clear();
+        _globalSuccessState = SuccessState(true, message: "$lm. $rm");
+      } else {
+        _globalSuccessState = SuccessState(false, message: "$lm. $rm");
       }
-      _globalSuccessState = SuccessState(success, message: m);
     });
   }
 
-  void _loadDataState() async {
-    String source = "";
-    FilePrefixData filePrefixData = FilePrefixData.empty();
-    FilePrefixData tsRemote = FilePrefixData.empty();
-    String fileData = "";
-    final ssRemote = await DataLoad.fromHttpGet(_configData.getGetDataFileUrl(), timeoutMillis: _configData.getDataFetchTimeoutMillis());
-    if (ssRemote.isSuccess) {
-      tsRemote = FilePrefixData.fromString(ssRemote.value);
-      log("__INFO:__ Remote __TS:__ ${tsRemote.timeStamp}");
-      fileData = ssRemote.value.substring(tsRemote.startPos);
-      source = "Remote";
-      filePrefixData = tsRemote;
+  void _loadDataState(bool reload) async {
+    FileDataPrefix fileDataPrefixRemote = FileDataPrefix.empty();
+    FileDataPrefix fileDataPrefix = FileDataPrefix.empty();
+    String fileDataContent = "";
+    //
+    // Are we reloading the existing data? If yes is there existing data?
+    //
+    final String localPath;
+    final String remotePath;
+    if (reload && _loadedData.isNotEmpty) {
+      localPath = _loadedData.localSourcePath;
+      remotePath = _loadedData.remoteSourcePath;
     } else {
-      log(ssRemote.toLogString());
+      localPath = _configData.getDataFileLocal();
+      remotePath = _configData.getGetDataFileUrl();
     }
 
-    final ssLocal = DataLoad.loadFromFile(_configData.getDataFileLocal());
-    if (ssLocal.isSuccess) {
-      final tsLocal = FilePrefixData.fromString(ssLocal.value);
-      log("__INFO:__ Local __TS:__ ${tsLocal.timeStamp}");
-      if (ssRemote.isFail || tsLocal.isLaterThan(tsRemote)) {
-        fileData = ssLocal.value.substring(tsLocal.startPos);
-        source = "Local";
-        filePrefixData = tsLocal;
+    //
+    // Try to load the remote data.
+    //
+    final successStateRemote = await DataLoad.fromHttpGet(remotePath, timeoutMillis: _configData.getDataFetchTimeoutMillis());
+    if (successStateRemote.isSuccess) {
+      fileDataPrefixRemote = FileDataPrefix.fromString(successStateRemote.fileContent);
+      fileDataContent = successStateRemote.fileContent.substring(fileDataPrefixRemote.startPos);
+      fileDataPrefix = fileDataPrefixRemote;
+      log("__INFO:__ Remote __TS:__ ${fileDataPrefix.timeStamp}");
+    } else {
+      log(successStateRemote.toLogString());
+    }
+
+    //
+    // Try to load the local data.
+    // If the local data is later than remote data or remote load failed, use the local data.
+    //
+    final successStateLocal = DataLoad.loadFromFile(localPath);
+    if (successStateLocal.isSuccess) {
+      final fileDataPrefixLocal = FileDataPrefix.fromString(successStateLocal.fileContent);
+      if (successStateRemote.isFail || fileDataPrefixLocal.isLaterThan(fileDataPrefixRemote)) {
+        fileDataContent = successStateLocal.fileContent.substring(fileDataPrefixLocal.startPos);
+        fileDataPrefix = fileDataPrefixLocal;
+        log("__INFO:__ Local __TS:__ ${fileDataPrefix.timeStamp}");
       }
     } else {
-      log(ssLocal.toLogString());
+      log(successStateLocal.toLogString());
     }
 
-    if (filePrefixData.encrypted && _password.isEmpty) {
-      setState(() {
-        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Password Provided", log: log);
-      });
-      return;
-    }
-
-    if (fileData.isEmpty) {
+    if (fileDataContent.isEmpty) {
       setState(() {
         _globalSuccessState = SuccessState(false, message: "__LOAD__ No Data Available", log: log);
       });
       return;
     }
 
+    if (fileDataPrefix.encrypted && _password.isEmpty) {
+      setState(() {
+        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Password Provided", log: log);
+      });
+      return;
+    }
+
     final DataContainer data;
     try {
-      data = DataContainer(fileData, filePrefixData, source, _password);
+      data = DataContainer(fileDataContent, fileDataPrefix, successStateRemote.path, successStateLocal.path, _password);
     } catch (r) {
       setState(() {
         _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file could not be parsed", exception: r as Exception, log: log);
@@ -371,11 +386,11 @@ class _MyHomePageState extends State<MyHomePage> {
       _noDataToDisplay = _treeNodeDataRoot.isEmpty;
       _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
       _selectedPath = _selectedTreeNode.path;
-      _globalSuccessState = SuccessState(true, message: "${filePrefixData.encrypted ? "Encrypted " : ""} ${_loadedData.source} File loaded: ${_loadedData.timeStampString}", log: log);
+      _globalSuccessState = SuccessState(true, message: "${fileDataPrefix.encrypted ? "Encrypted" : ""} File loaded: ${_loadedData.timeStampString}", log: log);
     });
   }
 
-  void _refreshTreeNodeDataRoot() {
+  void _reloadAndCopyFlags() {
     final temp = MyTreeNode.fromMap(_loadedData.dataMap);
     temp.visitEachSubNode((node) {
       final refNode = _treeNodeDataRoot.findByPath(node.path);
@@ -415,7 +430,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _pathPropertiesList.setUpdated(path);
           _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
-          _refreshTreeNodeDataRoot();
+          _reloadAndCopyFlags();
           selectNode(path: path);
           _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log: log);
         });
@@ -428,7 +443,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _pathPropertiesList.setUpdated(path);
           _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
-          _refreshTreeNodeDataRoot();
+          _reloadAndCopyFlags();
           selectNode(path: path);
           _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log: log);
         });
@@ -492,7 +507,7 @@ class _MyHomePageState extends State<MyHomePage> {
         var parentPath = newPath.cloneParentPath();
         _pathPropertiesList.setRenamed(newPath);
         _pathPropertiesList.setRenamed(parentPath);
-        _refreshTreeNodeDataRoot();
+        _reloadAndCopyFlags();
         selectNode(path: parentPath);
         _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: log);
       });
@@ -528,7 +543,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
         _dataWasUpdated = true;
         _pathPropertiesList.setUpdated(parentPath);
-        _refreshTreeNodeDataRoot();
+        _reloadAndCopyFlags();
         selectNode(path: parentPath);
         _globalSuccessState = SuccessState(true, message: "Removed: '${path.last}'");
       });
@@ -552,7 +567,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _dataWasUpdated = true;
       _pathPropertiesList.setUpdated(path);
       _pathPropertiesList.setUpdated(newPath);
-      _refreshTreeNodeDataRoot();
+      _reloadAndCopyFlags();
       selectNode(path: newPath);
       if (_nodeCopyBin.cut) {
         final p = _handleDelete(_nodeCopyBin.copyFromPath);
@@ -561,7 +576,7 @@ class _MyHomePageState extends State<MyHomePage> {
           return;
         }
         _pathPropertiesList.setUpdated(p);
-        _refreshTreeNodeDataRoot();
+        _reloadAndCopyFlags();
         selectNode(path: p);
       }
       _globalSuccessState = SuccessState(true, message: "Pasted: '$name' into: '${path.last}'");
@@ -611,7 +626,7 @@ class _MyHomePageState extends State<MyHomePage> {
           }
           _pathPropertiesList.setUpdated(detailActionData.path);
           _pathPropertiesList.setUpdated(detailActionData.path.cloneParentPath());
-          _refreshTreeNodeDataRoot();
+          _reloadAndCopyFlags();
           selectNode(path: detailActionData.path.cloneParentPath());
           _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.getLastPathElement()} updated");
         } catch (e, s) {
@@ -628,7 +643,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _inExitProcess = true;
     try {
       if (_dataWasUpdated) {
-        await _showModalDialog(context, "Alert", ["Data has been updated", "Press OK to SAVE before Exit", "Press CANCEL remain in the App", "Press EXIT to leave without saving"], ["OK", "CANCEL", "EXIT"], null, null);
+        await _showModalButtonsDialog(context, "Alert", ["Data has been updated", "Press OK to SAVE before Exit", "Press CANCEL remain in the App", "Press EXIT to leave without saving"], ["OK", "CANCEL", "EXIT"], null, null);
         if (_okCancelDialogResult == "OK") {
           await _saveDataState();
           return _globalSuccessState.isSuccess;
@@ -704,7 +719,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.delete:
             {
-              _showModalDialog(context, "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState);
+              _showModalButtonsDialog(context, "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState);
               break;
             }
           case ActionType.clip:
@@ -810,6 +825,7 @@ class _MyHomePageState extends State<MyHomePage> {
               _implementLinkState(detailActionData.oldValue, detailActionData.path.last);
               break;
             }
+          default:
         }
         return Path.empty();
       },
@@ -851,7 +867,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onSubmitted: (value) {
               _password = value;
               textEditingController.text = "";
-              _loadDataState();
+              _loadDataState(false);
             },
             obscureText: true,
             controller: textEditingController,
@@ -867,7 +883,7 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: () {
           _password = textEditingController.text;
           textEditingController.text = "";
-          _loadDataState();
+          _loadDataState(false);
         },
       ));
     } else {
@@ -901,7 +917,15 @@ class _MyHomePageState extends State<MyHomePage> {
             iconData: Icons.refresh,
             tooltip: 'Reload Data',
             onPressed: () {
-              _loadDataState();
+              if (_dataWasUpdated) {
+                _showModalButtonsDialog(context, "Reload Alert", ["Reload - Discard changes","Cancel - Don't Reload"], ["Reload","Cancel"],Path.empty() , (p, sel) {
+                  if (sel == "RELOAD") {
+                    _loadDataState(true);
+                  }
+                });
+              } else {
+                _loadDataState(true);
+              }
             },
             appThemeData: _configData.getAppThemeData(),
           ),
@@ -1049,7 +1073,7 @@ class _MyHomePageState extends State<MyHomePage> {
               _configData.getConfigFileName(),
               (validValue, detail) {
                 // Validate
-                return "";
+                return SettingValidation.ok();
               },
               (settingsControlList, save) {
                 // Commit
@@ -1101,7 +1125,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         height: 0,
                       )
                     : _noDataToDisplay
-                        ? SizedBox(
+                        ? const SizedBox(
                             height: 0,
                           )
                         : Container(
@@ -1173,7 +1197,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Future<void> _showConfigDialog(final BuildContext context, AppThemeData appThemeData, final String fileName, final String Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit) async {
+Future<void> _showConfigDialog(final BuildContext context, AppThemeData appThemeData, final String fileName, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit) async {
   return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -1213,6 +1237,17 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
                 onCommit(settingsControlList, shouldSave);
               }
               Navigator.of(context).pop();
+            },
+            stateFileData: (delete) {
+              final fn = _applicationState.activeAppStateFileName();
+              if (fn.isEmpty) {
+                return "";
+              }
+              if (delete) {
+                _applicationState.deleteAppStateConfigFile();
+                return _applicationState.activeAppStateFileName();
+              }
+              return fn;
             },
             height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
             width: MediaQuery.of(context).size.width,
@@ -1328,7 +1363,7 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
   );
 }
 
-Future<void> _showModalDialog(final BuildContext context, final String title, final List<String> texts, final List<String> buttons, final Path? path, final void Function(Path, String)? onResponse) async {
+Future<void> _showModalButtonsDialog(final BuildContext context, final String title, final List<String> texts, final List<String> buttons, final Path? path, final void Function(Path, String)? onResponse) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!

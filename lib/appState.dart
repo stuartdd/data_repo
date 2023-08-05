@@ -77,9 +77,9 @@ class ApplicationState {
     });
   }
 
-  Future<void> writeAppStateConfigFile() async {
+  void writeAppStateConfigFile() {
     _shouldWriteFile = false;
-    File(_appStateConfigFileName).writeAsString(toString());
+    File(_appStateConfigFileName).writeAsStringSync(toString());
     debugPrint("Write state: $this");
   }
 
@@ -98,11 +98,23 @@ class ApplicationState {
     return (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
   }
 
-  static Future<ApplicationState> readAppStateConfigFile(final String appStateConfigFileName, final Function(String) log) async {
+  String activeAppStateFileName() {
+    if (File(_appStateConfigFileName).existsSync()) {
+      return  _appStateConfigFileName;
+    }
+    return "";
+  }
+
+  bool deleteAppStateConfigFile() {
+    File(_appStateConfigFileName).deleteSync();
+    return activeAppStateFileName().isEmpty;
+  }
+
+  static ApplicationState readAppStateConfigFile(final String appStateConfigFileName, final Function(String) log)  {
     final bool isDesktop = ApplicationState.appIsDesktop();
     late final String content;
     try {
-      content = await File(appStateConfigFileName).readAsString();
+      content = File(appStateConfigFileName).readAsStringSync();
       log("__APP STATE:__ Read from $appStateConfigFileName");
       final json = jsonDecode(content);
       log("__APP STATE__ Parsed OK");
@@ -147,11 +159,6 @@ class ApplicationState {
     _screenNotMaximised = notMax;
   }
 
-  Future<bool> deleteAppStateConfigFile() async {
-    await File(_appStateConfigFileName).delete(recursive: false);
-    return true;
-  }
-
   void updateDividerPosState(final double d) {
     if (screen.divIsNotEqual(d)) {
       _shouldWriteFile = true;
@@ -192,5 +199,4 @@ class ApplicationState {
   String toString() {
     return '{"screen":$screen,"lastFind":${jsonEncode(_lastFind)}}';
   }
-
 }

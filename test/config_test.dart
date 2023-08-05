@@ -49,20 +49,20 @@ void main() {
   test('Test Write Application State', () async {
     final sc1 = ApplicationState(const ApplicationScreen(10, 20, 30, 40, 400, false), ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
     try {
-      await sc1.deleteAppStateConfigFile();
+      sc1.deleteAppStateConfigFile();
     } catch (e) {
       // Expecting exception unless test failed previously
     }
     final scStr1 = sc1.toString();
     expect(scStr1, '{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":400},"lastFind":["Last1","Last2","Last3"]}');
-    await sc1.writeAppStateConfigFile();
+    sc1.writeAppStateConfigFile();
 
-    final sc2 = await ApplicationState.readAppStateConfigFile("test/data/as.tmp", log);
+    final sc2 = ApplicationState.readAppStateConfigFile("test/data/as.tmp", log);
     final scStr2 = sc2.toString();
 
     expect(scStr1, scStr2);
     try {
-      await sc1.deleteAppStateConfigFile();
+      sc1.deleteAppStateConfigFile();
     } catch (e) {
       // Expecting exception.
     }

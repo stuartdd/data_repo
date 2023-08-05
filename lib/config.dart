@@ -167,7 +167,7 @@ class AppThemeData {
   }
 
   ColorPallet primaryOrSecondaryPallet(bool sec) {
-    return sec ? secondary: primary;
+    return sec ? secondary : primary;
   }
 
   Color get dialogBackgroundColor {
@@ -235,7 +235,7 @@ class ConfigData {
     var resp = DataLoad.loadFromFile(_fullFileName);
     if (resp.hasException) {
       if (resp.exception is PathNotFoundException) {
-        resp = SuccessState(true, message: "", value: defaultConfig);
+        resp = SuccessState(true, message: "", fileContent: defaultConfig);
         log("__WARN:__ Config '$_configFileName' file not found using defaults");
       } else {
         log("__EXCEPTION:__ ${resp.exception.toString()}");
@@ -244,7 +244,7 @@ class ConfigData {
     } else {
       log("__CONFIG FILE:__ Loaded: $_fullFileName");
     }
-    _configJson = jsonDecode(resp.value);
+    _configJson = jsonDecode(resp.fileContent);
 
     if (_isDesktop) {
       _appStateLocalDir = DataLoad.getStringFromJson(getJson(), appStateLocalDirPath, fallback: _applicationDefaultDir);
@@ -283,7 +283,7 @@ class ConfigData {
   }
 
   AppThemeData getAppThemeData() {
-    _appThemeData ??= AppThemeData._(_appColoursPrimary, _appColoursSecondary, _appColoursHiLight, _appColoursError, defaultFontFamily, _isDesktop ? defaultFontScaleDesktop : defaultFontScaleMobile, Colors.red, _darkMode, _isDesktop);
+    _appThemeData ??= AppThemeData._(_appColoursPrimary, _appColoursSecondary, _appColoursHiLight, _appColoursError, defaultFontFamily, _isDesktop ? defaultFontScaleDesktop : defaultFontScaleMobile, Colors.red.shade500, _darkMode, _isDesktop);
     return _appThemeData!;
   }
 
