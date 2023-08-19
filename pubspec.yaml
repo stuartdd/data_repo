@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=2.19.2 <3.0.0'
+  sdk: '>=2.19.2 <3.13.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -30,12 +30,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  encrypt: ^5.0.1
+  encrypt:
   http:
   http_status_code:
   split_view:
-  flutter_treeview: ^1.0.7+1
-  url_launcher: ^6.0.3
+  url_launcher:
   window_size:
     git:
       url: https://github.com/google/flutter-desktop-embedding.git
@@ -44,8 +43,8 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   window_manager:
   flutter_window_close:
-  flutter_markdown: ^0.6.14
-  cupertino_icons: ^1.0.2
+  flutter_markdown:
+  cupertino_icons:
   path_provider:
 
 dev_dependencies:

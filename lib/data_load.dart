@@ -96,15 +96,15 @@ class DataContainer {
   final String remoteSourcePath;
   final String localSourcePath;
   late final int _timeStamp;
-  late final String _password;
   late final Map<String, dynamic> _dataMap;
+  String password = "";
 
   factory DataContainer.empty() {
     return DataContainer("", FileDataPrefix.empty(), "", "", "");
   }
 
   DataContainer(final String fileContents, final FileDataPrefix filePrefixData, this.remoteSourcePath, this.localSourcePath, final String pw) {
-    _password = pw;
+    password = pw;
     _timeStamp = filePrefixData.timeStamp;
     _dataMap = DataLoad.convertStringToMap(fileContents, pw);
   }
@@ -116,12 +116,8 @@ class DataContainer {
     return DateTime.fromMillisecondsSinceEpoch(_timeStamp).toString();
   }
 
-  String get password {
-    return _password;
-  }
-
   bool get hasPassword {
-    return _password.isNotEmpty;
+    return password.isNotEmpty;
   }
 
   Iterable<String> get keys {

@@ -1,8 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:data_repo/configSettings.dart';
 import 'package:data_repo/data_load.dart';
 import 'package:data_repo/treeNode.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_size/window_size.dart';
@@ -21,17 +21,13 @@ const appBarHeight = 50.0;
 const navBarHeight = 50.0;
 const statusBarHeight = 35.0;
 const inputTextTitleStyleHeight = 35.0;
-const iconDataFileLoad = Icons.file_open;
 
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
-final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: log);
-final TextEditingController textEditingController = TextEditingController(text: "");
 
-NodeCopyBin _nodeCopyBin = NodeCopyBin.empty();
 StringBuffer eventLog = StringBuffer();
 String eventLogLatest = "";
-String _okCancelDialogResult = "";
+
 bool _inExitProcess = false;
 bool _shouldDisplayMarkdownHelp = false;
 bool _shouldDisplayMarkdownPreview = false;
@@ -54,6 +50,7 @@ void main() async {
   try {
     final applicationDefaultDir = await ApplicationState.getApplicationDefaultDir();
     final isDesktop = ApplicationState.appIsDesktop();
+
     _configData = ConfigData(applicationDefaultDir, "config.json", isDesktop, log);
     _applicationState = await ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), log);
     if (isDesktop) {
@@ -132,7 +129,7 @@ class MyHomePage extends StatefulWidget {
   // how it looks.
 
   // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
+  // case the title) provided by the parent (in this case the App widget) an
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
   final String title;
@@ -142,23 +139,25 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String _password = "";
+  String _initialPassword = "";
   String _search = "";
-  String _previousSearch = "";
-
-  bool _beforeDataLoaded = true;
+  String _lastSearch = "";
   bool _dataWasUpdated = false;
   bool _isEditDataDisplay = false;
-  bool _noDataToDisplay = true;
   double _navBarHeight = navBarHeight;
+
+  SuccessState _globalSuccessState = SuccessState(true);
   ScrollController _treeViewScrollController = ScrollController();
   DataContainer _loadedData = DataContainer.empty();
   MyTreeNode _treeNodeDataRoot = MyTreeNode.empty();
   MyTreeNode _filteredNodeDataRoot = MyTreeNode.empty();
-  SuccessState _globalSuccessState = SuccessState(true);
   MyTreeNode _selectedTreeNode = MyTreeNode.empty();
   Path _selectedPath = Path.empty();
-  Map<String, BuildContext> nodeContextList = {};
+  NodeCopyBin _nodeCopyBin = NodeCopyBin.empty();
+
+  final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: log);
+  final TextEditingController searchEditingController = TextEditingController(text: "");
+  final TextEditingController passwordEditingController = TextEditingController(text: "");
 
   Path querySelect(Path sel, String dir) {
     Path p = Path.empty();
@@ -257,19 +256,236 @@ class _MyHomePageState extends State<MyHomePage> {
     if (st == _search) {
       return;
     }
-    _previousSearch = "[$_search]"; // Need search and previousSearch to be different so filter is applied
+    _lastSearch = "[$_search]"; // Need search and _lastSearch to be different so filter is applied
     if (st.isEmpty) {
       log("__SEARCH__ cleared");
       selectNode();
     }
     setState(() {
-      textEditingController.text = st;
+      searchEditingController.text = st;
       _search = st;
     });
   }
 
-  Future<void> _saveDataState() async {
-    final String content = DataLoad.convertMapToStringWithTs(_loadedData.dataMap, _loadedData.password);
+  Path _handleAction(DetailAction detailActionData) {
+    debugPrint(detailActionData.toString());
+    switch (detailActionData.action) {
+      case ActionType.group:
+        {
+          setState(() {
+            _pathPropertiesList.setGroupSelect(detailActionData.path);
+          });
+          break;
+        }
+      case ActionType.delete:
+        {
+          _showModalButtonsDialog(context, "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState);
+          break;
+        }
+      case ActionType.clip:
+        {
+          setState(() {
+            _globalSuccessState = SuccessState(true, message: "Copied to clipboard");
+          });
+          break;
+        }
+      case ActionType.select:
+        {
+          _selectNodeState(detailActionData.path);
+          selectNode();
+          break;
+        }
+      case ActionType.querySelect:
+        {
+          return querySelect(detailActionData.path, detailActionData.additional);
+        }
+      case ActionType.rename:
+        {
+          final title = detailActionData.valueName;
+          _showModalInputDialog(
+            context,
+            "Change $title '${detailActionData.getLastPathElement()}'",
+            detailActionData.getDisplayValue(false),
+            detailActionData.value ? optionsForRenameElement : [],
+            OptionsTypeData.locateTypeInOptionsList(detailActionData.oldValueType.key, optionsForRenameElement, optionTypeDataString),
+            true,
+            false,
+            (action, text, type) {
+              if (action == "OK") {
+                _handleRenameState(detailActionData, text, type);
+              }
+            },
+            (initial, value, initialType, valueType) {
+              //
+              // Validate a re-name
+              //
+              return _checkRenameOk(detailActionData, value, valueType);
+            },
+          );
+          break;
+        }
+      case ActionType.edit:
+        {
+          _showModalInputDialog(
+            context,
+            "Update Value '${detailActionData.getLastPathElement()}'",
+            detailActionData.oldValue,
+            optionsForUpdateElement,
+            detailActionData.oldValueType,
+            false,
+            false,
+            (action, text, type) {
+              if (action == "OK") {
+                _handleEditState(detailActionData, text, type);
+              } else {
+                if (action == "link") {
+                  _implementLinkState(text, detailActionData.path.last);
+                }
+              }
+            },
+            (initialTrimmed, valueTrimmed, initialType, valueType) {
+              //
+              // Validate a value type for Edit function
+              //
+              if (valueType.elementType == bool) {
+                final valueTrimmedLc = valueTrimmed.toLowerCase();
+                if (valueTrimmedLc == "yes" || valueTrimmedLc == "no" || valueTrimmedLc == "true" || valueTrimmedLc == "false") {
+                  return "";
+                } else {
+                  return "Must be 'Yes' or 'No";
+                }
+              }
+              if (valueType.elementType == String) {
+                if (valueTrimmed == initialTrimmed && initialTrimmed != "") {
+                  return "";
+                }
+                final m = valueType.inRangeInt("Length", valueTrimmed.length);
+                if (m.isNotEmpty) {
+                  return m;
+                }
+                return "";
+              }
+              if (valueType.elementType == double) {
+                try {
+                  final d = double.parse(valueTrimmed);
+                  return valueType.inRangeDouble("Value ", d);
+                } catch (e) {
+                  return "That is not a ${valueType.description}";
+                }
+              }
+              if (valueType.elementType == int) {
+                try {
+                  final i = int.parse(valueTrimmed);
+                  return valueType.inRangeInt("Value ", i);
+                } catch (e) {
+                  return "That is not a ${valueType.description}";
+                }
+              }
+              return "";
+            },
+          );
+          break;
+        }
+      case ActionType.link:
+        {
+          _implementLinkState(detailActionData.oldValue, detailActionData.path.last);
+          break;
+        }
+      case ActionType.addGroup:
+        {
+          Timer(const Duration(milliseconds: 1), () {
+            if (mounted) {
+              _showModalInputDialog(context, "New Group Name", "", [], OptionsTypeData.empty(), false, false, (action, text, type) {
+                if (action == "OK") {
+                  _handleAddState(_selectedPath, text, optionTypeDataGroup);
+                }
+              }, (initial, value, initialType, valueType) {
+                return value.trim().isEmpty ? "Cannot be empty" : "";
+              });
+            }
+          });
+          break;
+        }
+      case ActionType.addDetail:
+        {
+          Timer(const Duration(milliseconds: 1), () {
+            if (mounted) {
+              _showModalInputDialog(context, "New Detail Name", "", [], OptionsTypeData.empty(), false, false, (action, text, type) {
+                if (action == "OK") {
+                  _handleAddState(_selectedPath, text, optionTypeDataValue);
+                }
+              }, (initial, value, initialType, valueType) {
+                return value.trim().isEmpty ? "Cannot be empty" : "";
+              });
+            }
+          });
+          break;
+        }
+      case ActionType.save:
+        {
+          _saveDataState(_loadedData.password);
+          break;
+        }
+      case ActionType.reload:
+        {
+          if (_dataWasUpdated) {
+            Timer(const Duration(milliseconds: 1), () {
+              if (mounted) {
+                _showModalButtonsDialog(context, "Reload Alert", ["Reload - Discard changes", "Cancel - Don't Reload"], ["Reload", "Cancel"], Path.empty(), (p, sel) {
+                  if (sel == "RELOAD") {
+                    _loadDataState();
+                  }
+                });
+              }
+            });
+          } else {
+            _loadDataState();
+          }
+          break;
+        }
+      case ActionType.saveAlt:
+        {
+          Timer(const Duration(milliseconds: 1), () {
+            if (mounted) {
+              _showModalInputDialog(context, _loadedData.hasPassword ? "Confirm Password" : "New Password", "", [], OptionsTypeData.empty(), false, true, (action, pw, type) {
+                if (action == "OK") {
+                  if (_loadedData.hasPassword) {
+                    // Confirm PW (Save un-encrypted)
+                    log("__SAVE__ Data as plain text");
+                    _loadedData.password = "";
+                  } else {
+                    // New password (Save encrypted)
+                    log("__SAVE__ Data as ENCRYPTED text");
+                    _loadedData.password = pw;
+                  }
+                  _saveDataState(_loadedData.password);
+                }
+              }, (initial, value, initialType, valueType) {
+                if (_loadedData.hasPassword) {
+                  if (_loadedData.password != value) {
+                    return "Invalid Password";
+                  }
+                } else {
+                  if (value.length < 8) {
+                    return "Password length";
+                  }
+                }
+                return "";
+              });
+            }
+          });
+          break;
+        }
+      case ActionType.none:
+        {
+          break;
+        }
+    }
+    return Path.empty();
+  }
+
+  Future<void> _saveDataState(String pw) async {
+    final String content = DataLoad.convertMapToStringWithTs(_loadedData.dataMap, pw);
     final localSaveState = DataLoad.saveToFile(_configData.getDataFileLocal(), content);
     int success = 0;
     final String lm;
@@ -284,7 +500,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (remoteSaveState.isSuccess) {
       success++;
       rm = "Remote Save OK";
-    }else {
+    } else {
       rm = "Remote Save FAIL";
     }
     setState(() {
@@ -299,7 +515,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _loadDataState(bool reload) async {
+  void _loadDataState() async {
     FileDataPrefix fileDataPrefixRemote = FileDataPrefix.empty();
     FileDataPrefix fileDataPrefix = FileDataPrefix.empty();
     String fileDataContent = "";
@@ -308,14 +524,16 @@ class _MyHomePageState extends State<MyHomePage> {
     //
     final String localPath;
     final String remotePath;
-    if (reload && _loadedData.isNotEmpty) {
-      localPath = _loadedData.localSourcePath;
-      remotePath = _loadedData.remoteSourcePath;
-    } else {
+    final String pw;
+    if (_loadedData.isEmpty) {
+      pw = _initialPassword;
       localPath = _configData.getDataFileLocal();
       remotePath = _configData.getGetDataFileUrl();
+    } else {
+      pw = _loadedData.password;
+      localPath = _loadedData.localSourcePath;
+      remotePath = _loadedData.remoteSourcePath;
     }
-
     //
     // Try to load the remote data.
     //
@@ -344,7 +562,9 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       log(successStateLocal.toLogString());
     }
-
+    //
+    // File is now loaded!
+    //
     if (fileDataContent.isEmpty) {
       setState(() {
         _globalSuccessState = SuccessState(false, message: "__LOAD__ No Data Available", log: log);
@@ -352,7 +572,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
 
-    if (fileDataPrefix.encrypted && _password.isEmpty) {
+    if (fileDataPrefix.encrypted && pw.isEmpty) {
       setState(() {
         _globalSuccessState = SuccessState(false, message: "__LOAD__ No Password Provided", log: log);
       });
@@ -361,7 +581,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final DataContainer data;
     try {
-      data = DataContainer(fileDataContent, fileDataPrefix, successStateRemote.path, successStateLocal.path, _password);
+      data = DataContainer(fileDataContent, fileDataPrefix, successStateRemote.path, successStateLocal.path, pw);
     } catch (r) {
       setState(() {
         _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file could not be parsed", exception: r as Exception, log: log);
@@ -377,13 +597,11 @@ class _MyHomePageState extends State<MyHomePage> {
     _loadedData = data;
     setState(() {
       _dataWasUpdated = false;
-      _beforeDataLoaded = false;
       _pathPropertiesList.clear();
       _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
       _treeNodeDataRoot.expandAll(true);
       _treeNodeDataRoot.clearFilter();
       _filteredNodeDataRoot = MyTreeNode.empty();
-      _noDataToDisplay = _treeNodeDataRoot.isEmpty;
       _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
       _selectedPath = _selectedTreeNode.path;
       _globalSuccessState = SuccessState(true, message: "${fileDataPrefix.encrypted ? "Encrypted" : ""} File loaded: ${_loadedData.timeStampString}", log: log);
@@ -563,7 +781,7 @@ class _MyHomePageState extends State<MyHomePage> {
         name = "${name}_copy";
       }
       final newPath = path.cloneAppendList([name]);
-      node[name] = _nodeCopyBin.copyNode();
+      node[name] = _nodeCopyBin.copyNodeAsMap();
       _dataWasUpdated = true;
       _pathPropertiesList.setUpdated(path);
       _pathPropertiesList.setUpdated(newPath);
@@ -636,26 +854,34 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<bool> _shouldExitHandler() async {
+  Future<bool> _handleShouldExit() async {
     if (_inExitProcess) {
       return false;
     }
     _inExitProcess = true;
     try {
+      bool shouldExit = true;
       if (_dataWasUpdated) {
-        await _showModalButtonsDialog(context, "Alert", ["Data has been updated", "Press OK to SAVE before Exit", "Press CANCEL remain in the App", "Press EXIT to leave without saving"], ["OK", "CANCEL", "EXIT"], null, null);
-        if (_okCancelDialogResult == "OK") {
-          await _saveDataState();
-          return _globalSuccessState.isSuccess;
-        }
-        if (_okCancelDialogResult == "CANCEL") {
-          setState(() {
-            _globalSuccessState = SuccessState(true, message: "Exit Cancelled");
-          });
-          return false;
-        }
+        await _showModalButtonsDialog(
+          context,
+          "Alert",
+          ["Data has been updated", "Press SAVE keep changes", "Press CANCEL remain in the App", "Press EXIT to leave without saving"],
+          ["SAVE", "CANCEL", "EXIT"],
+          Path.empty(),
+          (path, button) {
+            if (button == "SAVE") {
+              _saveDataState(_loadedData.password);
+            }
+            if (button == "CANCEL") {
+              shouldExit = false;
+              setState(() {
+                _globalSuccessState = SuccessState(true, message: "Exit Cancelled");
+              });
+            }
+          },
+        );
       }
-      return true;
+      return shouldExit;
     } finally {
       _inExitProcess = false;
     }
@@ -664,23 +890,23 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
-      return await _shouldExitHandler();
+      return await _handleShouldExit();
     });
 
-    if (_previousSearch != _search || _filteredNodeDataRoot.isEmpty) {
-      _previousSearch = _search;
-      _filteredNodeDataRoot = _treeNodeDataRoot.applyFilter(_search, true, (match, tolowerCase, node) {
-        if (tolowerCase) {
-          return (node.label.toLowerCase().contains(match));
-        }
-        return (node.label.contains(match));
-      });
-    } else {
-      _filteredNodeDataRoot = _treeNodeDataRoot.clone(requiredOnly: true);
+    if (_loadedData.isNotEmpty) {
+      if (_lastSearch != _search || _filteredNodeDataRoot.isEmpty) {
+        _lastSearch = _search;
+        _filteredNodeDataRoot = _treeNodeDataRoot.applyFilter(_search, true, (match, tolowerCase, node) {
+          if (tolowerCase) {
+            return (node.label.toLowerCase().contains(match));
+          }
+          return (node.label.contains(match));
+        });
+      } else {
+        _filteredNodeDataRoot = _treeNodeDataRoot.clone(requiredOnly: true);
+      }
     }
-
-    _noDataToDisplay = _filteredNodeDataRoot.isEmpty;
-    if (_noDataToDisplay) {
+    if (_filteredNodeDataRoot.isEmpty) {
       _isEditDataDisplay = false;
       _navBarHeight = 0;
     } else {
@@ -708,131 +934,7 @@ class _MyHomePageState extends State<MyHomePage> {
       },
       (detailActionData) {
         // On selected detail page action
-        debugPrint(detailActionData.toString());
-        switch (detailActionData.action) {
-          case ActionType.group:
-            {
-              setState(() {
-                _pathPropertiesList.setGroupSelect(detailActionData.path);
-              });
-              break;
-            }
-          case ActionType.delete:
-            {
-              _showModalButtonsDialog(context, "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState);
-              break;
-            }
-          case ActionType.clip:
-            {
-              setState(() {
-                _globalSuccessState = SuccessState(true, message: "Copied to clipboard");
-              });
-              break;
-            }
-          case ActionType.select:
-            {
-              _selectNodeState(detailActionData.path);
-              selectNode();
-              break;
-            }
-          case ActionType.renameStart:
-            {
-              final title = detailActionData.valueName;
-              _showModalInputDialog(
-                context,
-                "Re-Name $title '${detailActionData.getLastPathElement()}'",
-                detailActionData.getDisplayValue(false),
-                detailActionData.value ? optionsForRenameElement : [],
-                OptionsTypeData.locateTypeInOptionsList(detailActionData.oldValueType.key, optionsForRenameElement, optionTypeDataString),
-                true,
-                (action, text, type) {
-                  if (action == "OK") {
-                    _handleRenameState(detailActionData, text, type);
-                  }
-                },
-                (initial, value, initialType, valueType) {
-                  //
-                  // Validate a re-name
-                  //
-                  return _checkRenameOk(detailActionData, value, valueType);
-                },
-              );
-              break;
-            }
-          case ActionType.editStart:
-            {
-              _showModalInputDialog(
-                context,
-                "Update Value '${detailActionData.getLastPathElement()}'",
-                detailActionData.oldValue,
-                optionsForUpdateElement,
-                detailActionData.oldValueType,
-                false,
-                (action, text, type) {
-                  if (action == "OK") {
-                    _handleEditState(detailActionData, text, type);
-                  } else {
-                    if (action == "link") {
-                      _implementLinkState(text, detailActionData.path.last);
-                    }
-                  }
-                },
-                (initialTrimmed, valueTrimmed, initialType, valueType) {
-                  //
-                  // Validate a value type for Edit function
-                  //
-                  if (valueType.elementType == bool) {
-                    final valueTrimmedLc = valueTrimmed.toLowerCase();
-                    if (valueTrimmedLc == "yes" || valueTrimmedLc == "no" || valueTrimmedLc == "true" || valueTrimmedLc == "false") {
-                      return "";
-                    } else {
-                      return "Must be 'Yes' or 'No";
-                    }
-                  }
-                  if (valueType.elementType == String) {
-                    if (valueTrimmed == initialTrimmed && initialTrimmed != "") {
-                      return "";
-                    }
-                    final m = valueType.inRangeInt("Length", valueTrimmed.length);
-                    if (m.isNotEmpty) {
-                      return m;
-                    }
-                    return "";
-                  }
-                  if (valueType.elementType == double) {
-                    try {
-                      final d = double.parse(valueTrimmed);
-                      return valueType.inRangeDouble("Value ", d);
-                    } catch (e) {
-                      return "That is not a ${valueType.description}";
-                    }
-                  }
-                  if (valueType.elementType == int) {
-                    try {
-                      final i = int.parse(valueTrimmed);
-                      return valueType.inRangeInt("Value ", i);
-                    } catch (e) {
-                      return "That is not a ${valueType.description}";
-                    }
-                  }
-                  return "";
-                },
-              );
-              break;
-            }
-          case ActionType.link:
-            {
-              _implementLinkState(detailActionData.oldValue, detailActionData.path.last);
-              break;
-            }
-          default:
-        }
-        return Path.empty();
-      },
-      (buildContext, node) {
-        // BuildNode
-        nodeContextList[node.key] = buildContext;
-        return MyTreeWidget(node.key, node.label, buildContext);
+        return _handleAction(detailActionData);
       },
       log,
     );
@@ -844,7 +946,7 @@ class _MyHomePageState extends State<MyHomePage> {
         iconData: Icons.close_outlined,
         tooltip: 'Exit application',
         onPressed: () async {
-          final close = await _shouldExitHandler();
+          final close = await _handleShouldExit();
           if (close) {
             closer(0);
           }
@@ -853,7 +955,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
 
-    if (_beforeDataLoaded) {
+    if (_loadedData.isEmpty) {
       toolBarItems.add(Container(
         color: _configData.getAppThemeData().primary.med,
         child: SizedBox(
@@ -865,25 +967,25 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             autofocus: true,
             onSubmitted: (value) {
-              _password = value;
-              textEditingController.text = "";
-              _loadDataState(false);
+              _initialPassword = value;
+              passwordEditingController.text = "";
+              _loadDataState();
             },
             obscureText: true,
-            controller: textEditingController,
+            controller: passwordEditingController,
             cursorColor: const Color(0xff000000),
           ),
         ),
       ));
       toolBarItems.add(DetailIconButton(
         appThemeData: _configData.getAppThemeData(),
-        iconData: iconDataFileLoad,
+        iconData: Icons.file_open,
         tooltip: 'Load Data',
         timerMs: 5000,
         onPressed: () {
-          _password = textEditingController.text;
-          textEditingController.text = "";
-          _loadDataState(false);
+          _initialPassword = passwordEditingController.text;
+          passwordEditingController.text = "";
+          _loadDataState();
         },
       ));
     } else {
@@ -891,7 +993,7 @@ class _MyHomePageState extends State<MyHomePage> {
       // Data is loaded
       //
       toolBarItems.add(DetailIconButton(
-        show: !_noDataToDisplay,
+        show: _loadedData.isNotEmpty,
         appThemeData: _configData.getAppThemeData(),
         iconData: _isEditDataDisplay ? Icons.search : Icons.edit,
         tooltip: _isEditDataDisplay ? 'Search Mode' : "Edit Mode",
@@ -901,73 +1003,51 @@ class _MyHomePageState extends State<MyHomePage> {
           });
         },
       ));
-      if (_dataWasUpdated || _isEditDataDisplay) {
+      if (_isEditDataDisplay) {
+        toolBarItems.add(VerticalDivider(
+          color: _configData.getAppThemeData().screenForegroundColour(true),
+        ));
         toolBarItems.add(
           DetailIconButton(
-            iconData: Icons.save,
-            tooltip: _loadedData.hasPassword ? "Save ENCRYPTED" : 'Save Data',
+            iconData: Icons.menu,
+            tooltip: 'Menu',
             onPressed: () {
-              _saveDataState();
-            },
-            appThemeData: _configData.getAppThemeData(),
-          ),
-        );
-        toolBarItems.add(
-          DetailIconButton(
-            iconData: Icons.refresh,
-            tooltip: 'Reload Data',
-            onPressed: () {
-              if (_dataWasUpdated) {
-                _showModalButtonsDialog(context, "Reload Alert", ["Reload - Discard changes","Cancel - Don't Reload"], ["Reload","Cancel"],Path.empty() , (p, sel) {
-                  if (sel == "RELOAD") {
-                    _loadDataState(true);
-                  }
-                });
-              } else {
-                _loadDataState(true);
-              }
+              _showOptionsDialog(context, _selectedPath, [
+                ThreeStrings(Icons.save, "Save %{0}", "Save data %{2}%{0}", ActionType.save),
+                ThreeStrings(Icons.lock, "Save %{1}", "Save data %{2}%{1}", ActionType.saveAlt),
+                ThreeStrings(Icons.refresh, "Reload data file", "Reload the data", ActionType.reload),
+                ThreeStrings(Icons.add_box_outlined, "Add NEW Group", "Add a new group to %{3}", ActionType.addGroup),
+                ThreeStrings(Icons.add, "Add NEW Detail", "Add a new detail to group %{3}", ActionType.addDetail),
+                ThreeStrings(Icons.cancel, "Cancel", "None of the above!", ActionType.none),
+              ], [
+                _loadedData.hasPassword ? 'ENCRYPTED (Current)' : 'UN-ENCRYPTED (Current)',
+                _loadedData.hasPassword ? 'UN-ENCRYPTED' : 'ENCRYPTED',
+                _configData.isDesktop() ? "to local and remote storage " : "",
+                _selectedPath.last,
+              ], (selectedAction, path) {
+                _handleAction(DetailAction(selectedAction, true, path));
+              });
             },
             appThemeData: _configData.getAppThemeData(),
           ),
         );
       }
       if (_isEditDataDisplay) {
+        toolBarItems.add(VerticalDivider(
+          color: _configData.getAppThemeData().screenForegroundColour(true),
+        ));
         final canCopy = _selectedPath.hasParent;
         final canPaste = _nodeCopyBin.isNotEmpty;
-
-        toolBarItems.add(DetailIconButton(
-          appThemeData: _configData.getAppThemeData(),
-          iconData: Icons.add_box_outlined,
-          tooltip: 'Add Value or Group',
-          onPressed: () {
-            _showModalInputDialog(
-              context,
-              "Add To: '${_selectedPath.last}'",
-              "",
-              optionsForAddElement,
-              optionTypeDataValue,
-              true,
-              (action, text, type) {
-                if (action == "OK") {
-                  _handleAddState(_selectedPath, text, type);
-                }
-              },
-              (initial, value, initialType, valueType) {
-                return value.trim().isEmpty ? "Cannot be empty" : "";
-              },
-            );
-          },
-        ));
         if (canCopy) {
           toolBarItems.add(
             DetailIconButton(
               onPressed: () {
                 setState(() {
-                  _nodeCopyBin = NodeCopyBin(_selectedPath, false, DataLoad.getMapFromJson(_loadedData.dataMap, _selectedPath), _password);
+                  _nodeCopyBin = NodeCopyBin(_selectedPath, false, DataLoad.getMapFromJson(_loadedData.dataMap, _selectedPath), _loadedData.password);
                   _globalSuccessState = SuccessState(true, message: "Node '${_selectedPath.last}' COPIED to clipboard");
                 });
               },
-              tooltip: "Copy This Node",
+              tooltip: _pathPropertiesList.hasGroupSelects ? "copy selected groups" : "Copy This Node",
               iconData: Icons.copy,
               appThemeData: _configData.getAppThemeData(),
             ),
@@ -976,7 +1056,7 @@ class _MyHomePageState extends State<MyHomePage> {
             DetailIconButton(
               onPressed: () {
                 setState(() {
-                  _nodeCopyBin = NodeCopyBin(_selectedPath, true, DataLoad.getMapFromJson(_loadedData.dataMap, _selectedPath), _password);
+                  _nodeCopyBin = NodeCopyBin(_selectedPath, true, DataLoad.getMapFromJson(_loadedData.dataMap, _selectedPath), _loadedData.password);
                   _globalSuccessState = SuccessState(true, message: "Node '${_selectedPath.last}' CUT to clipboard");
                 });
               },
@@ -1013,7 +1093,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 onSubmitted: (value) {
                   _setSearchExpressionState(value);
                 },
-                controller: textEditingController,
+                controller: searchEditingController,
                 cursorColor: const Color(0xff000000),
               ),
             ),
@@ -1025,7 +1105,7 @@ class _MyHomePageState extends State<MyHomePage> {
             iconData: Icons.search,
             tooltip: 'Search',
             onPressed: () {
-              _setSearchExpressionState(textEditingController.text);
+              _setSearchExpressionState(searchEditingController.text);
             },
           ),
         );
@@ -1071,6 +1151,7 @@ class _MyHomePageState extends State<MyHomePage> {
               context,
               _configData.getAppThemeData(),
               _configData.getConfigFileName(),
+              _configData.getDataFileDir(),
               (validValue, detail) {
                 // Validate
                 return SettingValidation.ok();
@@ -1103,6 +1184,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final appBackgroundColor = _configData.getAppThemeData().screenBackgroundColor;
     final appBackgroundErrorColor = _configData.getAppThemeData().screenBackgroundErrorColor;
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: SingleChildScrollView(
           child: Stack(
         children: [
@@ -1120,38 +1202,22 @@ class _MyHomePageState extends State<MyHomePage> {
                   color: Colors.black,
                   height: 1,
                 ),
-                _beforeDataLoaded
+                _loadedData.isEmpty
                     ? const SizedBox(
                         height: 0,
                       )
-                    : _noDataToDisplay
+                    : _filteredNodeDataRoot.isEmpty
                         ? const SizedBox(
                             height: 0,
                           )
                         : Container(
                             height: _navBarHeight,
                             color: appBackgroundColor,
-                            child: createNodeNavButtonBar(_selectedPath, _nodeCopyBin, _configData.getAppThemeData(), _isEditDataDisplay, _beforeDataLoaded, (detailActionData) {
-                              switch (detailActionData.action) {
-                                case ActionType.select:
-                                  {
-                                    _selectNodeState(detailActionData.path);
-                                    selectNode();
-                                    break;
-                                  }
-                                case ActionType.querySelect:
-                                  {
-                                    return querySelect(detailActionData.path, detailActionData.additional);
-                                  }
-                                default:
-                                  {
-                                    return Path.empty();
-                                  }
-                              }
-                              return Path.empty();
+                            child: createNodeNavButtonBar(_selectedPath, _nodeCopyBin, _configData.getAppThemeData(), _isEditDataDisplay, _loadedData.isEmpty, (detailActionData) {
+                              return _handleAction(detailActionData);
                             }),
                           ),
-                _beforeDataLoaded
+                _loadedData.isEmpty
                     ? const SizedBox(
                         height: 0,
                       )
@@ -1160,7 +1226,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         height: 1,
                       ),
                 Container(
-                  height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + (_beforeDataLoaded ? 2 : _navBarHeight + 3)),
+                  height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + (_loadedData.isEmpty ? 2 : _navBarHeight + 3)),
                   color: appBackgroundColor,
                   child: displayData.splitView,
                 ),
@@ -1197,7 +1263,26 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Future<void> _showConfigDialog(final BuildContext context, AppThemeData appThemeData, final String fileName, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit) async {
+Future<void> _showConfigDialog(final BuildContext context, AppThemeData appThemeData, final String fileName, String dataFileDir, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit) async {
+  final settingsControlList = SettingControlList(appThemeData.desktop, dataFileDir, _configData.getJson());
+  final applyButton = DetailButton(
+    disable: true,
+    text: "APPLY",
+    appThemeData: appThemeData,
+    onPressed: () {
+      onCommit(settingsControlList, false);
+      Navigator.of(context).pop();
+    },
+  );
+  final saveButton = DetailButton(
+    disable: true,
+    text: "SAVE",
+    appThemeData: appThemeData,
+    onPressed: () {
+      onCommit(settingsControlList, true);
+      Navigator.of(context).pop();
+    },
+  );
   return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -1230,13 +1315,15 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
           ),
           content: ConfigInputPage(
             appThemeData: appThemeData,
-            settingsControlList: SettingControlList(appThemeData.desktop, _configData.getJson()),
-            onValidate: validate,
-            onCommit: (settingsControlList, shouldSave) {
-              if (settingsControlList.canSaveOrApply) {
-                onCommit(settingsControlList, shouldSave);
-              }
-              Navigator.of(context).pop();
+            settingsControlList: settingsControlList,
+            onValidate: (dynamicValue, settingDetail) {
+              return validate(dynamicValue, settingDetail);
+            },
+            onUpdateState: (l) {
+              final enable = l.canSaveOrApply;
+              debugPrint("Enable:$enable");
+              applyButton.disabled = !enable;
+              saveButton.disabled = !enable;
             },
             stateFileData: (delete) {
               final fn = _applicationState.activeAppStateFileName();
@@ -1249,11 +1336,60 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
               }
               return fn;
             },
-            height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
             width: MediaQuery.of(context).size.width,
           ),
+          actions: [
+            Row(
+              children: [
+                DetailButton(
+                  text: "CANCEL",
+                  appThemeData: appThemeData,
+                  onPressed: () {
+                    settingsControlList.clear();
+                    Navigator.of(context).pop();
+                  },
+                ),
+                saveButton,
+                applyButton,
+              ],
+            )
+          ],
         );
       });
+}
+
+Future<void> _showOptionsDialog(final BuildContext context, final Path path, final List<ThreeStrings> threeStringsList, final List<String> sub, final Function(ActionType, Path) onSelect) async {
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return Dialog(
+        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
+        child: ListView(
+          children: [
+            for (int i = 0; i < threeStringsList.length; i++) ...[
+              Card(
+                color: _configData.getAppThemeData().detailBackgroundColor,
+                child: ListTile(
+                  leading: Icon(threeStringsList[i].icon, color: _configData.getAppThemeData().screenForegroundColour(true)),
+                  title: Container(
+                    padding: const EdgeInsets.all(5.0),
+                    color: _configData.getAppThemeData().dialogBackgroundColor,
+                    child: Text(threeStringsList[i].s1(sub), style: _configData.getAppThemeData().tsLarge),
+                  ),
+                  subtitle: Text(threeStringsList[i].s2(sub), style: _configData.getAppThemeData().tsMedium),
+                  onTap: () {
+                    onSelect(threeStringsList[i].action, path);
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ),
+            ]
+          ],
+        ),
+      );
+    },
+  );
 }
 
 Future<void> _showLogDialog(final BuildContext context, final String log) async {
@@ -1363,7 +1499,7 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
   );
 }
 
-Future<void> _showModalButtonsDialog(final BuildContext context, final String title, final List<String> texts, final List<String> buttons, final Path? path, final void Function(Path, String)? onResponse) async {
+Future<void> _showModalButtonsDialog(final BuildContext context, final String title, final List<String> texts, final List<String> buttons, final Path path, final void Function(Path, String) onResponse) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -1388,11 +1524,7 @@ Future<void> _showModalButtonsDialog(final BuildContext context, final String ti
                   appThemeData: _configData.getAppThemeData(),
                   text: buttons[i],
                   onPressed: () {
-                    if (onResponse != null && path != null) {
-                      onResponse(path, buttons[i].toUpperCase());
-                    } else {
-                      _okCancelDialogResult = buttons[i].toUpperCase();
-                    }
+                    onResponse(path, buttons[i].toUpperCase());
                     Navigator.of(context).pop();
                   },
                 ),
@@ -1405,7 +1537,7 @@ Future<void> _showModalButtonsDialog(final BuildContext context, final String ti
   );
 }
 
-Future<void> _showModalInputDialog(final BuildContext context, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final void Function(String, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
+Future<void> _showModalInputDialog(final BuildContext context, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(String, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -1416,7 +1548,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
         content: SingleChildScrollView(
           child: ListBody(
             children: [
-              (currentOption == optionTypeDataMarkDown && !isRename)
+              (currentOption == optionTypeDataMarkDown && !isRename && !isPassword)
                   ? MarkDownInputField(
                       appThemeData: _configData.getAppThemeData(),
                       initialText: currentValue,
@@ -1451,6 +1583,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                     )
                   : ValidatedInputField(
                       options: options,
+                      isPassword: isPassword,
                       initialOption: currentOption,
                       prompt: "Input: ${isRename ? "New Name" : "[type]"}",
                       initialValue: currentValue,

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:data_repo/config.dart';
 import 'package:flutter/material.dart';
 import 'package:split_view/split_view.dart';
-import 'package:flutter_treeview/flutter_treeview.dart';
 import 'data_load.dart';
 import "data_types.dart";
 import 'detail_buttons.dart';
@@ -59,7 +58,6 @@ DisplayData createSplitView(
     final Function(Path) onExpand, // Called when a tree node in selected
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final Path Function(DetailAction) onDataAction,
-    final Widget Function(BuildContext, Node<dynamic>) buildNode,
     final void Function(String) log) {
   // Called when one of the detail buttons is pressed
   /// Left right or Top bottom

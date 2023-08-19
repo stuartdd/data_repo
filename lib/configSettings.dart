@@ -2,39 +2,39 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'data_load.dart';
-import 'detail_buttons.dart';
 import 'path.dart';
 import 'config.dart';
 
+enum SettingDetailType { url, dir, file, int, bool, color }
+
+enum _SettingState { ok, warning, error }
+
 final List<SettingDetail> _settingsData = [
-//  SettingDetail("User Name", "The users proper name", userNamePath, "ES", "User", true),
-  SettingDetail("get", "Server URL (Download)", "Download address of the host server", getDataUrlPath, "URL", defaultRemoteGetUrl, true),
-  SettingDetail("put", "Server URL (Upload)", "Upload address of the host server", postDataUrlPath, "URL", defaultRemotePostUrl, true),
-  SettingDetail("path", "Local Data file path", "The directory for the data file", dataFileLocalDirPath, "DIR", defaultDataFilePath, false),
-  SettingDetail("data", "Data file Name", "The name of the server file", dataFileLocalNamePath, "FILE", defaultDataFilePath, true),
-  SettingDetail("timeout", "Server Timeout Milliseconds", "The host server timeout", dataFetchTimeoutMillisPath, "INT", defaultFetchTimeoutMillis.toString(), false),
-  SettingDetail("", "Screen Mode", "Icons/Text White or Black. Click below to change", appColoursDarkMode, "BOOL", defaultDarkMode, true, trueValue: "Currently Light", falseValue: "Currently Dark"),
-  SettingDetail("", "Primary Colour", "The main colour theme", appColoursPrimaryPath, "COLOUR", defaultPrimaryColour, true),
-  SettingDetail("", "Preview Colour", "The Markdown 'Preview' colour", appColoursSecondaryPath, "COLOUR", defaultSecondaryColour, true),
-  SettingDetail("", "Help Colour", "The Markdown 'Help' colour", appColoursHiLightPath, "COLOUR", defaultHiLightColour, true),
-  SettingDetail("", "Error Colour", "The Error colour theme", appColoursErrorPath, "COLOUR", defaultErrorColour, true),
+  SettingDetail("get", "Server URL (Download)", "Download address of the host server", getDataUrlPath, SettingDetailType.url, defaultRemoteGetUrl, true),
+  SettingDetail("put", "Server URL (Upload)", "Upload address of the host server", postDataUrlPath, SettingDetailType.url, defaultRemotePostUrl, true),
+  SettingDetail("path", "Local Data file path", "The directory for the data file", dataFileLocalDirPath, SettingDetailType.dir, defaultDataFilePath, false),
+  SettingDetail("data", "Data file Name", "The name of the server file", dataFileLocalNamePath, SettingDetailType.file, defaultDataFilePath, true),
+  SettingDetail("timeout", "Server Timeout Milliseconds", "The host server timeout", dataFetchTimeoutMillisPath, SettingDetailType.int, defaultFetchTimeoutMillis.toString(), false),
+  SettingDetail("", "Screen Mode", "Icons/Text White or Black. Click below to change", appColoursDarkMode, SettingDetailType.bool, defaultDarkMode, true, trueValue: "Currently Light", falseValue: "Currently Dark"),
+  SettingDetail("", "Primary Colour", "The main colour theme", appColoursPrimaryPath, SettingDetailType.color, defaultPrimaryColour, true),
+  SettingDetail("", "Preview Colour", "The Markdown 'Preview' colour", appColoursSecondaryPath, SettingDetailType.color, defaultSecondaryColour, true),
+  SettingDetail("", "Help Colour", "The Markdown 'Help' colour", appColoursHiLightPath, SettingDetailType.color, defaultHiLightColour, true),
+  SettingDetail("", "Error Colour", "The Error colour theme", appColoursErrorPath, SettingDetailType.color, defaultErrorColour, true),
 ];
 
-enum SettingState { ok, warning, error }
-
 class SettingValidation {
-  final SettingState _state;
+  final _SettingState _state;
   final String _message;
   SettingValidation._(this._state, this._message);
 
   factory SettingValidation.ok() {
-    return SettingValidation._(SettingState.ok, "");
+    return SettingValidation._(_SettingState.ok, "");
   }
   factory SettingValidation.error(String m) {
-    return SettingValidation._(SettingState.error, m);
+    return SettingValidation._(_SettingState.error, m);
   }
   factory SettingValidation.warning(String m) {
-    return SettingValidation._(SettingState.warning, m);
+    return SettingValidation._(_SettingState.warning, m);
   }
 
   @override
@@ -48,9 +48,9 @@ class SettingValidation {
 
   String message(String okMessage) {
     switch (_state) {
-      case SettingState.warning:
+      case _SettingState.warning:
         return "Warning: $_message";
-      case SettingState.error:
+      case _SettingState.error:
         return "Error: $_message";
       default:
         return okMessage;
@@ -58,11 +58,11 @@ class SettingValidation {
   }
 
   bool get isError {
-    return (_state == SettingState.error);
+    return (_state == _SettingState.error);
   }
 
   bool get isNotError {
-    return (_state != SettingState.error);
+    return (_state != _SettingState.error);
   }
 
   bool isNotEqual(final SettingValidation other) {
@@ -70,14 +70,14 @@ class SettingValidation {
   }
 
   bool get isNotOk {
-    return (_state != SettingState.ok);
+    return (_state != _SettingState.ok);
   }
 
   TextStyle hintStyle(AppThemeData appThemeData) {
     switch (_state) {
-      case SettingState.warning:
+      case _SettingState.warning:
         return appThemeData.tsSmallError;
-      case SettingState.error:
+      case _SettingState.error:
         return appThemeData.tsLargeError;
       default:
         return appThemeData.tsSmall;
@@ -86,7 +86,7 @@ class SettingValidation {
 
   TextStyle textStyle(AppThemeData appThemeData) {
     switch (_state) {
-      case SettingState.error:
+      case _SettingState.error:
         return appThemeData.tsLargeError;
       default:
         return appThemeData.tsLarge;
@@ -102,9 +102,9 @@ class ConfigInputPage extends StatefulWidget {
   final AppThemeData appThemeData;
   final SettingControlList settingsControlList;
   final SettingValidation Function(String, SettingDetail) onValidate;
-  final void Function(SettingControlList, bool) onCommit;
+  final void Function(SettingControlList) onUpdateState;
+
   final String Function(bool) stateFileData;
-  final double height;
   final double width;
 
   const ConfigInputPage({
@@ -112,9 +112,8 @@ class ConfigInputPage extends StatefulWidget {
     required this.appThemeData,
     required this.settingsControlList,
     required this.onValidate,
-    required this.onCommit,
+    required this.onUpdateState,
     required this.stateFileData,
-    required this.height,
     required this.width,
   });
 
@@ -131,6 +130,12 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
       countdownTimer!.cancel();
     }
     super.dispose();
+  }
+
+  void updateState() {
+    setState(() {
+      widget.onUpdateState(widget.settingsControlList);
+    });
   }
 
   @override
@@ -152,90 +157,49 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
         sv = SettingValidation.warning("Setting 'get' setting not found");
       }
       if (sv.isNotError) {
-        final response = await DataLoad.testHttpGet("${scGet.getStringValue}/${scData!.getStringValue}","File: ${scData!.getStringValue}." );
+        final response = await DataLoad.testHttpGet("${scGet.stringValue}/${scData!.stringValue}", "File: ${scData.stringValue}.");
         if (response.isNotEmpty) {
           sv = SettingValidation.warning(response);
         }
       }
       if (scGet.validationState.isNotEqual(sv)) {
-        setState(() {
-          scGet.validationState = sv;
-        });
+        scGet.validationState = sv;
+        updateState();
       }
     });
 
-    final canSaveOrApply = widget.settingsControlList.canSaveOrApply;
     final settingsWidgetsList = createSettingsWidgets(
       null,
       widget.appThemeData,
       widget.settingsControlList,
-      (stringValue, settingDetail) {
-        setState(() {});
-        return widget.onValidate(stringValue, settingDetail);
+      (newValue, settingDetail) {
+        debugPrint("Page:OnValidate $newValue");
+        return widget.onValidate(newValue, settingDetail);
       },
     );
-    final stateFilePath = widget.stateFileData(false);
-    settingsWidgetsList.insert(
-        0,
-        DetailButton(
-            show: stateFilePath.isNotEmpty,
-            onPressed: () {
-              setState(() {
-                widget.stateFileData(true);
-              });
-            },
-            text: "Clear saved GUI data & Searches",
-            appThemeData: widget.appThemeData));
-    final scrollContainer = Container(
+
+    // final stateFilePath = widget.stateFileData(false);
+    // settingsWidgetsList.insert(
+    //     0,
+    //     DetailButton(
+    //         show: stateFilePath.isNotEmpty,
+    //         onPressed: () {
+    //           setState(() {
+    //             widget.stateFileData(true);
+    //           });
+    //         },
+    //         text: "Clear saved GUI data & Searches",
+    //         appThemeData: widget.appThemeData));
+
+    return SizedBox(
       width: widget.width,
-      height: widget.height,
-      color: widget.appThemeData.dialogBackgroundColor,
-      child: SingleChildScrollView(
-        child: Column(
-          children: settingsWidgetsList,
-        ),
+      child: ListView(
+        children: settingsWidgetsList,
       ),
-    );
-    final buttons = Row(
-      children: [
-        DetailButton(
-          show: canSaveOrApply,
-          text: "SAVE",
-          appThemeData: widget.appThemeData,
-          onPressed: () {
-            widget.onCommit(widget.settingsControlList, true);
-          },
-        ),
-        DetailButton(
-          show: canSaveOrApply,
-          text: "APPLY",
-          appThemeData: widget.appThemeData,
-          onPressed: () {
-            widget.onCommit(widget.settingsControlList, false);
-          },
-        ),
-        DetailButton(
-          text: "CANCEL",
-          appThemeData: widget.appThemeData,
-          onPressed: () {
-            widget.settingsControlList.clear();
-            widget.onCommit(widget.settingsControlList, false);
-          },
-        ),
-      ],
-    );
-    return Column(
-      children: [
-        scrollContainer,
-        const SizedBox(
-          height: 10,
-        ),
-        buttons
-      ],
     );
   }
 
-  List<Widget> createSettingsWidgets(Key? key, AppThemeData appThemeData, SettingControlList settingsControlList, SettingValidation Function(String, SettingDetail) onValidate) {
+  List<Widget> createSettingsWidgets(Key? key, AppThemeData appThemeData, SettingControlList settingsControlList, SettingValidation Function(dynamic, SettingDetail) onValidate) {
     final l = List<Widget>.empty(growable: true);
     for (var scN in settingsControlList.list) {
       if (widget.appThemeData.desktop || scN.detail.desktopOnly) {
@@ -246,12 +210,10 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
               key: key,
               settingsControl: scN,
               appThemeData: appThemeData,
-              onChanged: (val, ocSc) {
-                final sv = _initialValidate(val, ocSc.detail, settingsControlList, onValidate);
-                setState(() {
-                  ocSc.validationState = sv;
-                });
-                return sv;
+              onValidation: (newValue, settingControl) {
+                  settingControl.stringValue = newValue;
+                  settingControl.validationState = _initialValidate(newValue, settingControl.detail, settingsControlList, onValidate);
+                  updateState();
               },
             ),
           ),
@@ -263,9 +225,9 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
 }
 
 class ConfigInputSection extends StatefulWidget {
-  const ConfigInputSection({super.key, required this.settingsControl, required this.onChanged, required this.appThemeData});
+  const ConfigInputSection({super.key, required this.settingsControl, required this.onValidation, required this.appThemeData});
   final SettingControl settingsControl;
-  final SettingValidation Function(String, SettingControl) onChanged;
+  final void Function(String, SettingControl) onValidation;
   final AppThemeData appThemeData;
   @override
   State<ConfigInputSection> createState() => _ConfigInputSectionState();
@@ -285,7 +247,9 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
             subtitle: widget.settingsControl.validationState.hintText(widget.settingsControl.detail.hint, widget.appThemeData),
           ),
         ),
-        _configInputField(widget.settingsControl.detail.detailType),
+        _configInputField(widget.settingsControl.detail.detailType, (value) {
+          widget.onValidation(value, widget.settingsControl);
+        }),
         Container(
           color: widget.appThemeData.screenForegroundColour(true),
           height: 1,
@@ -294,9 +258,9 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
     );
   }
 
-  Widget _configInputField(String type) {
-    if (type == "BOOL") {
-      final set = _stringToBool(widget.settingsControl.getStringValue);
+  Widget _configInputField(SettingDetailType type, void Function(String) onChanged) {
+    if (type == SettingDetailType.bool) {
+      final set = _stringToBool(widget.settingsControl.stringValue);
       final iconData = set ? Icon(Icons.circle_outlined, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.circle_rounded, color: widget.appThemeData.screenForegroundColour(true));
       return Container(
         color: widget.appThemeData.primary.med,
@@ -307,11 +271,8 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
             IconButton(
               icon: iconData,
               onPressed: () {
-                final val = (!set).toString();
-                widget.settingsControl.validationState = widget.onChanged(val, widget.settingsControl);
-                if (widget.settingsControl.validationState.isNotError) {
-                  widget.settingsControl.setStringValue(val);
-                }
+                final newValue = (!set).toString();
+                onChanged(newValue);
               },
             ),
           ],
@@ -319,8 +280,8 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
       );
     }
 
-    if (type == "COLOUR") {
-      final p = widget.appThemeData.getColorPalletForName(widget.settingsControl.getStringValue);
+    if (type == SettingDetailType.color) {
+      final p = widget.appThemeData.getColorPalletForName(widget.settingsControl.stringValue);
       return Container(
         color: p.med,
         alignment: Alignment.centerLeft,
@@ -330,7 +291,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
           isDense: true,
           elevation: 16,
           dropdownColor: widget.appThemeData.dialogBackgroundColor,
-          value: widget.settingsControl.getStringValue,
+          value: widget.settingsControl.stringValue,
           style: widget.appThemeData.tsLarge,
           underline: const SizedBox(
             height: 0,
@@ -338,14 +299,12 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
           iconSize: widget.appThemeData.tsLarge.fontSize! * 1.5,
           iconEnabledColor: widget.appThemeData.screenForegroundColour(true),
           onChanged: (newValue) {
-            widget.settingsControl.validationState = widget.onChanged(newValue!, widget.settingsControl);
-            if (widget.settingsControl.validationState.isNotError) {
-              widget.settingsControl.setStringValue(newValue);
-            }
+            onChanged(newValue!);
           },
         ),
       );
     }
+
     return Container(
       color: widget.appThemeData.primary.med,
       padding: const EdgeInsets.all(5.0),
@@ -353,7 +312,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
         controller: widget.settingsControl.getTextController,
         style: widget.settingsControl.validationState.textStyle(widget.appThemeData),
         onChanged: (newValue) {
-          widget.settingsControl.validationState = widget.onChanged(newValue, widget.settingsControl);
+          onChanged(newValue);
         },
         cursorColor: widget.appThemeData.cursorColor,
         decoration: const InputDecoration.collapsed(hintText: "Value"),
@@ -364,15 +323,16 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
 
 class SettingControlList {
   late final List<SettingControl> list;
-  SettingControlList(final bool isDeskTop, final dynamic configJson) {
+  final String dataFileDir;
+  SettingControlList(final bool isDeskTop, final this.dataFileDir, final dynamic configJson) {
     list = List<SettingControl>.empty(growable: true);
     for (var settingDetail in _settingsData) {
       if (isDeskTop || settingDetail.desktopOnly) {
         switch (settingDetail.detailType) {
-          case "BOOL":
+          case SettingDetailType.bool:
             list.add(SettingControl(settingDetail, DataLoad.getBoolFromJson(configJson, settingDetail.path, fallback: _stringToBool(settingDetail.fallback)).toString()));
             break;
-          case "INT":
+          case SettingDetailType.int:
             list.add(SettingControl(settingDetail, DataLoad.getNumFromJson(configJson, settingDetail.path, fallback: num.parse(settingDetail.fallback)).toString()));
             break;
           default:
@@ -385,7 +345,7 @@ class SettingControlList {
   String getValueForId(String id) {
     final e = getSettingControlForId(id);
     if (e != null) {
-      return e.getStringValue;
+      return e.stringValue;
     }
     return "";
   }
@@ -446,23 +406,23 @@ class SettingDetail {
   final String title;
   final String hint;
   final Path path;
-  final String detailType; // BOOL, INT or other. Used for validation/conversion
+  final SettingDetailType detailType; // BOOL, INT or other. Used for validation/conversion
   final String fallback; // The value if not defined in the config data.
   final bool desktopOnly; // Only applies to the desktop
   final String trueValue; // The text value if true
   final String falseValue; // The text value if false
-
   const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = ""});
 }
 
 class SettingControl {
   final SettingDetail detail;
   final String oldValue;
-  final _controller = TextEditingController();
+  TextEditingController? _controller;
   SettingValidation validationState = SettingValidation.ok();
+  String _currentValue = "";
 
   SettingControl(this.detail, this.oldValue) {
-    _controller.text = oldValue;
+    _currentValue = oldValue;
   }
 
   String getBoolString(bool set) {
@@ -473,34 +433,38 @@ class SettingControl {
   }
 
   dynamic get dynamicValue {
-    if (detail.detailType == "BOOL") {
-      return (getStringValue.toLowerCase() == "true");
+    if (detail.detailType == SettingDetailType.bool) {
+      return (stringValue.toLowerCase() == "true");
     }
-    if (detail.detailType == "INT") {
-      return (num.parse(getStringValue));
+    if (detail.detailType == SettingDetailType.int) {
+      return (num.parse(stringValue));
     }
-    return getStringValue;
+    return stringValue;
   }
 
-  String get getStringValue {
-    return _controller.text.trim();
+  set stringValue(dynamic v) {
+    _currentValue = v.toString();
+  }
+
+  String get stringValue {
+    return _currentValue.trim();
   }
 
   TextEditingController get getTextController {
-    return _controller;
-  }
-
-  void setStringValue(String s) {
-    _controller.text = s;
+    if (_controller == null) {
+      _controller = TextEditingController();
+      _controller!.text = _currentValue;
+    }
+    return _controller!;
   }
 
   bool get changed {
-    return oldValue.trim() != getStringValue;
+    return oldValue.trim() != stringValue;
   }
 
   @override
   String toString() {
-    return "${validationState.name.toUpperCase()}: ${changed ? '*' : ''} Old:'$oldValue' New:'$getStringValue' Path:${detail.path} ";
+    return "id:${detail.id} ${validationState.name.toUpperCase()}: ${changed ? '*' : ''} Old:'$oldValue' New:'$stringValue' Path:${detail.path} ";
   }
 }
 
@@ -529,7 +493,7 @@ bool _stringToBool(String text) {
 SettingValidation _initialValidate(String value, SettingDetail detail, SettingControlList controlList, SettingValidation Function(String, SettingDetail) onValidate) {
   final vt = value.trim();
   switch (detail.detailType) {
-    case "INT":
+    case SettingDetailType.int:
       {
         try {
           final v = num.parse(value);
@@ -541,21 +505,21 @@ SettingValidation _initialValidate(String value, SettingDetail detail, SettingCo
         }
         break;
       }
-    case "BOOL":
+    case SettingDetailType.bool:
       {
         if (value != "true" && value != "false") {
           return SettingValidation.error("true or false");
         }
         break;
       }
-    case "COLOUR":
+    case SettingDetailType.color:
       {
         if (!colourNames.containsKey(value)) {
           return SettingValidation.error("Invalid Colour Name");
         }
         break;
       }
-    case "URL":
+    case SettingDetailType.url:
       {
         if (vt.isEmpty) {
           return SettingValidation.error("URL name cannot be empty");
@@ -570,7 +534,7 @@ SettingValidation _initialValidate(String value, SettingDetail detail, SettingCo
         }
         break;
       }
-    case "DIR":
+    case SettingDetailType.dir:
       {
         if (vt.isEmpty) {
           return SettingValidation.error("Directory name cannot be empty");
@@ -581,17 +545,18 @@ SettingValidation _initialValidate(String value, SettingDetail detail, SettingCo
         }
         break;
       }
-    case "FILE":
+    case SettingDetailType.file:
       {
         if (vt.isEmpty) {
           return SettingValidation.error("File name cannot be empty");
         }
-        final pathSetting = controlList.getValueForId("path");
-        if (pathSetting.isNotEmpty) {
-          final fn = "$pathSetting${Platform.pathSeparator}$vt";
-          if (!File(fn).existsSync()) {
-            return SettingValidation.error("Local file not found");
-          }
+        var pathSetting = controlList.getValueForId("path");
+        if (pathSetting.isEmpty) {
+          pathSetting = controlList.dataFileDir;
+        }
+        final fn = "$pathSetting${Platform.pathSeparator}$vt";
+        if (!File(fn).existsSync()) {
+          return SettingValidation.error("Local file not found");
         }
         break;
       }

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:data_repo/data_load.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -13,7 +11,7 @@ import 'path.dart';
 //    Other display types as required
 // This data is structured so
 //
-enum DisplayType {simpleDisplay, positionalString, markDown }
+enum DisplayType { simpleDisplay, positionalString, markDown }
 
 const int maxIntValue = -1 >>> 1;
 
@@ -72,6 +70,10 @@ class OptionsTypeData {
 
   bool equal(OptionsTypeData other) {
     return key == other.key;
+  }
+
+  bool get isEmpty {
+    return equal(optionsDataTypeEmpty);
   }
 
   @override
@@ -188,7 +190,30 @@ const List<OptionsTypeData> optionsEditElementValue = [];
 //
 // An action from a GUI component serviced by the maim State full GUI.
 //
-enum ActionType { none, editMode, editStart, renameStart, select, querySelect, delete, link, clip, copyNode, cutNode, pasteNode, group }
+enum ActionType { none, save, saveAlt, addGroup,addDetail, reload, edit, rename, select, querySelect, delete, link, clip, group }
+
+class ThreeStrings {
+  final IconData icon;
+  final String _s1;
+  final String _s2;
+  final ActionType action;
+  ThreeStrings(this.icon, this._s1, this._s2, this.action);
+
+  String s1(final List<String> x) {
+    return _sub(_s1, x);
+  }
+
+  String s2(final List<String> x) {
+    return _sub(_s2, x);
+  }
+
+  String _sub(String s, final List<String> x) {
+    for (int i=0; i<x.length;i++) {
+      s = s.replaceAll("%{$i}", x[i]);
+    }
+    return s;
+  }
+}
 
 class DetailAction {
   final ActionType action;
@@ -224,21 +249,29 @@ class DetailAction {
         {
           return "QUERY_SELECT: $s";
         }
-      case ActionType.editMode:
+      case ActionType.reload:
         {
-          return "EDIT-MODE: $s";
+          return "RELOAD: $s";
         }
-      case ActionType.editStart:
+      case ActionType.save:
         {
-          return "EDIT-START: $s";
+          return "SAVE: $s";
+        }
+      case ActionType.saveAlt:
+        {
+          return "SAVE-ALT: $s";
+        }
+      case ActionType.edit:
+        {
+          return "EDIT: $s";
         }
       case ActionType.group:
         {
           return "GROUP-SEL: $s";
         }
-      case ActionType.renameStart:
+      case ActionType.rename:
         {
-          return "RENAME-START: $s";
+          return "RENAME: $s";
         }
       case ActionType.select:
         {
@@ -256,18 +289,16 @@ class DetailAction {
         {
           return "CLIP: $s";
         }
-      case ActionType.copyNode:
+      case ActionType.addGroup:
         {
-          return "COPY NODE: $s";
+          return "ADD-GROUP: $s";
         }
-      case ActionType.cutNode:
+      case ActionType.addDetail:
         {
-          return "CUT NODE: $s";
+          return "ADD-DETAIL: $s";
         }
-      case ActionType.pasteNode:
-        {
-          return "PASTE NODE: $s";
-        }
+
+
     }
   }
 }
@@ -290,7 +321,7 @@ class NodeCopyBin {
     return NodeCopyBin(Path.empty(), false, {}, "");
   }
 
-  Map<String, dynamic> copyNode({String name = ""}) {
+  Map<String, dynamic> copyNodeAsMap({String name = ""}) {
     final copied = DataLoad.convertStringToMap(_copyNode, _pw);
     if (name.isNotEmpty) {
       return <String, dynamic>{name: copied};

@@ -348,6 +348,10 @@ class ConfigData {
     return _pathFromStrings(_dataFileLocalDir, _dataFileName);
   }
 
+  String getDataFileDir() {
+    return _dataFileLocalDir;
+  }
+
   String getAppStateFileLocal() {
     return _pathFromStrings(_appStateLocalDir, _appStateFileName);
   }

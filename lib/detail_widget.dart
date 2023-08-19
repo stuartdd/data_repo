@@ -188,22 +188,22 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _detailForValue(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
+  Widget _detailForValue(final AppThemeData appThemeData, final PathProperties pathProperties, final bool horizontal) {
     return Card(
       color: appThemeData.detailBackgroundColor,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         ListTile(
-          leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
+          leading: groupButton(pathProperties, false, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
           title: Container(
             padding: const EdgeInsets.all(5.0),
-            color: appThemeData.selectedAndHiLightColour(true, plp.renamed),
+            color: appThemeData.selectedAndHiLightColour(true, pathProperties.renamed),
             child: Text(widget.dataValueRow.getDisplayName(widget.isEditDataDisplay), style: appThemeData.tsMedium),
           ),
           subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: appThemeData.tsSmall) : null,
         ),
         SizedBox(
           width: double.infinity,
-          child: _cardForValue(widget.dataValueRow, appThemeData, plp),
+          child: _cardForValue(widget.dataValueRow, appThemeData, pathProperties),
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -213,15 +213,15 @@ class _DetailWidgetState extends State<DetailWidget> {
               show: widget.isEditDataDisplay,
               text: 'Edit',
               onPressed: () {
-                widget.dataAction(DetailAction(ActionType.editStart, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                widget.dataAction(DetailAction(ActionType.edit, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
               },
             ),
             DetailButton(
               appThemeData: widget.appThemeData,
               show: widget.isEditDataDisplay,
-              text: 'Re-Name',
+              text: 'Change',
               onPressed: () {
-                widget.dataAction(DetailAction(ActionType.renameStart, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
+                widget.dataAction(DetailAction(ActionType.rename, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
               },
             ),
             DetailButton(
@@ -281,9 +281,9 @@ class _DetailWidgetState extends State<DetailWidget> {
                 DetailButton(
                   appThemeData: widget.appThemeData,
                   show: widget.isEditDataDisplay,
-                  text: 'Re-Name',
+                  text: 'Change',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.renameStart, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.rename, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
                   },
                 ),
                 DetailButton(
@@ -305,7 +305,7 @@ Widget groupButton(PathProperties plp, bool value, Path path, AppThemeData appTh
   return IconButton(
     color: appThemeData.screenForegroundColour(true),
     icon: plp.groupSelect ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
-    tooltip: plp.groupSelect ? 'Remove from group select' : 'Add to group select',
+    tooltip: plp.groupSelect ? 'Remove from select' : 'Add to select',
     onPressed: () {
       dataAction(DetailAction(ActionType.group, value, path));
     },

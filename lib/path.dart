@@ -1,4 +1,5 @@
 const _updatedNotForUnDo = "~";
+
 class PathProperties {
   String renamedFrom = "";
   String updatedFrom = "";
@@ -62,6 +63,25 @@ class PathPropertiesList {
     return _list.isNotEmpty;
   }
 
+  List<PathProperties> get groupSelects {
+    final List<PathProperties> list = List.empty(growable: true);
+    for (var v in _list.values) {
+      if (v.groupSelect) {
+        list.add(v);
+      }
+    }
+    return list;
+  }
+
+  bool get hasGroupSelects {
+    for (var v in _list.values) {
+      if (v.groupSelect) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @override
   String toString() {
     if (_list.isEmpty) {
@@ -86,7 +106,7 @@ class PathPropertiesList {
     final pfp = _propertiesForPath(ps);
     pfp.groupSelect = !pfp.groupSelect;
     if (log != null) {
-      log!("__NODE__ GROUP [$p] ${pfp.groupSelect ? 'ON' : 'OFF'}");
+      log!("__NODE__ GROUP [$p] ${pfp.groupSelect ? 'YES' : 'NO'}");
     }
     if (pfp.isEmpty) {
       _list.remove(ps);
@@ -94,20 +114,6 @@ class PathPropertiesList {
       _list[ps] = pfp;
     }
   }
-
-  // void setCut(final Path p, final bool set) {
-  //   final ps = p.toString();
-  //   final pfp = _propertiesForPath(ps);
-  //   pfp.cut = set;
-  //   if (log != null) {
-  //     log!("__NODE__ CUT [$p] ${pfp.cut ? 'YES' : 'NO'}");
-  //   }
-  //   if (pfp.isEmpty) {
-  //     _list.remove(ps);
-  //   } else {
-  //     _list[ps] = pfp;
-  //   }
-  // }
 
   void setRenamed(final Path p, {String from = _updatedNotForUnDo}) {
     final ps = p.toString();
@@ -225,7 +231,7 @@ class PathNodes {
     return null;
   }
 
-  dynamic? get lastNodeAsData {
+  dynamic get lastNodeAsData {
     if (nodes.isNotEmpty) {
       return nodes[nodes.length - 1];
     }
