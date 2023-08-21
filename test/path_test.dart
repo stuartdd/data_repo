@@ -1,4 +1,3 @@
-import 'dart:math';
 
 import 'package:data_repo/data_load.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -87,6 +86,7 @@ void main() {
     final PathPropertiesList ppl = PathPropertiesList();
     expect(ppl.isEmpty, true);
     expect(ppl.isNotEmpty, false);
+    expect(ppl.length, 0);
 
     ppl.setRenamed(pAB);
     expect(ppl.isEmpty, false);
@@ -100,19 +100,24 @@ void main() {
     check(ppl.propertiesForPath(pAB), true, false, false, false, false);
     expect(ppl.isEmpty, true);
     expect(ppl.isNotEmpty, false);
+    expect(ppl.length, 0);
 
     ppl.setGroupSelect(pXY);
     ppl.setGroupSelect(pAB);
+    expect(ppl.length, 2);
     check(ppl.propertiesForPath(pAB), false, false, false, false, true);
     ppl.setGroupSelect(pAB);
+    expect(ppl.length, 1);
     check(ppl.propertiesForPath(pAB), true, false, false, false, false);
     check(ppl.propertiesForPath(pXY), false, false, false, false, true);
     expect(ppl.isEmpty, false);
     expect(ppl.isNotEmpty, true);
 
     ppl.setGroupSelect(pAB);
+    expect(ppl.length, 2);
     check(ppl.propertiesForPath(pAB), false, false, false, false, true);
     ppl.setGroupSelect(pAB);
+    expect(ppl.length, 1);
     check(ppl.propertiesForPath(pAB), true, false, false, false, false);
 
     check(ppl.propertiesForPath(pAB), true, false, false, false, false);
@@ -137,6 +142,7 @@ void main() {
     check(ppl.propertiesForPath(pXY), true, false, false, false, false);
     expect(ppl.isEmpty, true);
     expect(ppl.isNotEmpty, false);
+    expect(ppl.length, 0);
   });
 
   test('Test PathProperties', () async {

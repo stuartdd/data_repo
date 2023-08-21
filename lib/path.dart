@@ -63,6 +63,10 @@ class PathPropertiesList {
     return _list.isNotEmpty;
   }
 
+  int get length {
+    return _list.length;
+  }
+
   List<PathProperties> get groupSelects {
     final List<PathProperties> list = List.empty(growable: true);
     for (var v in _list.values) {
