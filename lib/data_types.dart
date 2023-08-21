@@ -1,6 +1,7 @@
 import 'package:data_repo/data_load.dart';
 import 'package:flutter/cupertino.dart';
 
+
 import 'path.dart';
 
 //
@@ -192,15 +193,19 @@ const List<OptionsTypeData> optionsEditElementValue = [];
 //
 enum ActionType { none, save, saveAlt, addGroup,addDetail, reload, edit, rename, select, querySelect, delete, link, clip, group }
 
-class ThreeStrings {
-  final IconData icon;
+class MenuOptionDetails {
+  final IconData Function()? _getIcon ;
   final String _s1;
   final String _s2;
   final ActionType action;
-  ThreeStrings(this.icon, this._s1, this._s2, this.action);
+  MenuOptionDetails(this._s1, this._s2, this.action, this._getIcon) ;
 
   String s1(final List<String> x) {
     return _sub(_s1, x);
+  }
+
+  IconData? get icon {
+      return _getIcon!();
   }
 
   String s2(final List<String> x) {

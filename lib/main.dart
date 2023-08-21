@@ -52,7 +52,7 @@ void main() async {
     final isDesktop = ApplicationState.appIsDesktop();
 
     _configData = ConfigData(applicationDefaultDir, "config.json", isDesktop, log);
-    _applicationState = await ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), log);
+    _applicationState = ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), log);
     if (isDesktop) {
       setWindowTitle("${_configData.getTitle()}: ${_configData.getUserName()}");
       const WindowOptions(
@@ -1013,12 +1013,24 @@ class _MyHomePageState extends State<MyHomePage> {
             tooltip: 'Menu',
             onPressed: () {
               _showOptionsDialog(context, _selectedPath, [
-                ThreeStrings(Icons.save, "Save %{0}", "Save data %{2}%{0}", ActionType.save),
-                ThreeStrings(Icons.lock, "Save %{1}", "Save data %{2}%{1}", ActionType.saveAlt),
-                ThreeStrings(Icons.refresh, "Reload data file", "Reload the data", ActionType.reload),
-                ThreeStrings(Icons.add_box_outlined, "Add NEW Group", "Add a new group to %{3}", ActionType.addGroup),
-                ThreeStrings(Icons.add, "Add NEW Detail", "Add a new detail to group %{3}", ActionType.addDetail),
-                ThreeStrings(Icons.cancel, "Cancel", "None of the above!", ActionType.none),
+                MenuOptionDetails("Save %{0}", "Save data %{2}%{0}", ActionType.save, () {
+                  return Icons.save;
+                }),
+                MenuOptionDetails("Save %{1}", "Save data %{2}%{1}", ActionType.saveAlt, () {
+                  return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;
+                }),
+                MenuOptionDetails("Reload data file", "Reload the data", ActionType.reload, () {
+                  return Icons.refresh;
+                }),
+                MenuOptionDetails("Add NEW Group", "Add a new group to %{3}", ActionType.addGroup, () {
+                  return Icons.add_box_outlined;
+                }),
+                MenuOptionDetails("Add NEW Detail", "Add a new detail to group %{3}", ActionType.addDetail, () {
+                  return Icons.add;
+                }),
+                MenuOptionDetails("Cancel", "None of the above!", ActionType.none, () {
+                  return Icons.cancel;
+                }),
               ], [
                 _loadedData.hasPassword ? 'ENCRYPTED (Current)' : 'UN-ENCRYPTED (Current)',
                 _loadedData.hasPassword ? 'UN-ENCRYPTED' : 'ENCRYPTED',
@@ -1358,7 +1370,7 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
       });
 }
 
-Future<void> _showOptionsDialog(final BuildContext context, final Path path, final List<ThreeStrings> threeStringsList, final List<String> sub, final Function(ActionType, Path) onSelect) async {
+Future<void> _showOptionsDialog(final BuildContext context, final Path path, final List<MenuOptionDetails> threeStringsList, final List<String> sub, final Function(ActionType, Path) onSelect) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!

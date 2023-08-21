@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
-import 'data_load.dart';
-import 'path.dart';
 import 'dart:io';
 
 const double _divScale = 1000;

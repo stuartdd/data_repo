@@ -393,6 +393,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
   OptionsTypeData initialOption = optionTypeDataNotFound;
   OptionsTypeData currentOption = optionTypeDataNotFound;
   bool currentIsValid = false;
+  bool obscurePw = false;
 
   @override
   initState() {
@@ -404,6 +405,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
     widget.controller.text = current;
     help = widget.onValidate(initial, current, initialOption, currentOption);
     currentIsValid = help.isEmpty;
+    obscurePw = widget.isPassword;
   }
 
   void _validate() {
@@ -461,7 +463,8 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                 })
             : TextField(
                 controller: widget.controller,
-                obscureText: widget.isPassword,
+                obscureText: obscurePw,
+                canRequestFocus: true,
                 style: widget.appThemeData.tsMedium,
                 cursorColor: widget.appThemeData.cursorColor,
                 onChanged: (value) {
@@ -494,7 +497,19 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
               onPressed: () {
                 widget.onClose("Cancel", current, currentOption);
               },
-            )
+            ),
+            widget.isPassword
+                ? IconButton(
+                    icon: Icon(obscurePw ? Icons.visibility_outlined : Icons.visibility),
+                    onPressed: () {
+                      setState(() {
+                        obscurePw = !obscurePw;
+                      });
+                    },
+                  )
+                : const SizedBox(
+                    width: 0,
+                  )
           ],
         ),
       ],
