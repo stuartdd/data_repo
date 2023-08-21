@@ -268,7 +268,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Path _handleAction(DetailAction detailActionData) {
-    debugPrint(detailActionData.toString());
     switch (detailActionData.action) {
       case ActionType.group:
         {
@@ -466,7 +465,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     return "Invalid Password";
                   }
                 } else {
-                  if (value.length < 8) {
+                  if (value.isEmpty) {
+                    return "Password required";
+                  }
+                  if (value.length < 5) {
                     return "Password length";
                   }
                 }
@@ -1013,6 +1015,9 @@ class _MyHomePageState extends State<MyHomePage> {
             tooltip: 'Menu',
             onPressed: () {
               _showOptionsDialog(context, _selectedPath, [
+                MenuOptionDetails("Done", "", ActionType.none, () {
+                  return Icons.arrow_back;
+                }),
                 MenuOptionDetails("Save %{0}", "Save data %{2}%{0}", ActionType.save, () {
                   return Icons.save;
                 }),
@@ -1027,9 +1032,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 }),
                 MenuOptionDetails("Add NEW Detail", "Add a new detail to group %{3}", ActionType.addDetail, () {
                   return Icons.add;
-                }),
-                MenuOptionDetails("Cancel", "None of the above!", ActionType.none, () {
-                  return Icons.cancel;
                 }),
               ], [
                 _loadedData.hasPassword ? 'ENCRYPTED (Current)' : 'UN-ENCRYPTED (Current)',
@@ -1370,7 +1372,7 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
       });
 }
 
-Future<void> _showOptionsDialog(final BuildContext context, final Path path, final List<MenuOptionDetails> threeStringsList, final List<String> sub, final Function(ActionType, Path) onSelect) async {
+Future<void> _showOptionsDialog(final BuildContext context, final Path path, final List<MenuOptionDetails> menuOptionsList, final List<String> sub, final Function(ActionType, Path) onSelect) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -1379,19 +1381,19 @@ Future<void> _showOptionsDialog(final BuildContext context, final Path path, fin
         backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
         child: ListView(
           children: [
-            for (int i = 0; i < threeStringsList.length; i++) ...[
+            for (int i = 0; i < menuOptionsList.length; i++) ...[
               Card(
                 color: _configData.getAppThemeData().detailBackgroundColor,
                 child: ListTile(
-                  leading: Icon(threeStringsList[i].icon, color: _configData.getAppThemeData().screenForegroundColour(true)),
+                  leading: Icon(menuOptionsList[i].icon, color: _configData.getAppThemeData().screenForegroundColour(true)),
                   title: Container(
                     padding: const EdgeInsets.all(5.0),
                     color: _configData.getAppThemeData().dialogBackgroundColor,
-                    child: Text(threeStringsList[i].s1(sub), style: _configData.getAppThemeData().tsLarge),
+                    child: Text(menuOptionsList[i].s1(sub), style: _configData.getAppThemeData().tsLarge),
                   ),
-                  subtitle: Text(threeStringsList[i].s2(sub), style: _configData.getAppThemeData().tsMedium),
+                  subtitle: menuOptionsList[i].hasSubText ? Text(menuOptionsList[i].s2(sub), style: _configData.getAppThemeData().tsMedium) : null,
                   onTap: () {
-                    onSelect(threeStringsList[i].action, path);
+                    onSelect(menuOptionsList[i].action, path);
                     Navigator.of(context).pop();
                   },
                 ),
@@ -1556,7 +1558,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
     builder: (BuildContext context) {
       return AlertDialog(
         backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
-        title: SizedBox(height: inputTextTitleStyleHeight, child: Text(title, style: _configData.getAppThemeData().tsMedium)),
+        title: Text(title, style: _configData.getAppThemeData().tsMedium),
         content: SingleChildScrollView(
           child: ListBody(
             children: [

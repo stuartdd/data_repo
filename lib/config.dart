@@ -179,7 +179,7 @@ class AppThemeData {
   }
 
   Color get cursorColor {
-    return darkMode ? Colors.black : Colors.white;
+    return darkMode ? Colors.white : Colors.black;
   }
 
   Color get screenBackgroundErrorColor {

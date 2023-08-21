@@ -201,6 +201,9 @@ class MenuOptionDetails {
   MenuOptionDetails(this._s1, this._s2, this.action, this._getIcon) ;
 
   String s1(final List<String> x) {
+    if (_s1.isEmpty) {
+      return "";
+    }
     return _sub(_s1, x);
   }
 
@@ -209,7 +212,14 @@ class MenuOptionDetails {
   }
 
   String s2(final List<String> x) {
+    if (_s2.isEmpty) {
+      return "";
+    }
     return _sub(_s2, x);
+  }
+
+  bool get hasSubText {
+    return _s2.isNotEmpty;
   }
 
   String _sub(String s, final List<String> x) {
