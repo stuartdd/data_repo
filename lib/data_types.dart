@@ -1,6 +1,4 @@
-import 'package:data_repo/data_load.dart';
 import 'package:flutter/cupertino.dart';
-
 
 import 'path.dart';
 
@@ -191,14 +189,14 @@ const List<OptionsTypeData> optionsEditElementValue = [];
 //
 // An action from a GUI component serviced by the maim State full GUI.
 //
-enum ActionType { none, save, saveAlt, addGroup,addDetail, reload, edit, rename, select, querySelect, delete, link, clip, group }
+enum ActionType { none, save, saveAlt, addGroup, addDetail, reload, edit, rename, select, querySelect, delete, link, clip, group, groupCopy }
 
 class MenuOptionDetails {
-  final IconData Function()? _getIcon ;
+  final IconData Function()? _getIcon;
   final String _s1;
   final String _s2;
   final ActionType action;
-  MenuOptionDetails(this._s1, this._s2, this.action, this._getIcon) ;
+  MenuOptionDetails(this._s1, this._s2, this.action, this._getIcon);
 
   String s1(final List<String> x) {
     if (_s1.isEmpty) {
@@ -208,7 +206,7 @@ class MenuOptionDetails {
   }
 
   IconData? get icon {
-      return _getIcon!();
+    return _getIcon!();
   }
 
   String s2(final List<String> x) {
@@ -223,7 +221,7 @@ class MenuOptionDetails {
   }
 
   String _sub(String s, final List<String> x) {
-    for (int i=0; i<x.length;i++) {
+    for (int i = 0; i < x.length; i++) {
       s = s.replaceAll("%{$i}", x[i]);
     }
     return s;
@@ -284,6 +282,10 @@ class DetailAction {
         {
           return "GROUP-SEL: $s";
         }
+      case ActionType.groupCopy:
+        {
+          return "GROUP-COPY: $s";
+        }
       case ActionType.rename:
         {
           return "RENAME: $s";
@@ -312,49 +314,71 @@ class DetailAction {
         {
           return "ADD-DETAIL: $s";
         }
-
-
     }
   }
 }
+class GroupCopyMoveSummaryList {
+  final List<GroupCopyMoveSummary> list;
+  GroupCopyMoveSummaryList(this.list);
 
-class NodeCopyBin {
-  final Path copyFromPath;
-  final bool cut;
-  final String _pw;
-  late final String _copyNode;
-
-  NodeCopyBin(this.copyFromPath, this.cut, Map<String, dynamic> node, this._pw) {
-    if (node.isEmpty) {
-      _copyNode = "";
-    } else {
-      _copyNode = DataLoad.convertMapToStringWithTs(node, _pw, addTimeStamp: false);
-    }
-  }
-
-  factory NodeCopyBin.empty() {
-    return NodeCopyBin(Path.empty(), false, {}, "");
-  }
-
-  Map<String, dynamic> copyNodeAsMap({String name = ""}) {
-    final copied = DataLoad.convertStringToMap(_copyNode, _pw);
-    if (name.isNotEmpty) {
-      return <String, dynamic>{name: copied};
-    }
-    return copied;
+  int get length {
+    return list.length;
   }
 
   bool get isNotEmpty {
-    return _copyNode.isNotEmpty;
+    return list.isNotEmpty;
   }
 
   bool get isEmpty {
-    return _copyNode.isEmpty;
+    return list.isEmpty;
+  }
+
+  bool get hasNoErrors {
+    for (var gs in list) {
+      if (gs.isError) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool get hasErrors {
+    for (var gs in list) {
+      if (gs.isError) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+}
+
+class GroupCopyMoveSummary {
+  final Path copyFromPath;
+  final String error;
+  final String desc;
+
+  GroupCopyMoveSummary(this.copyFromPath, this.desc, this.error);
+
+  factory GroupCopyMoveSummary.empty() {
+    return GroupCopyMoveSummary(Path.empty(), "", "");
+  }
+
+  bool get isNotEmpty {
+    return copyFromPath.isNotEmpty;
+  }
+
+  bool get isEmpty {
+    return copyFromPath.isEmpty;
+  }
+
+  bool get isError {
+    return error.isNotEmpty;
   }
 
   @override
   String toString() {
-    return "${cut ? "CUT" : "COPY"} ${copyFromPath.toString()}\n$_copyNode";
+    return "CopyMoveSummary: $copyFromPath Desc: $desc. Error: $error.";
   }
 }
 

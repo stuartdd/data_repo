@@ -153,7 +153,7 @@ class _MyHomePageState extends State<MyHomePage> {
   MyTreeNode _filteredNodeDataRoot = MyTreeNode.empty();
   MyTreeNode _selectedTreeNode = MyTreeNode.empty();
   Path _selectedPath = Path.empty();
-  NodeCopyBin _nodeCopyBin = NodeCopyBin.empty();
+  // NodeCopyBin _nodeCopyBin = NodeCopyBin.empty();
 
   final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: log);
   final TextEditingController searchEditingController = TextEditingController(text: "");
@@ -267,12 +267,49 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  GroupCopyMoveSummary _checkNodeForGroupSelection(Path from, Path to) {
+    final fromP = from.cloneParentPath();
+    if (fromP.isEqual(to)) {
+      return GroupCopyMoveSummary(fromP, "Node: '${from.last}' in: '$fromP'", "Already Contained");
+    }
+    return GroupCopyMoveSummary(fromP, "Node: '${from.last}' in: '$fromP'", "");
+  }
+
+  GroupCopyMoveSummaryList _summariseGroupSelection(PathPropertiesList pathPropertiesList) {
+    final sb = List<GroupCopyMoveSummary>.empty(growable: true);
+    final groups = pathPropertiesList.groupSelectsClone;
+    if (groups.isEmpty) {
+      return GroupCopyMoveSummaryList(sb);
+    }
+    for (var p in groups.keys) {
+      final v = _checkNodeForGroupSelection(Path.fromDotPath(p), _selectedPath);
+      sb.add(v);
+    }
+    return GroupCopyMoveSummaryList(sb);
+  }
+
   Path _handleAction(DetailAction detailActionData) {
     switch (detailActionData.action) {
       case ActionType.group:
         {
           setState(() {
             _pathPropertiesList.setGroupSelect(detailActionData.path);
+          });
+          break;
+        }
+      case ActionType.groupCopy:
+        {
+          Timer(const Duration(milliseconds: 300), () {
+            if (mounted) {
+              _showCopyMoveDialog(
+                context,
+                _selectedPath,
+                _summariseGroupSelection(_pathPropertiesList),
+                (button, path) {
+                  debugPrint("$button $path");
+                },
+              );
+            }
           });
           break;
         }
@@ -770,38 +807,38 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _handlePasteState(final Path path) async {
-    setState(() {
-      final mapNodes = path.pathNodes(_loadedData.dataMap);
-      if (mapNodes.error) {
-        _globalSuccessState = SuccessState(false, message: "__PASTE__ Path not found");
-        return;
-      }
-      final node = DataLoad.getMapFromJson(_loadedData.dataMap, path);
-      String name = _nodeCopyBin.copyFromPath.last;
-      if (node.containsKey(name)) {
-        name = "${name}_copy";
-      }
-      final newPath = path.cloneAppendList([name]);
-      node[name] = _nodeCopyBin.copyNodeAsMap();
-      _dataWasUpdated = true;
-      _pathPropertiesList.setUpdated(path);
-      _pathPropertiesList.setUpdated(newPath);
-      _reloadAndCopyFlags();
-      selectNode(path: newPath);
-      if (_nodeCopyBin.cut) {
-        final p = _handleDelete(_nodeCopyBin.copyFromPath);
-        if (p.isEmpty) {
-          _globalSuccessState = SuccessState(false, message: "__PASTE__ CUT path not removed");
-          return;
-        }
-        _pathPropertiesList.setUpdated(p);
-        _reloadAndCopyFlags();
-        selectNode(path: p);
-      }
-      _globalSuccessState = SuccessState(true, message: "Pasted: '$name' into: '${path.last}'");
-    });
-  }
+  // void _handlePasteState(final Path path) async {
+  //   setState(() {
+  //     final mapNodes = path.pathNodes(_loadedData.dataMap);
+  //     if (mapNodes.error) {
+  //       _globalSuccessState = SuccessState(false, message: "__PASTE__ Path not found");
+  //       return;
+  //     }
+  //     final node = DataLoad.getMapFromJson(_loadedData.dataMap, path);
+  //     String name = _nodeCopyBin.copyFromPath.last;
+  //     if (node.containsKey(name)) {
+  //       name = "${name}_copy";
+  //     }
+  //     final newPath = path.cloneAppendList([name]);
+  //     node[name] = _nodeCopyBin.copyNodeAsMap();
+  //     _dataWasUpdated = true;
+  //     _pathPropertiesList.setUpdated(path);
+  //     _pathPropertiesList.setUpdated(newPath);
+  //     _reloadAndCopyFlags();
+  //     selectNode(path: newPath);
+  //     if (_nodeCopyBin.cut) {
+  //       final p = _handleDelete(_nodeCopyBin.copyFromPath);
+  //       if (p.isEmpty) {
+  //         _globalSuccessState = SuccessState(false, message: "__PASTE__ CUT path not removed");
+  //         return;
+  //       }
+  //       _pathPropertiesList.setUpdated(p);
+  //       _reloadAndCopyFlags();
+  //       selectNode(path: p);
+  //     }
+  //     _globalSuccessState = SuccessState(true, message: "Pasted: '$name' into: '${path.last}'");
+  //   });
+  // }
 
   void _handleEditState(DetailAction detailActionData, String newValue, OptionsTypeData type) {
     if (detailActionData.oldValue != newValue || detailActionData.oldValueType != type) {
@@ -926,7 +963,6 @@ class _MyHomePageState extends State<MyHomePage> {
       _configData.isDesktop(),
       _applicationState.screen.divPos,
       _configData.getAppThemeData(),
-      _nodeCopyBin,
       _pathPropertiesList,
       _selectNodeState,
       _expandNodeState,
@@ -1050,44 +1086,53 @@ class _MyHomePageState extends State<MyHomePage> {
         toolBarItems.add(VerticalDivider(
           color: _configData.getAppThemeData().screenForegroundColour(true),
         ));
-        final canCopy = _selectedPath.hasParent;
-        final canPaste = _nodeCopyBin.isNotEmpty;
-        if (canCopy) {
-          toolBarItems.add(
-            DetailIconButton(
-              onPressed: () {
-                setState(() {
-                  _nodeCopyBin = NodeCopyBin(_selectedPath, false, DataLoad.getMapFromJson(_loadedData.dataMap, _selectedPath), _loadedData.password);
-                  _globalSuccessState = SuccessState(true, message: "Node '${_selectedPath.last}' COPIED to clipboard");
-                });
-              },
-              tooltip: _pathPropertiesList.hasGroupSelects ? "copy selected groups" : "Copy This Node",
-              iconData: Icons.copy,
-              appThemeData: _configData.getAppThemeData(),
-            ),
-          );
-          toolBarItems.add(
-            DetailIconButton(
-              onPressed: () {
-                setState(() {
-                  _nodeCopyBin = NodeCopyBin(_selectedPath, true, DataLoad.getMapFromJson(_loadedData.dataMap, _selectedPath), _loadedData.password);
-                  _globalSuccessState = SuccessState(true, message: "Node '${_selectedPath.last}' CUT to clipboard");
-                });
-              },
-              tooltip: "Cut This Node",
-              iconData: Icons.cut,
-              appThemeData: _configData.getAppThemeData(),
-            ),
-          );
-        }
+        // final canCopy = _selectedPath.hasParent;
+        // if (canCopy) {
+        //   toolBarItems.add(
+        //     DetailIconButton(
+        //       onPressed: () {
+        //         setState(() {
+        //           _nodeCopyBin = NodeCopyBin(_selectedPath, false, DataLoad.getMapFromJson(_loadedData.dataMap, _selectedPath), _loadedData.password);
+        //           _globalSuccessState = SuccessState(true, message: "Node '${_selectedPath.last}' COPIED to clipboard");
+        //         });
+        //       },
+        //       tooltip: _pathPropertiesList.hasGroupSelects ? "copy selected groups" : "Copy This Node",
+        //       iconData: Icons.copy,
+        //       appThemeData: _configData.getAppThemeData(),
+        //     ),
+        //   );
+        //   toolBarItems.add(
+        //     DetailIconButton(
+        //       onPressed: () {
+        //         setState(() {
+        //           _nodeCopyBin = NodeCopyBin(_selectedPath, true, DataLoad.getMapFromJson(_loadedData.dataMap, _selectedPath), _loadedData.password);
+        //           _globalSuccessState = SuccessState(true, message: "Node '${_selectedPath.last}' CUT to clipboard");
+        //         });
+        //       },
+        //       tooltip: "Cut This Node",
+        //       iconData: Icons.cut,
+        //       appThemeData: _configData.getAppThemeData(),
+        //     ),
+        //   );
+        // }
+        final canPaste = _pathPropertiesList.hasGroupSelects;
         if (canPaste) {
           toolBarItems.add(DetailIconButton(
-            show: canPaste,
             onPressed: () {
-              _handlePasteState(_selectedPath);
+              _handleAction(DetailAction(ActionType.groupCopy, false, _selectedPath));
             },
-            tooltip: "Paste into ${_selectedPath.last}",
-            iconData: Icons.paste,
+            tooltip: "Copy into ${_selectedPath.last}",
+            iconData: Icons.file_copy,
+            appThemeData: _configData.getAppThemeData(),
+          ));
+          toolBarItems.add(DetailIconButton(
+            onPressed: () {
+              setState(() {
+                _pathPropertiesList.clearGroupSelect();
+              });
+            },
+            tooltip: "Clear selections",
+            iconData: Icons.content_paste_off,
             appThemeData: _configData.getAppThemeData(),
           ));
         }
@@ -1227,7 +1272,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         : Container(
                             height: _navBarHeight,
                             color: appBackgroundColor,
-                            child: createNodeNavButtonBar(_selectedPath, _nodeCopyBin, _configData.getAppThemeData(), _isEditDataDisplay, _loadedData.isEmpty, (detailActionData) {
+                            child: createNodeNavButtonBar(_selectedPath, _configData.getAppThemeData(), _isEditDataDisplay, _loadedData.isEmpty, (detailActionData) {
                               return _handleAction(detailActionData);
                             }),
                           ),
@@ -1401,6 +1446,80 @@ Future<void> _showOptionsDialog(final BuildContext context, final Path path, fin
             ]
           ],
         ),
+      );
+    },
+  );
+}
+
+Widget _copyMoveSummary(GroupCopyMoveSummaryList summaryList, final void Function(String, Path) onAction) {
+  final wl = <Widget>[];
+  for (int i = 0; i < summaryList.length; i++) {
+    final summary = summaryList.list[i];
+    if (summary.isError) {
+      final r = Row(
+        children: [
+          IconButton(onPressed: () {
+            onAction("DELETE", summaryList.list[i].copyFromPath);
+          }, icon: const Icon(Icons.delete)),
+          Text("ERROR: ${summary.error}", style: _configData.getAppThemeData().tsMediumError),
+        ],
+      );
+      wl.add(r);
+    } else {
+      wl.add(Text("OK: Can Copy or Move", style: _configData.getAppThemeData().tsMediumBold));
+    }
+    wl.add(Text(summary.desc, style: _configData.getAppThemeData().tsMedium));
+    wl.add(Container(
+      color: Colors.black,
+      height: 2,
+    ));
+  }
+  return ListBody(children: wl);
+}
+
+Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, final GroupCopyMoveSummaryList summaryList, final void Function(String, Path) onAction) async {
+
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
+        title: Text("Copy or Move TO: '$into'", style: _configData.getAppThemeData().tsMedium),
+        content: SingleChildScrollView(
+          child: _copyMoveSummary(summaryList, onAction),
+        ),
+        actions: <Widget>[
+          Row(
+            children: [
+              DetailButton(
+                appThemeData: _configData.getAppThemeData(),
+                text: "COPY",
+                show: summaryList.hasNoErrors,
+                onPressed: () {
+                  onAction("COPY", Path.empty());
+                  Navigator.of(context).pop();
+                },
+              ),
+              DetailButton(
+                appThemeData: _configData.getAppThemeData(),
+                text: "MOVE",
+                show: summaryList.hasNoErrors,
+                onPressed: () {
+                  onAction("MOVE", Path.empty());
+                  Navigator.of(context).pop();
+                },
+              ),
+              DetailButton(
+                appThemeData: _configData.getAppThemeData(),
+                text: "CANCEL",
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          )
+        ],
       );
     },
   );

@@ -50,7 +50,6 @@ DisplayData createSplitView(
     final bool horizontal, // Display horizontal or vertical split pane
     final double splitPaneDivPosition, // The split pane divider position
     final AppThemeData appThemeData, // The colour scheme
-    final NodeCopyBin nodeCopyBin,
     final PathPropertiesList pathPropertiesList,
     final Function(Path) onSelect, // Called when a tree node in selected
     final Function(Path) onExpand, // Called when a tree node in selected
@@ -77,7 +76,7 @@ DisplayData createSplitView(
   final Widget detailContainer;
   final node = DataLoad.getNodeFromJson(jsonDataMap, selectedPath);
   if (node != null) {
-    detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, pathPropertiesList, appThemeData, nodeCopyBin, onDataAction);
+    detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, pathPropertiesList, appThemeData, onDataAction);
   } else {
     detailContainer = Container(
       color: appThemeData.error.darkest,
@@ -144,7 +143,7 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
   return lm;
 }
 
-Widget createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCopyBin, final AppThemeData appThemeData, bool isEditDataDisplay, bool beforeDataLoaded, final Path Function(DetailAction) dataAction) {
+Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThemeData, bool isEditDataDisplay, bool beforeDataLoaded, final Path Function(DetailAction) dataAction) {
   final pathUp = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "up"));
   final pathDown = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "down"));
   final pathRight = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "right"));
@@ -199,7 +198,7 @@ Widget createNodeNavButtonBar(final Path selectedPath, final NodeCopyBin nodeCop
   );
 }
 
-Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, NodeCopyBin copyBin, final Path Function(DetailAction) dataAction) {
+Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, final Path Function(DetailAction) dataAction) {
   if (selectedNode is! Map<String, dynamic>) {
     throw JsonException(selectedPath, message: "Selected path should be a map");
   }

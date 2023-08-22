@@ -111,6 +111,7 @@ class AppThemeData {
   late final TextStyle tsLarge;
   late final TextStyle tsLargeDisabled;
   late final TextStyle tsMedium;
+  late final TextStyle tsMediumBold;
   late final TextStyle tsMediumDisabled;
   late final TextStyle tsSmall;
   late final TextStyle tsSmallDisabled;
@@ -129,6 +130,7 @@ class AppThemeData {
     tsLargeDisabled = TextStyle(fontFamily: font, fontSize: (25.0 * scale), color: screenForegroundColour(false));
     tsLargeError = TextStyle(fontFamily: font, fontSize: (25.0 * scale), color: errC);
     tsMedium = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: screenForegroundColour(true));
+    tsMediumBold = TextStyle(fontFamily: font, fontSize: (20.0 * scale), fontWeight: FontWeight.bold ,color: screenForegroundColour(true));
     tsMediumDisabled = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: screenForegroundColour(false));
     tsMediumError = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: errC);
     tsSmall = TextStyle(fontFamily: font, fontSize: (15.0 * scale), color: screenForegroundColour(true));

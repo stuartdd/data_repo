@@ -67,14 +67,17 @@ class PathPropertiesList {
     return _list.length;
   }
 
-  List<PathProperties> get groupSelects {
-    final List<PathProperties> list = List.empty(growable: true);
-    for (var v in _list.values) {
-      if (v.groupSelect) {
-        list.add(v);
+  Map<String, PathProperties> get groupSelectsClone {
+    final Map<String, PathProperties> clone = <String, PathProperties>{};
+    for (var k in _list.keys) {
+      final v = _list[k];
+      if (v != null) {
+        if (v.groupSelect) {
+          clone[k] = v;
+        }
       }
     }
-    return list;
+    return clone;
   }
 
   bool get hasGroupSelects {
@@ -102,6 +105,29 @@ class PathPropertiesList {
     _list.clear();
     if (log != null) {
       log!("__NODE__ LIST CLEARED");
+    }
+  }
+
+  List<String> cloneKeys() {
+    final List<String> keys = [];
+    for (var k in _list.keys) {
+      keys.add(k);
+    }
+    return keys;
+  }
+
+  void clearGroupSelect() {
+    for (var k in cloneKeys()) {
+      final v = _list[k];
+      if (v != null) {
+        v.groupSelect = false;
+        if (v.isEmpty) {
+          _list.remove(k);
+        }
+      }
+    }
+    if (log != null) {
+      log!("__NODE__ GROUP SELECTION CLEARED");
     }
   }
 
