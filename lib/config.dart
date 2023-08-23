@@ -18,7 +18,7 @@ const String defaultUserName = "User";
 const int defaultFetchTimeoutMillis = 1000;
 const String defaultDataFilePath = "";
 const String defaultAppTitle = "Data Repo";
-const String defaultFontFamily = "Code128";
+const String defaultFontFamily = "Roboto";
 const double defaultFontScaleDesktop = 1.0;
 const double defaultFontScaleMobile = 0.8;
 const double defaultTreeNodeHeight = 35.0;
@@ -126,18 +126,18 @@ class AppThemeData {
 
   AppThemeData._(this.primary, this.secondary, this.hiLight, this.error, String font, double scale, Color errC, this.darkMode, this.desktop) {
     tsScale = scale;
-    tsLarge = TextStyle(fontFamily: font, fontSize: (25.0 * scale), color: screenForegroundColour(true));
-    tsLargeDisabled = TextStyle(fontFamily: font, fontSize: (25.0 * scale), color: screenForegroundColour(false));
-    tsLargeError = TextStyle(fontFamily: font, fontSize: (25.0 * scale), color: errC);
-    tsMedium = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: screenForegroundColour(true));
-    tsMediumBold = TextStyle(fontFamily: font, fontSize: (20.0 * scale), fontWeight: FontWeight.bold ,color: screenForegroundColour(true));
-    tsMediumDisabled = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: screenForegroundColour(false));
-    tsMediumError = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: errC);
-    tsSmall = TextStyle(fontFamily: font, fontSize: (15.0 * scale), color: screenForegroundColour(true));
-    tsSmallDisabled = TextStyle(fontFamily: font, fontSize: (15.0 * scale), color: screenForegroundColour(false));
-    tsSmallError = TextStyle(fontFamily: font, fontSize: (15.0 * scale), color: errC);
-    tsTreeViewLabel = TextStyle(fontFamily: font, fontSize: (20.0 * scale), color: screenForegroundColour(true));
-    tsTreeViewParentLabel = TextStyle(fontFamily: font, fontSize: (25.0 * scale), fontWeight: FontWeight.w600, color: screenForegroundColour(true));
+    tsLarge = TextStyle(fontSize: (25.0 * scale), color: screenForegroundColour(true));
+    tsLargeDisabled = TextStyle(fontSize: (25.0 * scale), color: screenForegroundColour(false));
+    tsLargeError = TextStyle(fontSize: (25.0 * scale), color: errC);
+    tsMedium = TextStyle(fontSize: (20.0 * scale), color: screenForegroundColour(true));
+    tsMediumBold = TextStyle(fontSize: (20.0 * scale), fontWeight: FontWeight.bold ,color: screenForegroundColour(true));
+    tsMediumDisabled = TextStyle(fontSize: (20.0 * scale), color: screenForegroundColour(false));
+    tsMediumError = TextStyle(fontSize: (20.0 * scale), color: errC);
+    tsSmall = TextStyle(fontSize: (15.0 * scale), color: screenForegroundColour(true));
+    tsSmallDisabled = TextStyle(fontSize: (15.0 * scale), color: screenForegroundColour(false));
+    tsSmallError = TextStyle(fontSize: (15.0 * scale), color: errC);
+    tsTreeViewLabel = TextStyle(fontSize: (20.0 * scale), color: screenForegroundColour(true));
+    tsTreeViewParentLabel = TextStyle(fontSize: (25.0 * scale), fontWeight: FontWeight.w600, color: screenForegroundColour(true));
     treeNodeHeight = defaultTreeNodeHeight;
     treeNodeIcons = List.empty(growable: true);
     for (int i = 0; i < defaultTreeNodeIconData.length; i++) {
@@ -148,6 +148,13 @@ class AppThemeData {
       ));
     }
     debugPrint("AppThemeData: Created!");
+  }
+
+  Size textSize(String text, TextStyle style) {
+    final TextPainter textPainter = TextPainter(
+        text: TextSpan(text: text, style: style), maxLines: 1, textDirection: TextDirection.ltr)
+      ..layout(minWidth: 0, maxWidth: double.infinity);
+    return textPainter.size;
   }
 
   selectedAndHiLightColour(final bool sel, final bool upd) {

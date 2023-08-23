@@ -267,12 +267,12 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  GroupCopyMoveSummary _checkNodeForGroupSelection(Path from, Path to) {
+  GroupCopyMoveSummary _checkNodeForGroupSelection(final Path from, final Path to, final bool isValue) {
     final fromP = from.cloneParentPath();
     if (fromP.isEqual(to)) {
-      return GroupCopyMoveSummary(fromP, "Node: '${from.last}' in: '$fromP'", "Already Contained");
+      return GroupCopyMoveSummary(from, "Would be duplicate", isValue);
     }
-    return GroupCopyMoveSummary(fromP, "Node: '${from.last}' in: '$fromP'", "");
+    return GroupCopyMoveSummary(from, "", isValue);
   }
 
   GroupCopyMoveSummaryList _summariseGroupSelection(PathPropertiesList pathPropertiesList) {
@@ -282,8 +282,11 @@ class _MyHomePageState extends State<MyHomePage> {
       return GroupCopyMoveSummaryList(sb);
     }
     for (var p in groups.keys) {
-      final v = _checkNodeForGroupSelection(Path.fromDotPath(p), _selectedPath);
-      sb.add(v);
+      final d = groups[p];
+      if (d != null) {
+        final v = _checkNodeForGroupSelection(Path.fromDotPath(p), _selectedPath, d.isValue);
+        sb.add(v);
+      }
     }
     return GroupCopyMoveSummaryList(sb);
   }
@@ -293,24 +296,36 @@ class _MyHomePageState extends State<MyHomePage> {
       case ActionType.group:
         {
           setState(() {
-            _pathPropertiesList.setGroupSelect(detailActionData.path);
+            _pathPropertiesList.setGroupSelect(detailActionData.path, detailActionData.value);
           });
           break;
         }
       case ActionType.groupCopy:
+      case ActionType.groupDelete:
         {
-          Timer(const Duration(milliseconds: 300), () {
-            if (mounted) {
-              _showCopyMoveDialog(
-                context,
-                _selectedPath,
-                _summariseGroupSelection(_pathPropertiesList),
-                (button, path) {
-                  debugPrint("$button $path");
-                },
-              );
-            }
-          });
+          if (_pathPropertiesList.hasGroupSelects) {
+            Timer(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                _showCopyMoveDialog(
+                  context,
+                  _selectedPath,
+                  _summariseGroupSelection(_pathPropertiesList),
+                  detailActionData.action == ActionType.groupCopy,
+                  (button, path) {
+                    setState(() {
+                      if (button == "DELETE") {
+                        _pathPropertiesList.setGroupSelect(path, false);
+                      }
+                      if (button == "CLEAR") {
+                        _pathPropertiesList.clearAllGroupSelect();
+                      }
+                    });
+                    _handleAction(detailActionData);
+                  },
+                );
+              }
+            });
+          }
           break;
         }
       case ActionType.delete:
@@ -1121,18 +1136,16 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               _handleAction(DetailAction(ActionType.groupCopy, false, _selectedPath));
             },
-            tooltip: "Copy into ${_selectedPath.last}",
+            tooltip: "Copy to ${_selectedPath.last}",
             iconData: Icons.file_copy,
             appThemeData: _configData.getAppThemeData(),
           ));
           toolBarItems.add(DetailIconButton(
             onPressed: () {
-              setState(() {
-                _pathPropertiesList.clearGroupSelect();
-              });
+              _handleAction(DetailAction(ActionType.groupDelete, false, _selectedPath));
             },
-            tooltip: "Clear selections",
-            iconData: Icons.content_paste_off,
+            tooltip: "Delete Data",
+            iconData: Icons.delete,
             appThemeData: _configData.getAppThemeData(),
           ));
         }
@@ -1451,24 +1464,59 @@ Future<void> _showOptionsDialog(final BuildContext context, final Path path, fin
   );
 }
 
-Widget _copyMoveSummary(GroupCopyMoveSummaryList summaryList, final void Function(String, Path) onAction) {
+Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, Path into, final String head, final bool copyMove, final void Function(String, Path) onAction) {
   final wl = <Widget>[];
+  final tab = _configData.getAppThemeData().textSize("Group: ", _configData.getAppThemeData().tsMedium);
+  wl.add(Text("Selected Data:", style: _configData.getAppThemeData().tsMediumBold));
+  wl.add(Container(
+    color: Colors.black,
+    height: 2,
+  ));
+  for (int i = 0; i < summaryList.length; i++) {
+    for (int j = 0;j < summaryList.length; j++) {
+      final ni = summaryList.list[i];
+      final nj = summaryList.list[j];
+      debugPrint("! ni:${ni.copyFromPath} nj:${nj.copyFromPath}");
+    }
+  }
   for (int i = 0; i < summaryList.length; i++) {
     final summary = summaryList.list[i];
-    if (summary.isError) {
-      final r = Row(
+    final tag = summary.isValue ? "Value:" : "Group:";
+    final r1 = Row(
+      children: [
+        IconButton(
+            onPressed: () {
+              onAction("DELETE", summaryList.list[i].copyFromPath);
+            },
+            tooltip: "Delete from this list",
+            icon: const Icon(Icons.delete)),
+        summary.isError ? Text(summary.error, style: _configData.getAppThemeData().tsMediumError) : Text("OK: Can $head", style: _configData.getAppThemeData().tsMedium),
+      ],
+    );
+    final r2 = Row(
+      children: [
+        SizedBox(width: tab.width, child: Text(tag, style: _configData.getAppThemeData().tsMedium)),
+        Text(summary.name, style: _configData.getAppThemeData().tsMediumBold),
+      ],
+    );
+    final r3 = Row(
+      children: [
+        SizedBox(width: tab.width, child: Text("In:", style: _configData.getAppThemeData().tsMedium)),
+        Text(summary.parent, style: _configData.getAppThemeData().tsMediumBold),
+      ],
+    );
+    wl.add(r1);
+    wl.add(r2);
+    wl.add(r3);
+    if (copyMove) {
+      final r4 = Row(
         children: [
-          IconButton(onPressed: () {
-            onAction("DELETE", summaryList.list[i].copyFromPath);
-          }, icon: const Icon(Icons.delete)),
-          Text("ERROR: ${summary.error}", style: _configData.getAppThemeData().tsMediumError),
+          SizedBox(width: tab.width, child: Text("To:", style: _configData.getAppThemeData().tsMedium)),
+          Text(into.toString(), style: _configData.getAppThemeData().tsMediumBold),
         ],
       );
-      wl.add(r);
-    } else {
-      wl.add(Text("OK: Can Copy or Move", style: _configData.getAppThemeData().tsMediumBold));
+      wl.add(r4);
     }
-    wl.add(Text(summary.desc, style: _configData.getAppThemeData().tsMedium));
     wl.add(Container(
       color: Colors.black,
       height: 2,
@@ -1477,25 +1525,41 @@ Widget _copyMoveSummary(GroupCopyMoveSummaryList summaryList, final void Functio
   return ListBody(children: wl);
 }
 
-Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, final GroupCopyMoveSummaryList summaryList, final void Function(String, Path) onAction) async {
-
+Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, final GroupCopyMoveSummaryList summaryList, bool copyMove, final void Function(String, Path) onAction) async {
+  final head = copyMove ? "Copy or Move" : "Delete";
+  final toFrom = copyMove ? "To" : "";
+  final top = Column(children: [
+    Text("$head $toFrom", style: _configData.getAppThemeData().tsMedium),
+    copyMove ? Text(into.toString(), style: _configData.getAppThemeData().tsMedium) : const SizedBox(height: 0),
+  ]);
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
         backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
-        title: Text("Copy or Move TO: '$into'", style: _configData.getAppThemeData().tsMedium),
+        // title: Text("Copy or Move TO:\n'$into'", style: _configData.getAppThemeData().tsMedium),
+        title: top,
         content: SingleChildScrollView(
-          child: _copyMoveSummary(summaryList, onAction),
+          child: _copyMoveSummaryList(summaryList, into, head, copyMove, (p0, p1) {
+            onAction(p0, p1);
+            Navigator.of(context).pop();
+          }),
         ),
         actions: <Widget>[
           Row(
             children: [
               DetailButton(
                 appThemeData: _configData.getAppThemeData(),
+                text: "CANCEL",
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              DetailButton(
+                appThemeData: _configData.getAppThemeData(),
                 text: "COPY",
-                show: summaryList.hasNoErrors,
+                show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
                   onAction("COPY", Path.empty());
                   Navigator.of(context).pop();
@@ -1504,7 +1568,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
               DetailButton(
                 appThemeData: _configData.getAppThemeData(),
                 text: "MOVE",
-                show: summaryList.hasNoErrors,
+                show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
                   onAction("MOVE", Path.empty());
                   Navigator.of(context).pop();
@@ -1512,8 +1576,18 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
               ),
               DetailButton(
                 appThemeData: _configData.getAppThemeData(),
-                text: "CANCEL",
+                text: "REMOVE",
+                show: summaryList.hasNoErrors && !copyMove,
                 onPressed: () {
+                  onAction("REMOVE", Path.empty());
+                  Navigator.of(context).pop();
+                },
+              ),
+              DetailButton(
+                appThemeData: _configData.getAppThemeData(),
+                text: "CLEAR",
+                onPressed: () {
+                  onAction("CLEAR", Path.empty());
                   Navigator.of(context).pop();
                 },
               ),

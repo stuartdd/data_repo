@@ -102,21 +102,21 @@ void main() {
     expect(ppl.isNotEmpty, false);
     expect(ppl.length, 0);
 
-    ppl.setGroupSelect(pXY);
-    ppl.setGroupSelect(pAB);
+    ppl.setGroupSelect(pXY,true);
+    ppl.setGroupSelect(pAB,true);
     expect(ppl.length, 2);
     check(ppl.propertiesForPath(pAB), false, false, false, false, true);
-    ppl.setGroupSelect(pAB);
+    ppl.setGroupSelect(pAB,true);
     expect(ppl.length, 1);
     check(ppl.propertiesForPath(pAB), true, false, false, false, false);
     check(ppl.propertiesForPath(pXY), false, false, false, false, true);
     expect(ppl.isEmpty, false);
     expect(ppl.isNotEmpty, true);
 
-    ppl.setGroupSelect(pAB);
+    ppl.setGroupSelect(pAB,true);
     expect(ppl.length, 2);
     check(ppl.propertiesForPath(pAB), false, false, false, false, true);
-    ppl.setGroupSelect(pAB);
+    ppl.setGroupSelect(pAB,true);
     expect(ppl.length, 1);
     check(ppl.propertiesForPath(pAB), true, false, false, false, false);
 
@@ -127,9 +127,9 @@ void main() {
 
     ppl.setUpdated(pAB);
 
-    ppl.setGroupSelect(pAB);
+    ppl.setGroupSelect(pAB,true);
     check(ppl.propertiesForPath(pAB), false, true, true, false, true);
-    ppl.setGroupSelect(pAB);
+    ppl.setGroupSelect(pAB,true);
     check(ppl.propertiesForPath(pAB), false, true, true, false, false);
 
     check(ppl.propertiesForPath(pAB), false, true, true, false, false);

@@ -193,7 +193,7 @@ class _DetailWidgetState extends State<DetailWidget> {
       color: appThemeData.detailBackgroundColor,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         ListTile(
-          leading: groupButton(pathProperties, false, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
+          leading: groupButton(pathProperties, true, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
           title: Container(
             padding: const EdgeInsets.all(5.0),
             color: appThemeData.selectedAndHiLightColour(true, pathProperties.renamed),

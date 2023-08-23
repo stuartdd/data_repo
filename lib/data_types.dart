@@ -189,7 +189,7 @@ const List<OptionsTypeData> optionsEditElementValue = [];
 //
 // An action from a GUI component serviced by the maim State full GUI.
 //
-enum ActionType { none, save, saveAlt, addGroup, addDetail, reload, edit, rename, select, querySelect, delete, link, clip, group, groupCopy }
+enum ActionType { none, save, saveAlt, addGroup, addDetail, reload, edit, rename, select, querySelect, delete, link, clip, group, groupCopy, groupDelete }
 
 class MenuOptionDetails {
   final IconData Function()? _getIcon;
@@ -286,6 +286,10 @@ class DetailAction {
         {
           return "GROUP-COPY: $s";
         }
+      case ActionType.groupDelete:
+        {
+          return "GROUP-DELETE: $s";
+        }
       case ActionType.rename:
         {
           return "RENAME: $s";
@@ -356,12 +360,17 @@ class GroupCopyMoveSummaryList {
 class GroupCopyMoveSummary {
   final Path copyFromPath;
   final String error;
-  final String desc;
+  final bool isValue;
+  late final String name;
+  late final String parent;
 
-  GroupCopyMoveSummary(this.copyFromPath, this.desc, this.error);
+  GroupCopyMoveSummary(this.copyFromPath, this.error, this.isValue) {
+    name = copyFromPath.last;
+    parent = copyFromPath.cloneParentPath().toString();
+  }
 
   factory GroupCopyMoveSummary.empty() {
-    return GroupCopyMoveSummary(Path.empty(), "", "");
+    return GroupCopyMoveSummary(Path.empty(), "", false);
   }
 
   bool get isNotEmpty {
@@ -378,7 +387,7 @@ class GroupCopyMoveSummary {
 
   @override
   String toString() {
-    return "CopyMoveSummary: $copyFromPath Desc: $desc. Error: $error.";
+    return "CopyMoveSummary: $copyFromPath Error: $error.";
   }
 }
 

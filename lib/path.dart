@@ -4,10 +4,12 @@ class PathProperties {
   String renamedFrom = "";
   String updatedFrom = "";
   bool groupSelect = false;
-  PathProperties(this.updatedFrom, this.groupSelect, this.renamedFrom);
+  bool isValue = false;
+
+  PathProperties(this.updatedFrom, this.groupSelect, this.isValue, this.renamedFrom);
 
   factory PathProperties.empty() {
-    return PathProperties("", false, "");
+    return PathProperties("", false, false, "");
   }
 
   @override
@@ -19,6 +21,7 @@ class PathProperties {
     renamedFrom = "";
     updatedFrom = "";
     groupSelect = false;
+    isValue = false;
   }
 
   bool get isEmpty {
@@ -67,28 +70,6 @@ class PathPropertiesList {
     return _list.length;
   }
 
-  Map<String, PathProperties> get groupSelectsClone {
-    final Map<String, PathProperties> clone = <String, PathProperties>{};
-    for (var k in _list.keys) {
-      final v = _list[k];
-      if (v != null) {
-        if (v.groupSelect) {
-          clone[k] = v;
-        }
-      }
-    }
-    return clone;
-  }
-
-  bool get hasGroupSelects {
-    for (var v in _list.values) {
-      if (v.groupSelect) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   @override
   String toString() {
     if (_list.isEmpty) {
@@ -116,7 +97,7 @@ class PathPropertiesList {
     return keys;
   }
 
-  void clearGroupSelect() {
+  void clearAllGroupSelect() {
     for (var k in cloneKeys()) {
       final v = _list[k];
       if (v != null) {
@@ -131,12 +112,39 @@ class PathPropertiesList {
     }
   }
 
-  void setGroupSelect(final Path p) {
+  Map<String, PathProperties> get groupSelectsClone {
+    final Map<String, PathProperties> clone = <String, PathProperties>{};
+    for (var k in _list.keys) {
+      final v = _list[k];
+      if (v != null) {
+        if (v.groupSelect) {
+          clone[k] = v;
+        }
+      }
+    }
+    return clone;
+  }
+
+  bool get hasGroupSelects {
+    for (var v in _list.values) {
+      if (v.groupSelect) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void setGroupSelect(final Path p, final bool isValue) {
     final ps = p.toString();
     final pfp = _propertiesForPath(ps);
     pfp.groupSelect = !pfp.groupSelect;
+    if (pfp.groupSelect) {
+      pfp.isValue = isValue;
+    } else {
+      pfp.isValue = false;
+    }
     if (log != null) {
-      log!("__NODE__ GROUP [$p] ${pfp.groupSelect ? 'YES' : 'NO'}");
+      log!("__NODE__ GROUP [$p] ${pfp.groupSelect ? 'YES' : 'NO'} ${pfp.isValue ? 'Value' : 'Group'}");
     }
     if (pfp.isEmpty) {
       _list.remove(ps);
