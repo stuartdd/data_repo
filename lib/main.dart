@@ -266,15 +266,15 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  GroupCopyMoveSummary _checkNodeForGroupSelection(final Path from, final Path to, final bool isValue) {
-    final fromP = from.cloneParentPath();
-    if (fromP.isEqual(to)) {
-      return GroupCopyMoveSummary(from, "Would be duplicate", isValue);
+  GroupCopyMoveSummary _checkNodeForGroupSelection(final Path from, final Path to, final bool isValue, final bool groupCopy) {
+    String dr = _loadedData.copyInto(to, from, isValue, dryRun: true);
+    if (dr.isNotEmpty) {
+      return GroupCopyMoveSummary(from, dr, isValue);
     }
     return GroupCopyMoveSummary(from, "", isValue);
   }
 
-  GroupCopyMoveSummaryList _summariseGroupSelection(PathPropertiesList pathPropertiesList) {
+  GroupCopyMoveSummaryList _summariseGroupSelection(final PathPropertiesList pathPropertiesList, final bool groupCopy) {
     final sb = List<GroupCopyMoveSummary>.empty(growable: true);
     final groups = pathPropertiesList.groupSelectsClone;
     if (groups.isEmpty) {
@@ -283,7 +283,7 @@ class _MyHomePageState extends State<MyHomePage> {
     for (var p in groups.keys) {
       final d = groups[p];
       if (d != null) {
-        final v = _checkNodeForGroupSelection(Path.fromDotPath(p), _selectedPath, d.isValue);
+        final v = _checkNodeForGroupSelection(Path.fromDotPath(p), _selectedPath, d.isValue, groupCopy);
         sb.add(v);
       }
     }
@@ -305,17 +305,27 @@ class _MyHomePageState extends State<MyHomePage> {
           if (_pathPropertiesList.hasGroupSelects) {
             Timer(const Duration(milliseconds: 500), () {
               if (mounted) {
+                final groupCopy = detailActionData.action == ActionType.groupCopy;
                 _showCopyMoveDialog(
                   context,
                   _selectedPath,
-                  _summariseGroupSelection(_pathPropertiesList),
-                  detailActionData.action == ActionType.groupCopy,
+                  _summariseGroupSelection(_pathPropertiesList, groupCopy),
+                  groupCopy,
                   (button, path) {
                     setState(() {
-                      if (button == "DELETE") {
+                      if (button == "COPY") {
+                        final copyMap = _pathPropertiesList.groupSelectsClone;
+                        for (var k in copyMap.keys) {
+                          _loadedData.copyInto(path, Path.fromDotPath(k), copyMap[k]!.isValue, dryRun: false);
+                        }
+                      }
+                      if (button == "REMOVE") {
+                        debugPrint("REMOVE");
+                      }
+                      if (button == "DELETE_FROM_LIST") {
                         _pathPropertiesList.setGroupSelect(path, false);
                       }
-                      if (button == "CLEAR") {
+                      if (button == "CLEAR_LIST") {
                         _pathPropertiesList.clearAllGroupSelect();
                       }
                     });
@@ -821,38 +831,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // void _handlePasteState(final Path path) async {
-  //   setState(() {
-  //     final mapNodes = path.pathNodes(_loadedData.dataMap);
-  //     if (mapNodes.error) {
-  //       _globalSuccessState = SuccessState(false, message: "__PASTE__ Path not found");
-  //       return;
-  //     }
-  //     final node = DataContainer.getMapFromJson(_loadedData.dataMap, path);
-  //     String name = _nodeCopyBin.copyFromPath.last;
-  //     if (node.containsKey(name)) {
-  //       name = "${name}_copy";
-  //     }
-  //     final newPath = path.cloneAppendList([name]);
-  //     node[name] = _nodeCopyBin.copyNodeAsMap();
-  //     _dataWasUpdated = true;
-  //     _pathPropertiesList.setUpdated(path);
-  //     _pathPropertiesList.setUpdated(newPath);
-  //     _reloadAndCopyFlags();
-  //     selectNode(path: newPath);
-  //     if (_nodeCopyBin.cut) {
-  //       final p = _handleDelete(_nodeCopyBin.copyFromPath);
-  //       if (p.isEmpty) {
-  //         _globalSuccessState = SuccessState(false, message: "__PASTE__ CUT path not removed");
-  //         return;
-  //       }
-  //       _pathPropertiesList.setUpdated(p);
-  //       _reloadAndCopyFlags();
-  //       selectNode(path: p);
-  //     }
-  //     _globalSuccessState = SuccessState(true, message: "Pasted: '$name' into: '${path.last}'");
-  //   });
-  // }
 
   void _handleEditState(DetailAction detailActionData, String newValue, OptionsTypeData type) {
     if (detailActionData.oldValue != newValue || detailActionData.oldValueType != type) {
@@ -1454,7 +1432,7 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, Path into, fin
       children: [
         IconButton(
             onPressed: () {
-              onAction("DELETE", summaryList.list[i].copyFromPath);
+              onAction("DELETE_FROM_LIST", summaryList.list[i].copyFromPath);
             },
             tooltip: "Delete from this list",
             icon: const Icon(Icons.delete)),
@@ -1529,7 +1507,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 text: "COPY",
                 show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
-                  onAction("COPY", Path.empty());
+                  onAction("COPY", into);
                   Navigator.of(context).pop();
                 },
               ),
@@ -1555,7 +1533,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 appThemeData: _configData.getAppThemeData(),
                 text: "CLEAR",
                 onPressed: () {
-                  onAction("CLEAR", Path.empty());
+                  onAction("CLEAR_LIST", Path.empty());
                   Navigator.of(context).pop();
                 },
               ),
