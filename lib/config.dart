@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'data_load.dart';
+import 'data_container.dart';
 import 'path.dart';
 import 'data_types.dart';
 import 'dart:io';
@@ -130,7 +129,7 @@ class AppThemeData {
     tsLargeDisabled = TextStyle(fontSize: (25.0 * scale), color: screenForegroundColour(false));
     tsLargeError = TextStyle(fontSize: (25.0 * scale), color: errC);
     tsMedium = TextStyle(fontSize: (20.0 * scale), color: screenForegroundColour(true));
-    tsMediumBold = TextStyle(fontSize: (20.0 * scale), fontWeight: FontWeight.bold ,color: screenForegroundColour(true));
+    tsMediumBold = TextStyle(fontSize: (20.0 * scale), fontWeight: FontWeight.bold, color: screenForegroundColour(true));
     tsMediumDisabled = TextStyle(fontSize: (20.0 * scale), color: screenForegroundColour(false));
     tsMediumError = TextStyle(fontSize: (20.0 * scale), color: errC);
     tsSmall = TextStyle(fontSize: (15.0 * scale), color: screenForegroundColour(true));
@@ -151,9 +150,7 @@ class AppThemeData {
   }
 
   Size textSize(String text, TextStyle style) {
-    final TextPainter textPainter = TextPainter(
-        text: TextSpan(text: text, style: style), maxLines: 1, textDirection: TextDirection.ltr)
-      ..layout(minWidth: 0, maxWidth: double.infinity);
+    final TextPainter textPainter = TextPainter(text: TextSpan(text: text, style: style), maxLines: 1, textDirection: TextDirection.ltr)..layout(minWidth: 0, maxWidth: double.infinity);
     return textPainter.size;
   }
 
@@ -210,7 +207,7 @@ class ConfigData {
   final bool _isDesktop;
   final Function(String) log;
   late final String _fullFileName;
-  late final dynamic _configJson;
+  late final DataContainer _data;
   late final String _appStateFileName;
   late final String _appStateLocalDir;
   late final String _title;
@@ -241,7 +238,7 @@ class ConfigData {
       log("__DOCUMENTS DIR:__ $_applicationDefaultDir");
     }
     _fullFileName = _pathFromStrings(_applicationDefaultDir, _configFileName);
-    var resp = DataLoad.loadFromFile(_fullFileName);
+    var resp = DataContainer.loadFromFile(_fullFileName);
     if (resp.hasException) {
       if (resp.exception is PathNotFoundException) {
         resp = SuccessState(true, message: "", fileContent: defaultConfig);
@@ -253,18 +250,18 @@ class ConfigData {
     } else {
       log("__CONFIG FILE:__ Loaded: $_fullFileName");
     }
-    _configJson = jsonDecode(resp.fileContent);
+    _data = DataContainer(resp.fileContent, FileDataPrefix.empty(), "", "", "");
 
     if (_isDesktop) {
-      _appStateLocalDir = DataLoad.getStringFromJson(getJson(), appStateLocalDirPath, fallback: _applicationDefaultDir);
+      _appStateLocalDir = _data.getStringFromJson(appStateLocalDirPath, fallback: _applicationDefaultDir);
     } else {
       _appStateLocalDir = _applicationDefaultDir;
     }
-    _appStateFileName = DataLoad.getStringFromJson(getJson(), appStateFileNamePath, fallback: defaultAppStateFileName);
+    _appStateFileName = _data.getStringFromJson(appStateFileNamePath, fallback: defaultAppStateFileName);
 
     update();
-    _title = DataLoad.getStringFromJson(getJson(), titlePath, fallback: defaultAppTitle);
-    _dataFetchTimeoutMillis = DataLoad.getNumFromJson(_configJson, dataFetchTimeoutMillisPath, fallback: defaultFetchTimeoutMillis) as int;
+    _title = _data.getStringFromJson(titlePath, fallback: defaultAppTitle);
+    _dataFetchTimeoutMillis = _data.getNumFromJson(dataFetchTimeoutMillisPath, fallback: defaultFetchTimeoutMillis) as int;
     log("__LOCAL DATA FILE:__ ${getDataFileLocal()}");
     log("__REMOTE DATA GET:__ ${getGetDataFileUrl()}");
     log("__REMOTE DATA POST:__ ${getPostDataFileUrl()}");
@@ -273,21 +270,21 @@ class ConfigData {
   }
 
   void update() {
-    _userName = DataLoad.getStringFromJson(_configJson, userNamePath, fallback: defaultUserName, create: true);
-    _userId = DataLoad.getStringFromJson(_configJson, userIdPath, fallback: defaultUserName.toLowerCase(), create: true);
-    _getDataFileUrl = DataLoad.getStringFromJson(_configJson, getDataUrlPath, fallback: defaultRemoteGetUrl, create: true);
-    _postDataFileUrl = DataLoad.getStringFromJson(_configJson, postDataUrlPath, fallback: defaultRemotePostUrl, create: true);
-    _dataFileName = DataLoad.getStringFromJson(_configJson, dataFileLocalNamePath, fallback: defaultDataFileName, create: true);
+    _userName = _data.getStringFromJson(userNamePath, fallback: defaultUserName, create: true);
+    _userId = _data.getStringFromJson(userIdPath, fallback: defaultUserName.toLowerCase(), create: true);
+    _getDataFileUrl = _data.getStringFromJson(getDataUrlPath, fallback: defaultRemoteGetUrl, create: true);
+    _postDataFileUrl = _data.getStringFromJson(postDataUrlPath, fallback: defaultRemotePostUrl, create: true);
+    _dataFileName = _data.getStringFromJson(dataFileLocalNamePath, fallback: defaultDataFileName, create: true);
     if (_isDesktop) {
-      _dataFileLocalDir = DataLoad.getStringFromJson(_configJson, dataFileLocalDirPath, fallback: _applicationDefaultDir, create: true);
+      _dataFileLocalDir = _data.getStringFromJson(dataFileLocalDirPath, fallback: _applicationDefaultDir, create: true);
     } else {
       _dataFileLocalDir = _applicationDefaultDir;
     }
-    _appColoursPrimary = validColour(DataLoad.getStringFromJson(_configJson, appColoursPrimaryPath, fallback: screenModeColourName(true), create: true), appColoursPrimaryPath);
-    _appColoursSecondary = validColour(DataLoad.getStringFromJson(_configJson, appColoursSecondaryPath, fallback: "green", create: true), appColoursSecondaryPath);
-    _appColoursHiLight = validColour(DataLoad.getStringFromJson(_configJson, appColoursHiLightPath, fallback: "yellow", create: true), appColoursHiLightPath);
-    _appColoursError = validColour(DataLoad.getStringFromJson(_configJson, appColoursErrorPath, fallback: "red", create: true), appColoursErrorPath);
-    _darkMode = DataLoad.getBoolFromJson(_configJson, appColoursDarkMode, fallback: false);
+    _appColoursPrimary = validColour(_data.getStringFromJson(appColoursPrimaryPath, fallback: screenModeColourName(true), create: true), appColoursPrimaryPath);
+    _appColoursSecondary = validColour(_data.getStringFromJson(appColoursSecondaryPath, fallback: "green", create: true), appColoursSecondaryPath);
+    _appColoursHiLight = validColour(_data.getStringFromJson(appColoursHiLightPath, fallback: "yellow", create: true), appColoursHiLightPath);
+    _appColoursError = validColour(_data.getStringFromJson(appColoursErrorPath, fallback: "red", create: true), appColoursErrorPath);
+    _darkMode = _data.getBoolFromJson(appColoursDarkMode, fallback: false);
     _appThemeData = null;
   }
 
@@ -296,8 +293,24 @@ class ConfigData {
     return _appThemeData!;
   }
 
-  dynamic getJson() {
-    return _configJson;
+  DataContainer getDataContainer() {
+    return _data;
+  }
+
+  String getStringFromJson(Path path, {String fallback = "", bool create = false}) {
+    return _data.getStringFromJson(path, fallback: fallback);
+  }
+
+  bool getBoolFromJson(Path path, {bool? fallback}) {
+    return _data.getBoolFromJson(path, fallback: fallback);
+  }
+
+  num getNumFromJson(Path path, {num? fallback}) {
+    return _data.getNumFromJson(path, fallback: fallback);
+  }
+
+  String setValueForJsonPath(Path path, dynamic value) {
+    return _data.setValueForJsonPath(path, value);
   }
 
   ColorPallet getPrimaryColour() {
@@ -321,9 +334,7 @@ class ConfigData {
 
   SuccessState save(Function(String log) log) {
     try {
-      JsonEncoder encoder = const JsonEncoder.withIndent('  ');
-      final contents = encoder.convert(_configJson);
-      final sc = DataLoad.saveToFile(_fullFileName, contents);
+      final sc = DataContainer.saveToFile(_fullFileName, _data.dataToStringFormatted());
       if (sc.isFail) {
         return sc;
       }

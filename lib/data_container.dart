@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart';
+
 import "path.dart";
 import 'package:http/http.dart' as http;
 import 'package:http_status_code/http_status_code.dart';
@@ -10,87 +12,6 @@ const timeStampPrefix = "TS:";
 const timeStampPrefixClear = "${timeStampPrefix}C:";
 const timeStampPrefixEnc = "${timeStampPrefix}E:";
 const JsonEncoder formattedJsonEncoder = JsonEncoder.withIndent('  ');
-
-class FileDataPrefix {
-  final bool hasData;
-  final int timeStamp;
-  final int startPos;
-  final bool encrypted;
-  FileDataPrefix(this.hasData, this.timeStamp, this.startPos, this.encrypted);
-
-  factory FileDataPrefix.fromString(String s) {
-    bool hasTimeStampData = false;
-    bool enc = false;
-    int pos = 0;
-    int ts = -1;
-    if (s.startsWith(timeStampPrefixClear)) {
-      hasTimeStampData = true;
-      enc = false;
-      pos = timeStampPrefixClear.length;
-    } else {
-      if (s.startsWith(timeStampPrefixEnc)) {
-        hasTimeStampData = true;
-        enc = true;
-        pos = timeStampPrefixEnc.length;
-      }
-    }
-
-    if (hasTimeStampData) {
-      final sb = StringBuffer();
-      var p1 = pos;
-      var cp = s.codeUnits[p1];
-      while (cp >= 48 && cp <= 57) {
-        sb.writeCharCode(cp);
-        p1++;
-        cp = s.codeUnits[p1];
-      }
-      try {
-        ts = int.parse(sb.toString());
-        return FileDataPrefix(true, ts, p1 + 1, enc);
-      } catch (e) {
-        return FileDataPrefix.empty();
-      }
-    }
-    return FileDataPrefix.empty();
-  }
-
-  factory FileDataPrefix.empty() {
-    return FileDataPrefix(false, -1, 0, false);
-  }
-
-  bool isLaterThan(FileDataPrefix other) {
-    if (timeStamp == -1) {
-      return false;
-    }
-    if (other.timeStamp == -1) {
-      return true;
-    }
-    return timeStamp > other.timeStamp;
-  }
-}
-
-class JsonException implements Exception {
-  final String message;
-  final Path? path;
-  JsonException(this.path, {required this.message});
-  @override
-  String toString() {
-    Object? message = this.message;
-    if (path == null || path!.isEmpty) {
-      return "JsonException: $message";
-    }
-    return "JsonException: $message: Path:$path";
-  }
-}
-
-class DataLoadException implements Exception {
-  final String message;
-  DataLoadException(this.message);
-  @override
-  String toString() {
-    return "JsonException: $message";
-  }
-}
 
 class DataContainer {
   final String remoteSourcePath;
@@ -106,7 +27,18 @@ class DataContainer {
   DataContainer(final String fileContents, final FileDataPrefix filePrefixData, this.remoteSourcePath, this.localSourcePath, final String pw) {
     password = pw;
     _timeStamp = filePrefixData.timeStamp;
-    _dataMap = DataLoad.convertStringToMap(fileContents, pw);
+    _dataMap = _convertStringToMap(fileContents, pw);
+  }
+
+  Map<String, dynamic> _convertStringToMap(String jsonText, String pw) {
+    if (jsonText.isEmpty) {
+      return <String, dynamic>{};
+    }
+    if (pw.isNotEmpty) {
+      return jsonDecode(EncryptData.decrypt(jsonText, pw));
+    } else {
+      return jsonDecode(jsonText);
+    }
   }
 
   String get timeStampString {
@@ -135,33 +67,137 @@ class DataContainer {
   Map<String, dynamic> get dataMap {
     return _dataMap;
   }
-}
 
-class DataLoad {
-  static String convertMapToStringWithTs(Map<String, dynamic> json, String pw, {bool addTimeStamp = true}) {
+  dynamic getNodeFromJson(Path path) {
+    if (path.isEmpty) {
+      throw JsonException(message: "getNodeFromJson: Empty Path", path);
+    }
+    dynamic node = _dataMap;
+    for (var i = 0; i < path.length; i++) {
+      final name = path.peek(i);
+      node = node[name];
+      if (node == null) {
+        return null;
+      }
+      if (i == (path.length - 1)) {
+        return node;
+      }
+    }
+    return null;
+  }
+
+  String getStringFromJson(Path path, {String fallback = "", bool create = false}) {
+    final node = getNodeFromJson(path);
+    if (node == null) {
+      if (create) {
+        setValueForJsonPath(path, fallback);
+        return fallback;
+      } else {
+        if (fallback.isNotEmpty) {
+          return fallback;
+        }
+      }
+      throw JsonException(message: "getStringFromJson: String Node was NOT found", path);
+    }
+    if (node is String) {
+      return node;
+    }
+    throw JsonException(message: "getStringFromJson: Node found was NOT a String node", path);
+  }
+
+  num getNumFromJson(Path path, {num? fallback}) {
+    final node = getNodeFromJson(path);
+    if (node == null) {
+      if (fallback != null) {
+        return fallback;
+      }
+      throw JsonException(message: "getNumFromJson: number Node was NOT found", path);
+    }
+    if (node is num) {
+      return node;
+    }
+    throw JsonException(message: "getNumFromJson: Node found [$node] was NOT a Number node", path);
+  }
+
+  bool getBoolFromJson(Path path, {bool? fallback}) {
+    final node = getNodeFromJson(path);
+    if (node == null) {
+      if (fallback != null) {
+        return fallback;
+      }
+      throw JsonException(message: "geBoolFromJson: bool Node was NOT found", path);
+    }
+    if (node is bool) {
+      return node;
+    }
+    throw JsonException(message: "geBoolFromJson: Node found [$node] was NOT a bool node", path);
+  }
+
+  Map<String, dynamic> getMapFromJson(Path path) {
+    final node = getNodeFromJson(path);
+    if (node == null) {
+      throw JsonException(message: "getMapFromJson: Map Node was NOT found", path);
+    }
+    if (node is Map<String, dynamic>) {
+      return node;
+    }
+    throw JsonException(message: "getMapFromJson: Node found was NOT a Map node", path);
+  }
+
+  String setValueForJsonPath(Path path, dynamic value) {
+    if (path.isEmpty) {
+      return "Path is empty";
+    }
+    dynamic node = _dataMap;
+    dynamic parent = _dataMap;
+    for (int i = 0; i < path.length; i++) {
+      final name = path.peek(i);
+      parent = node;
+      node = parent[name];
+      if (node == null) {
+        parent[name] = {};
+        if (i == path.length - 1) {
+          parent[name] = value;
+          return "";
+        } else {
+          node = parent[name];
+        }
+      } else {
+        if (i == path.length - 1) {
+          parent[name] = value;
+          return "";
+        }
+      }
+    }
+    return "";
+  }
+
+  String dataToStringFormatted() {
+    return formattedJsonEncoder.convert(_dataMap);
+  }
+
+  String dataToStringUnFormatted() {
+    return jsonEncode(_dataMap);
+  }
+
+  String dataToStringFormattedWithTs(final String pw, {final bool addTimeStamp = true}) {
     String tsString = "";
     if (addTimeStamp) {
       final ts = DateTime.timestamp().millisecondsSinceEpoch;
       tsString = "${pw.isEmpty ? timeStampPrefixClear : timeStampPrefixEnc}$ts:";
     }
     if (pw.isEmpty) {
-      return "$tsString${formattedJsonEncoder.convert(json)}";
+      return "$tsString${dataToStringFormatted()}";
     } else {
-      return "$tsString${EncryptData.encryptAES(jsonEncode(json), pw).base64}";
+      return "$tsString${EncryptData.encryptAES(dataToStringUnFormatted(), pw).base64}";
     }
   }
 
-  static Map<String, dynamic> convertStringToMap(String jsonText, String pw) {
-    if (jsonText.isEmpty) {
-      return <String, dynamic>{};
-    }
-    if (pw.isNotEmpty) {
-      return jsonDecode(EncryptData.decrypt(jsonText, pw));
-    } else {
-      return jsonDecode(jsonText);
-    }
-  }
-
+  //
+  // ****************************************************************************************************************
+  //
+  // Static tools to store and load files
+  //
   static Future<SuccessState> toHttpPost(final String url, final String body, {void Function(String)? log}) async {
     try {
       final uri = Uri.parse(url);
@@ -249,108 +285,76 @@ class DataLoad {
       return SuccessState(false, path: fileName, message: "Exception loading Local Data file", fileContent: "", exception: e as Exception, log: log);
     }
   }
+}
 
-  static dynamic getNodeFromJson(Map<String, dynamic> json, Path path) {
-    if (path.isEmpty) {
-      throw JsonException(message: "_nodeFromJson: Empty Path", path);
-    }
-    dynamic node = json;
-    for (var i = 0; i < path.length; i++) {
-      final name = path.peek(i);
-      node = node[name];
-      if (node == null) {
-        return null;
+class FileDataPrefix {
+  final bool hasData;
+  final int timeStamp;
+  final int startPos;
+  final bool encrypted;
+  FileDataPrefix(this.hasData, this.timeStamp, this.startPos, this.encrypted);
+
+  factory FileDataPrefix.fromString(String s) {
+    bool hasTimeStampData = false;
+    bool enc = false;
+    int pos = 0;
+    int ts = -1;
+    if (s.startsWith(timeStampPrefixClear)) {
+      hasTimeStampData = true;
+      enc = false;
+      pos = timeStampPrefixClear.length;
+    } else {
+      if (s.startsWith(timeStampPrefixEnc)) {
+        hasTimeStampData = true;
+        enc = true;
+        pos = timeStampPrefixEnc.length;
       }
-      if (i == (path.length - 1)) {
-        return node;
+    }
+
+    if (hasTimeStampData) {
+      final sb = StringBuffer();
+      var p1 = pos;
+      var cp = s.codeUnits[p1];
+      while (cp >= 48 && cp <= 57) {
+        sb.writeCharCode(cp);
+        p1++;
+        cp = s.codeUnits[p1];
+      }
+      try {
+        ts = int.parse(sb.toString());
+        return FileDataPrefix(true, ts, p1 + 1, enc);
+      } catch (e) {
+        return FileDataPrefix.empty();
       }
     }
-    return null;
+    return FileDataPrefix.empty();
   }
 
-  static String setValueForJsonPath(Map<String, dynamic> json, Path path, dynamic value) {
-    if (path.isEmpty) {
-      return "Path is empty";
-    }
-    dynamic node = json;
-    dynamic parent = json;
-    for (int i = 0; i < path.length; i++) {
-      final name = path.peek(i);
-      parent = node;
-      node = parent[name];
-      if (node == null) {
-        parent[name] = {};
-        if (i == path.length - 1) {
-          parent[name] = value;
-          return "";
-        } else {
-          node = parent[name];
-        }
-      } else {
-        if (i == path.length - 1) {
-          parent[name] = value;
-          return "";
-        }
-      }
-    }
-    return "";
+  factory FileDataPrefix.empty() {
+    return FileDataPrefix(false, -1, 0, false);
   }
 
-  static String getStringFromJson(Map<String, dynamic> json, Path path, {String fallback = "", bool create = false}) {
-    final node = getNodeFromJson(json, path);
-    if (node == null) {
-      if (create) {
-        setValueForJsonPath(json, path, fallback);
-        return fallback;
-      } else {
-        if (fallback.isNotEmpty) {
-          return fallback;
-        }
-      }
-      throw JsonException(message: "getStringFromJson: String Node was NOT found", path);
+  bool isLaterThan(FileDataPrefix other) {
+    if (timeStamp == -1) {
+      return false;
     }
-    if (node is String) {
-      return node;
+    if (other.timeStamp == -1) {
+      return true;
     }
-    throw JsonException(message: "getStringFromJson: Node found was NOT a String node", path);
+    return timeStamp > other.timeStamp;
   }
+}
 
-  static num getNumFromJson(Map<String, dynamic> json, Path path, {num? fallback}) {
-    final node = getNodeFromJson(json, path);
-    if (node == null) {
-      if (fallback != null) {
-        return fallback;
-      }
-      throw JsonException(message: "getNumFromJson: number Node was NOT found", path);
+class JsonException implements Exception {
+  final String message;
+  final Path? path;
+  JsonException(this.path, {required this.message});
+  @override
+  String toString() {
+    Object? message = this.message;
+    if (path == null || path!.isEmpty) {
+      return "JsonException: $message";
     }
-    if (node is num) {
-      return node;
-    }
-    throw JsonException(message: "getNumFromJson: Node found [$node] was NOT a Number node", path);
-  }
-
-  static bool getBoolFromJson(Map<String, dynamic> json, Path path, {bool? fallback}) {
-    final node = getNodeFromJson(json, path);
-    if (node == null) {
-      if (fallback != null) {
-        return fallback;
-      }
-      throw JsonException(message: "geBoolFromJson: bool Node was NOT found", path);
-    }
-    if (node is bool) {
-      return node;
-    }
-    throw JsonException(message: "geBoolFromJson: Node found [$node] was NOT a bool node", path);
-  }
-
-  static Map<String, dynamic> getMapFromJson(Map<String, dynamic> json, Path path) {
-    final node = getNodeFromJson(json, path);
-    if (node == null) {
-      throw JsonException(message: "getMapFromJson: Map Node was NOT found", path);
-    }
-    if (node is Map<String, dynamic>) {
-      return node;
-    }
-    throw JsonException(message: "getMapFromJson: Node found was NOT a Map node", path);
+    return "JsonException: $message: Path:$path";
   }
 }

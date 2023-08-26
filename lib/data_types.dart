@@ -465,16 +465,4 @@ class SuccessState {
     return toLogString(bold: false);
   }
 
-  bool isDifferentFrom(SuccessState other) {
-    if (isSuccess != other.isSuccess) {
-      return true;
-    }
-    if (fileContent != other.fileContent) {
-      return true;
-    }
-    if (message != other.message) {
-      return true;
-    }
-    return false;
-  }
 }

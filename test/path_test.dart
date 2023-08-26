@@ -1,5 +1,5 @@
 
-import 'package:data_repo/data_load.dart';
+import 'package:data_repo/data_container.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:data_repo/path.dart';
 import 'dart:convert' as json_tools;
@@ -159,7 +159,7 @@ void main() {
   });
 
   test('Test Path Nodes', () async {
-    var s = json_tools.jsonDecode(DataLoad.loadFromFile("test/data/data04.json").fileContent);
+    var s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data04.json").fileContent);
     var p = PathNodes.from(s, Path.empty());
     expect(p.error, true);
     expect(p.isNotEmpty, false);

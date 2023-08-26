@@ -1,7 +1,7 @@
 import 'package:data_repo/config.dart';
 import 'package:flutter/material.dart';
 import 'package:split_view/split_view.dart';
-import 'data_load.dart';
+import 'data_container.dart';
 import "data_types.dart";
 import 'detail_buttons.dart';
 import "path.dart";
@@ -43,7 +43,7 @@ class MyTreeWidget extends StatelessWidget {
 
 /// Creates both Left and Right panes.
 DisplayData createSplitView(
-    final Map<String, dynamic> jsonDataMap, // The original data from the file TODO Remove jsonDataMap. Use rootTreeNode instead
+    final DataContainer data,
     final MyTreeNode treeNodeDataRoot,
     final MyTreeNode selectedTreeNode,
     final bool isEditDataDisplay,
@@ -59,12 +59,12 @@ DisplayData createSplitView(
   // Called when one of the detail buttons is pressed
   /// Left right or Top bottom
   ///
-  if (jsonDataMap.isEmpty) {
+  if (data.isEmpty) {
     log("__DATA:__ No data loaded");
     return DisplayData.error(appThemeData, ("No data has been loaded"));
   }
   if (treeNodeDataRoot.isEmpty) {
-    log("__DATA:__ No data to dispaly");
+    log("__DATA:__ No data to display");
     return DisplayData.error(appThemeData, ("No data to display"));
   }
 
@@ -74,7 +74,7 @@ DisplayData createSplitView(
 
   /// Create the detail.
   final Widget detailContainer;
-  final node = DataLoad.getNodeFromJson(jsonDataMap, selectedPath);
+  final node = data.getNodeFromJson(selectedPath);
   if (node != null) {
     detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, pathPropertiesList, appThemeData, onDataAction);
   } else {

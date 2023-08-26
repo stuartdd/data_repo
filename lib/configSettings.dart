@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'data_load.dart';
+import 'data_container.dart';
 import 'path.dart';
 import 'config.dart';
 
@@ -15,7 +15,7 @@ final List<SettingDetail> _settingsData = [
   SettingDetail("path", "Local Data file path", "The directory for the data file", dataFileLocalDirPath, SettingDetailType.dir, defaultDataFilePath, false),
   SettingDetail("data", "Data file Name", "The name of the server file", dataFileLocalNamePath, SettingDetailType.file, defaultDataFilePath, true),
   SettingDetail("timeout", "Server Timeout Milliseconds", "The host server timeout", dataFetchTimeoutMillisPath, SettingDetailType.int, defaultFetchTimeoutMillis.toString(), false),
-  SettingDetail("", "Screen Mode", "Icons/Text White or Black. Click below to change", appColoursDarkMode, SettingDetailType.bool, defaultDarkMode, true, trueValue: "Currently Light", falseValue: "Currently Dark"),
+  SettingDetail("", "Screen Text & Icons", "Icons/Text White or Black. Click below to change", appColoursDarkMode, SettingDetailType.bool, defaultDarkMode, true, trueValue: "Currently White", falseValue: "Currently Black"),
   SettingDetail("", "Primary Colour", "The main colour theme", appColoursPrimaryPath, SettingDetailType.color, defaultPrimaryColour, true),
   SettingDetail("", "Preview Colour", "The Markdown 'Preview' colour", appColoursSecondaryPath, SettingDetailType.color, defaultSecondaryColour, true),
   SettingDetail("", "Help Colour", "The Markdown 'Help' colour", appColoursHiLightPath, SettingDetailType.color, defaultHiLightColour, true),
@@ -157,7 +157,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
         sv = SettingValidation.warning("Setting 'get' setting not found");
       }
       if (sv.isNotError) {
-        final response = await DataLoad.testHttpGet("${scGet.stringValue}/${scData!.stringValue}", "File: ${scData.stringValue}.");
+        final response = await DataContainer.testHttpGet("${scGet.stringValue}/${scData!.stringValue}", "File: ${scData.stringValue}.");
         if (response.isNotEmpty) {
           sv = SettingValidation.warning(response);
         }
@@ -211,9 +211,9 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
               settingsControl: scN,
               appThemeData: appThemeData,
               onValidation: (newValue, settingControl) {
-                  settingControl.stringValue = newValue;
-                  settingControl.validationState = _initialValidate(newValue, settingControl.detail, settingsControlList, onValidate);
-                  updateState();
+                settingControl.stringValue = newValue;
+                settingControl.validationState = _initialValidate(newValue, settingControl.detail, settingsControlList, onValidate);
+                updateState();
               },
             ),
           ),
@@ -321,22 +321,35 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
   }
 }
 
+class SettingDetail {
+  final String id;
+  final String title;
+  final String hint;
+  final Path path;
+  final SettingDetailType detailType; // BOOL, INT or other. Used for validation/conversion
+  final String fallback; // The value if not defined in the config data.
+  final bool desktopOnly; // Only applies to the desktop
+  final String trueValue; // The text value if true
+  final String falseValue; // The text value if false
+  const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = ""});
+}
+
 class SettingControlList {
   late final List<SettingControl> list;
   final String dataFileDir;
-  SettingControlList(final bool isDeskTop, final this.dataFileDir, final dynamic configJson) {
+  SettingControlList(final bool isDeskTop, this.dataFileDir, final ConfigData configData) {
     list = List<SettingControl>.empty(growable: true);
     for (var settingDetail in _settingsData) {
       if (isDeskTop || settingDetail.desktopOnly) {
         switch (settingDetail.detailType) {
           case SettingDetailType.bool:
-            list.add(SettingControl(settingDetail, DataLoad.getBoolFromJson(configJson, settingDetail.path, fallback: _stringToBool(settingDetail.fallback)).toString()));
+            list.add(SettingControl(settingDetail, configData.getBoolFromJson(settingDetail.path, fallback: _stringToBool(settingDetail.fallback)).toString()));
             break;
           case SettingDetailType.int:
-            list.add(SettingControl(settingDetail, DataLoad.getNumFromJson(configJson, settingDetail.path, fallback: num.parse(settingDetail.fallback)).toString()));
+            list.add(SettingControl(settingDetail, configData.getNumFromJson(settingDetail.path, fallback: num.parse(settingDetail.fallback)).toString()));
             break;
           default:
-            list.add(SettingControl(settingDetail, DataLoad.getStringFromJson(configJson, settingDetail.path, fallback: settingDetail.fallback)));
+            list.add(SettingControl(settingDetail, configData.getStringFromJson(settingDetail.path, fallback: settingDetail.fallback)));
         }
       }
     }
@@ -359,12 +372,12 @@ class SettingControlList {
     return null;
   }
 
-  void commit(Map<String, dynamic> json) {
+  void commit(ConfigData configData) {
     if (canSaveOrApply) {
       for (int i = 0; i < list.length; i++) {
         if (list[i].changed) {
           final sc = list[i];
-          DataLoad.setValueForJsonPath(json, sc.detail.path, sc.dynamicValue);
+          configData.setValueForJsonPath(sc.detail.path, sc.dynamicValue);
         }
       }
     }
@@ -399,19 +412,6 @@ class SettingControlList {
     }
     return false;
   }
-}
-
-class SettingDetail {
-  final String id;
-  final String title;
-  final String hint;
-  final Path path;
-  final SettingDetailType detailType; // BOOL, INT or other. Used for validation/conversion
-  final String fallback; // The value if not defined in the config data.
-  final bool desktopOnly; // Only applies to the desktop
-  final String trueValue; // The text value if true
-  final String falseValue; // The text value if false
-  const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = ""});
 }
 
 class SettingControl {

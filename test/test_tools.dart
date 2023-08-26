@@ -1,4 +1,4 @@
-import 'package:data_repo/data_load.dart';
+import 'package:data_repo/data_container.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_status_code/http_status_code.dart';
@@ -51,7 +51,7 @@ Future<HttpServer> _startServer() async {
     if (last == "ping") {
       request.response.write("ping");
     } else {
-      final resp = DataLoad.loadFromFile("test/data/$last");
+      final resp = DataContainer.loadFromFile("test/data/$last");
       if (resp.isFail) {
         request.response.statusCode = 404;
       } else {

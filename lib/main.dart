@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:data_repo/configSettings.dart';
-import 'package:data_repo/data_load.dart';
+import 'package:data_repo/data_container.dart';
 import 'package:data_repo/treeNode.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -153,7 +153,6 @@ class _MyHomePageState extends State<MyHomePage> {
   MyTreeNode _filteredNodeDataRoot = MyTreeNode.empty();
   MyTreeNode _selectedTreeNode = MyTreeNode.empty();
   Path _selectedPath = Path.empty();
-  // NodeCopyBin _nodeCopyBin = NodeCopyBin.empty();
 
   final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: log);
   final TextEditingController searchEditingController = TextEditingController(text: "");
@@ -539,8 +538,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _saveDataState(String pw) async {
-    final String content = DataLoad.convertMapToStringWithTs(_loadedData.dataMap, pw);
-    final localSaveState = DataLoad.saveToFile(_configData.getDataFileLocal(), content);
+    final String content = _loadedData.dataToStringFormattedWithTs(pw);
+    final localSaveState = DataContainer.saveToFile(_configData.getDataFileLocal(), content);
     int success = 0;
     final String lm;
     final String rm;
@@ -550,7 +549,7 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       lm = "Local Save FAIL";
     }
-    final remoteSaveState = await DataLoad.toHttpPost(_configData.getPostDataFileUrl(), content, log: log);
+    final remoteSaveState = await DataContainer.toHttpPost(_configData.getPostDataFileUrl(), content, log: log);
     if (remoteSaveState.isSuccess) {
       success++;
       rm = "Remote Save OK";
@@ -591,7 +590,7 @@ class _MyHomePageState extends State<MyHomePage> {
     //
     // Try to load the remote data.
     //
-    final successStateRemote = await DataLoad.fromHttpGet(remotePath, timeoutMillis: _configData.getDataFetchTimeoutMillis());
+    final successStateRemote = await DataContainer.fromHttpGet(remotePath, timeoutMillis: _configData.getDataFetchTimeoutMillis());
     if (successStateRemote.isSuccess) {
       fileDataPrefixRemote = FileDataPrefix.fromString(successStateRemote.fileContent);
       fileDataContent = successStateRemote.fileContent.substring(fileDataPrefixRemote.startPos);
@@ -605,7 +604,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // Try to load the local data.
     // If the local data is later than remote data or remote load failed, use the local data.
     //
-    final successStateLocal = DataLoad.loadFromFile(localPath);
+    final successStateLocal = DataContainer.loadFromFile(localPath);
     if (successStateLocal.isSuccess) {
       final fileDataPrefixLocal = FileDataPrefix.fromString(successStateLocal.fileContent);
       if (successStateRemote.isFail || fileDataPrefixLocal.isLaterThan(fileDataPrefixRemote)) {
@@ -829,7 +828,7 @@ class _MyHomePageState extends State<MyHomePage> {
   //       _globalSuccessState = SuccessState(false, message: "__PASTE__ Path not found");
   //       return;
   //     }
-  //     final node = DataLoad.getMapFromJson(_loadedData.dataMap, path);
+  //     final node = DataContainer.getMapFromJson(_loadedData.dataMap, path);
   //     String name = _nodeCopyBin.copyFromPath.last;
   //     if (node.containsKey(name)) {
   //       name = "${name}_copy";
@@ -971,7 +970,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     final DisplayData displayData = createSplitView(
-      _loadedData.dataMap,
+      _loadedData,
       _filteredNodeDataRoot,
       _selectedTreeNode,
       _isEditDataDisplay,
@@ -1101,35 +1100,6 @@ class _MyHomePageState extends State<MyHomePage> {
         toolBarItems.add(VerticalDivider(
           color: _configData.getAppThemeData().screenForegroundColour(true),
         ));
-        // final canCopy = _selectedPath.hasParent;
-        // if (canCopy) {
-        //   toolBarItems.add(
-        //     DetailIconButton(
-        //       onPressed: () {
-        //         setState(() {
-        //           _nodeCopyBin = NodeCopyBin(_selectedPath, false, DataLoad.getMapFromJson(_loadedData.dataMap, _selectedPath), _loadedData.password);
-        //           _globalSuccessState = SuccessState(true, message: "Node '${_selectedPath.last}' COPIED to clipboard");
-        //         });
-        //       },
-        //       tooltip: _pathPropertiesList.hasGroupSelects ? "copy selected groups" : "Copy This Node",
-        //       iconData: Icons.copy,
-        //       appThemeData: _configData.getAppThemeData(),
-        //     ),
-        //   );
-        //   toolBarItems.add(
-        //     DetailIconButton(
-        //       onPressed: () {
-        //         setState(() {
-        //           _nodeCopyBin = NodeCopyBin(_selectedPath, true, DataLoad.getMapFromJson(_loadedData.dataMap, _selectedPath), _loadedData.password);
-        //           _globalSuccessState = SuccessState(true, message: "Node '${_selectedPath.last}' CUT to clipboard");
-        //         });
-        //       },
-        //       tooltip: "Cut This Node",
-        //       iconData: Icons.cut,
-        //       appThemeData: _configData.getAppThemeData(),
-        //     ),
-        //   );
-        // }
         final canPaste = _pathPropertiesList.hasGroupSelects;
         if (canPaste) {
           toolBarItems.add(DetailIconButton(
@@ -1230,9 +1200,7 @@ class _MyHomePageState extends State<MyHomePage> {
               },
               (settingsControlList, save) {
                 // Commit
-                // log("__SETTINGS:__ ${settingsControl.detail.path} Type:${settingsControl.detail.detailType} Value:'${settingsControl.stringValue}'");
-                // final msg = DataLoad.setValueForJsonPath(_configData.getJson(), settingsControl.detail.path, settingsControl.dynamicValue);
-                settingsControlList.commit(_configData.getJson());
+                settingsControlList.commit(_configData);
                 setState(() {
                   _configData.update();
                   if (save) {
@@ -1336,7 +1304,7 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 Future<void> _showConfigDialog(final BuildContext context, AppThemeData appThemeData, final String fileName, String dataFileDir, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit) async {
-  final settingsControlList = SettingControlList(appThemeData.desktop, dataFileDir, _configData.getJson());
+  final settingsControlList = SettingControlList(appThemeData.desktop, dataFileDir, _configData);
   final applyButton = DetailButton(
     disable: true,
     text: "APPLY",
@@ -1473,7 +1441,7 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, Path into, fin
     height: 2,
   ));
   for (int i = 0; i < summaryList.length; i++) {
-    for (int j = 0;j < summaryList.length; j++) {
+    for (int j = 0; j < summaryList.length; j++) {
       final ni = summaryList.list[i];
       final nj = summaryList.list[j];
       debugPrint("! ni:${ni.copyFromPath} nj:${nj.copyFromPath}");
