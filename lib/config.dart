@@ -212,6 +212,7 @@ class ConfigData {
   late final String _appStateLocalDir;
   late final String _title;
   late final int _dataFetchTimeoutMillis;
+  Function()? _onUpdate;
   AppThemeData? _appThemeData;
   String _userName = "";
   String _userId = "";
@@ -250,7 +251,7 @@ class ConfigData {
     } else {
       log("__CONFIG FILE:__ Loaded: $_fullFileName");
     }
-    _data = DataContainer(resp.fileContent, FileDataPrefix.empty(), "", "", "");
+    _data = DataContainer(resp.fileContent, FileDataPrefix.empty(), "", "", "", "");
 
     if (_isDesktop) {
       _appStateLocalDir = _data.getStringFromJson(appStateLocalDirPath, fallback: _applicationDefaultDir);
@@ -286,6 +287,9 @@ class ConfigData {
     _appColoursError = validColour(_data.getStringFromJson(appColoursErrorPath, fallback: "red", create: true), appColoursErrorPath);
     _darkMode = _data.getBoolFromJson(appColoursDarkMode, fallback: false);
     _appThemeData = null;
+    if (_onUpdate != null) {
+      _onUpdate!();
+    }
   }
 
   AppThemeData getAppThemeData() {
@@ -293,6 +297,9 @@ class ConfigData {
     return _appThemeData!;
   }
 
+  set onUpdate(void Function() onUpdateFunc) {
+    _onUpdate = onUpdateFunc;
+  }
   DataContainer getDataContainer() {
     return _data;
   }
@@ -366,6 +373,10 @@ class ConfigData {
 
   String getDataFileLocal() {
     return _pathFromStrings(_dataFileLocalDir, _dataFileName);
+  }
+
+  String getDataFileName() {
+    return _dataFileName;
   }
 
   String getDataFileDir() {

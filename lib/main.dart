@@ -54,7 +54,7 @@ void main() async {
     _configData = ConfigData(applicationDefaultDir, "config.json", isDesktop, log);
     _applicationState = ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), log);
     if (isDesktop) {
-      setWindowTitle("${_configData.getTitle()}: ${_configData.getUserName()}");
+      setWindowTitle("${_configData.getTitle()}: ${_configData.getDataFileName()}");
       const WindowOptions(
         minimumSize: Size(200, 200),
         titleBarStyle: TitleBarStyle.normal,
@@ -233,6 +233,36 @@ class _MyHomePageState extends State<MyHomePage> {
         _treeViewScrollController.animateTo(index, duration: const Duration(milliseconds: 400), curve: Curves.ease);
       },
     );
+  }
+
+  void _onUpdateConfig() {
+    setState(() {
+      if (_loadedData.isEmpty) {
+        setWindowTitle("${_configData.getTitle()}: ${_configData.getDataFileName()}");
+      } else {
+        setWindowTitle("${_configData.getTitle()}: ${_loadedData.fileName}");
+      }
+      if (_loadedData.isNotEmpty && (_configData.getDataFileLocal() != _loadedData.localSourcePath || _configData.getGetDataFileUrl() != _loadedData.remoteSourcePath)) {
+        Future.delayed(
+          const Duration(milliseconds: 300),
+          () {
+            log("__WARNING__ Data source has changed");
+            _showModalButtonsDialog(context, "Data source has Changed", ["If you CONTINUE:","Saving and Reloading","will use OLD config data","and UNSAVED config","changes may be lost."], ["RESTART", "CONTINUE"], Path.empty(), (path, button) {
+              if (button == "RESTART") {
+                setState(() {
+                  _loadedData = DataContainer.empty();
+                  log("__RESTART__ Local file ${_configData.getDataFileLocal()}");
+                  log("__RESTART__ Remote file ${_configData.getGetDataFileUrl()}");
+                  setWindowTitle("${_configData.getTitle()}: ${_configData.getDataFileName()}");
+                });
+              } else {
+                log("__CONFIG__ CONTINUE option chosen");
+              }
+            });
+          },
+        );
+      }
+    });
   }
 
   void _selectNodeState(final Path path) {
@@ -587,15 +617,18 @@ class _MyHomePageState extends State<MyHomePage> {
     //
     final String localPath;
     final String remotePath;
+    final String fileName;
     final String pw;
     if (_loadedData.isEmpty) {
       pw = _initialPassword;
       localPath = _configData.getDataFileLocal();
       remotePath = _configData.getGetDataFileUrl();
+      fileName = _configData.getDataFileName();
     } else {
       pw = _loadedData.password;
       localPath = _loadedData.localSourcePath;
       remotePath = _loadedData.remoteSourcePath;
+      fileName = _loadedData.fileName;
     }
     //
     // Try to load the remote data.
@@ -644,7 +677,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final DataContainer data;
     try {
-      data = DataContainer(fileDataContent, fileDataPrefix, successStateRemote.path, successStateLocal.path, pw);
+      data = DataContainer(fileDataContent, fileDataPrefix, successStateRemote.path, successStateLocal.path, fileName, pw);
     } catch (r) {
       setState(() {
         _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file could not be parsed", exception: r as Exception, log: log);
@@ -831,7 +864,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-
   void _handleEditState(DetailAction detailActionData, String newValue, OptionsTypeData type) {
     if (detailActionData.oldValue != newValue || detailActionData.oldValueType != type) {
       setState(() {
@@ -920,6 +952,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    _configData.onUpdate = _onUpdateConfig;
+
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
       return await _handleShouldExit();
     });
@@ -1046,13 +1080,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 MenuOptionDetails("Done", "", ActionType.none, () {
                   return Icons.arrow_back;
                 }),
-                MenuOptionDetails("Save %{0}", "Save data %{2}%{0}", ActionType.save, () {
+                MenuOptionDetails("Save %{0}", "Save %{4} %{2}%{0}", ActionType.save, () {
                   return Icons.save;
                 }),
-                MenuOptionDetails("Save %{1}", "Save data %{2}%{1}", ActionType.saveAlt, () {
+                MenuOptionDetails("Save %{1}", "Save %{4} %{2}%{1}", ActionType.saveAlt, () {
                   return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;
                 }),
-                MenuOptionDetails("Reload data file", "Reload the data", ActionType.reload, () {
+                MenuOptionDetails("Reload data file", "Reload %{4}", ActionType.reload, () {
                   return Icons.refresh;
                 }),
                 MenuOptionDetails("Add NEW Group", "Add a new group to %{3}", ActionType.addGroup, () {
@@ -1062,10 +1096,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   return Icons.add;
                 }),
               ], [
-                _loadedData.hasPassword ? 'ENCRYPTED (Current)' : 'UN-ENCRYPTED (Current)',
+                _loadedData.hasPassword ? 'ENCRYPTED' : 'UN-ENCRYPTED',
                 _loadedData.hasPassword ? 'UN-ENCRYPTED' : 'ENCRYPTED',
                 _configData.isDesktop() ? "to local and remote storage " : "",
                 _selectedPath.last,
+                _loadedData.fileName,
               ], (selectedAction, path) {
                 _handleAction(DetailAction(selectedAction, true, path));
               });
@@ -1178,7 +1213,7 @@ class _MyHomePageState extends State<MyHomePage> {
               },
               (settingsControlList, save) {
                 // Commit
-                settingsControlList.commit(_configData);
+                settingsControlList.commit(_configData, log: log);
                 setState(() {
                   _configData.update();
                   if (save) {
@@ -1187,6 +1222,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     _globalSuccessState = SuccessState(true, message: "Config data NOT saved");
                   }
                 });
+              },
+              () {
+                return _dataWasUpdated ? "Must Save changes first" : "";
               },
             );
           },
@@ -1281,7 +1319,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Future<void> _showConfigDialog(final BuildContext context, AppThemeData appThemeData, final String fileName, String dataFileDir, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit) async {
+Future<void> _showConfigDialog(final BuildContext context, AppThemeData appThemeData, final String fileName, String dataFileDir, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit, final String Function() canChangeConfig) async {
   final settingsControlList = SettingControlList(appThemeData.desktop, dataFileDir, _configData);
   final applyButton = DetailButton(
     disable: true,
@@ -1289,6 +1327,7 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
     appThemeData: appThemeData,
     onPressed: () {
       onCommit(settingsControlList, false);
+      log("__CONFIG__ changes APPLIED");
       Navigator.of(context).pop();
     },
   );
@@ -1298,6 +1337,7 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
     appThemeData: appThemeData,
     onPressed: () {
       onCommit(settingsControlList, true);
+      log("__CONFIG__ changes SAVED");
       Navigator.of(context).pop();
     },
   );
@@ -1337,9 +1377,8 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
             onValidate: (dynamicValue, settingDetail) {
               return validate(dynamicValue, settingDetail);
             },
-            onUpdateState: (l) {
-              final enable = l.canSaveOrApply;
-              debugPrint("Enable:$enable");
+            onUpdateState: (l, hint) {
+              final enable = l.canSaveOrApply & hint.isEmpty;
               applyButton.disabled = !enable;
               saveButton.disabled = !enable;
             },
@@ -1354,6 +1393,7 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
               }
               return fn;
             },
+            hint: canChangeConfig(),
             width: MediaQuery.of(context).size.width,
           ),
           actions: [

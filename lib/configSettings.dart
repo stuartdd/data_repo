@@ -102,9 +102,9 @@ class ConfigInputPage extends StatefulWidget {
   final AppThemeData appThemeData;
   final SettingControlList settingsControlList;
   final SettingValidation Function(String, SettingDetail) onValidate;
-  final void Function(SettingControlList) onUpdateState;
-
+  final void Function(SettingControlList, String) onUpdateState;
   final String Function(bool) stateFileData;
+  final String hint;
   final double width;
 
   const ConfigInputPage({
@@ -114,6 +114,7 @@ class ConfigInputPage extends StatefulWidget {
     required this.onValidate,
     required this.onUpdateState,
     required this.stateFileData,
+    required this.hint,
     required this.width,
   });
 
@@ -134,7 +135,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
 
   void updateState() {
     setState(() {
-      widget.onUpdateState(widget.settingsControlList);
+      widget.onUpdateState(widget.settingsControlList, widget.hint);
     });
   }
 
@@ -172,24 +173,12 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
       null,
       widget.appThemeData,
       widget.settingsControlList,
+      widget.hint,
       (newValue, settingDetail) {
         debugPrint("Page:OnValidate $newValue");
         return widget.onValidate(newValue, settingDetail);
       },
     );
-
-    // final stateFilePath = widget.stateFileData(false);
-    // settingsWidgetsList.insert(
-    //     0,
-    //     DetailButton(
-    //         show: stateFilePath.isNotEmpty,
-    //         onPressed: () {
-    //           setState(() {
-    //             widget.stateFileData(true);
-    //           });
-    //         },
-    //         text: "Clear saved GUI data & Searches",
-    //         appThemeData: widget.appThemeData));
 
     return SizedBox(
       width: widget.width,
@@ -199,8 +188,17 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
     );
   }
 
-  List<Widget> createSettingsWidgets(Key? key, AppThemeData appThemeData, SettingControlList settingsControlList, SettingValidation Function(dynamic, SettingDetail) onValidate) {
+  List<Widget> createSettingsWidgets(Key? key, AppThemeData appThemeData, SettingControlList settingsControlList, String hint, SettingValidation Function(dynamic, SettingDetail) onValidate) {
     final l = List<Widget>.empty(growable: true);
+    if (hint.isNotEmpty) {
+      l.add(
+        Card(
+          color: appThemeData.detailBackgroundColor,
+          margin: EdgeInsetsGeometry.lerp(null, null, 5),
+          child: Text(hint, style: appThemeData.tsLargeError),
+        ),
+      );
+    }
     for (var scN in settingsControlList.list) {
       if (widget.appThemeData.desktop || scN.detail.desktopOnly) {
         l.add(
@@ -372,11 +370,14 @@ class SettingControlList {
     return null;
   }
 
-  void commit(ConfigData configData) {
+  void commit(ConfigData configData, {void Function(String)? log}) {
     if (canSaveOrApply) {
       for (int i = 0; i < list.length; i++) {
         if (list[i].changed) {
           final sc = list[i];
+          if (log != null) {
+            log("__CONFIG__ Changed:'${list[i].detail.title}' From:'${list[i].oldValue}' To:'${list[i].stringValue}'");
+          }
           configData.setValueForJsonPath(sc.detail.path, sc.dynamicValue);
         }
       }

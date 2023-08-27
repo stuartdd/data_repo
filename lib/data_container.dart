@@ -16,15 +16,16 @@ const JsonEncoder formattedJsonEncoder = JsonEncoder.withIndent('  ');
 class DataContainer {
   final String remoteSourcePath;
   final String localSourcePath;
+  final String fileName;
   late final int _timeStamp;
   late final Map<String, dynamic> _dataMap;
   String password = "";
 
   factory DataContainer.empty() {
-    return DataContainer("", FileDataPrefix.empty(), "", "", "");
+    return DataContainer("", FileDataPrefix.empty(), "", "", "", "");
   }
 
-  DataContainer(final String fileContents, final FileDataPrefix filePrefixData, this.remoteSourcePath, this.localSourcePath, final String pw) {
+  DataContainer(final String fileContents, final FileDataPrefix filePrefixData, this.remoteSourcePath, this.localSourcePath, this.fileName, final String pw) {
     password = pw;
     _timeStamp = filePrefixData.timeStamp;
     _dataMap = _convertStringToMap(fileContents, pw);
@@ -67,38 +68,6 @@ class DataContainer {
   Map<String, dynamic> get dataMap {
     return _dataMap;
   }
-  // void _handlePasteState(final Path path) async {
-  //   setState(() {
-  //     final mapNodes = path.pathNodes(_loadedData.dataMap);
-  //     if (mapNodes.error) {
-  //       _globalSuccessState = SuccessState(false, message: "__PASTE__ Path not found");
-  //       return;
-  //     }
-  //     final node = DataContainer.getMapFromJson(_loadedData.dataMap, path);
-  //     String name = _nodeCopyBin.copyFromPath.last;
-  //     if (node.containsKey(name)) {
-  //       name = "${name}_copy";
-  //     }
-  //     final newPath = path.cloneAppendList([name]);
-  //     node[name] = _nodeCopyBin.copyNodeAsMap();
-  //     _dataWasUpdated = true;
-  //     _pathPropertiesList.setUpdated(path);
-  //     _pathPropertiesList.setUpdated(newPath);
-  //     _reloadAndCopyFlags();
-  //     selectNode(path: newPath);
-  //     if (_nodeCopyBin.cut) {
-  //       final p = _handleDelete(_nodeCopyBin.copyFromPath);
-  //       if (p.isEmpty) {
-  //         _globalSuccessState = SuccessState(false, message: "__PASTE__ CUT path not removed");
-  //         return;
-  //       }
-  //       _pathPropertiesList.setUpdated(p);
-  //       _reloadAndCopyFlags();
-  //       selectNode(path: p);
-  //     }
-  //     _globalSuccessState = SuccessState(true, message: "Pasted: '$name' into: '${path.last}'");
-  //   });
-  // }
 
   String copyInto(Path into, Path from, bool isValue, {required bool dryRun}) {
     final intoNode = getNodeFromJson(into);
