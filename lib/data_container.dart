@@ -69,6 +69,24 @@ class DataContainer {
     return _dataMap;
   }
 
+  String remove(Path path, bool isValue, {required bool dryRun}) {
+    final intoNode = getNodeFromJson(path);
+    if (intoNode == null) {
+      return "Into not found";
+    }
+    final parentNode = getNodeFromJson(path.cloneParentPath());
+    if (parentNode == null) {
+      return "Into parent not found";
+    }
+    if (parentNode is! Map<String, dynamic>) {
+      return "Into is not a group";
+    }
+    if (!dryRun) {
+      parentNode.remove(path.last);
+    }
+    return "";
+  }
+
   String copyInto(Path into, Path from, bool isValue, {required bool dryRun}) {
     final intoNode = getNodeFromJson(into);
     if (intoNode == null) {
@@ -86,15 +104,16 @@ class DataContainer {
       return "Duplicate Key";
     }
     if (isValue) {
-      debugPrint("to:$into Name:$fromName Value:$fromNode");
       if (!dryRun) {
         intoNode[fromName] = fromNode;
       }
       return "";
     }
-    final fromStr = jsonEncode(fromNode);
-    final fromClone = json.decode(fromStr);
-    debugPrint("to:$into Name:$fromName Map:$fromStr");
+    if (!dryRun) {
+      final fromStr = jsonEncode(fromNode);
+      final fromClone = json.decode(fromStr);
+      intoNode[fromName] = fromClone;
+    }
     return "";
   }
 

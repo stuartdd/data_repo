@@ -169,11 +169,11 @@ class MyTreeNode {
   int get iconIndex {
     if (canExpand) {
       if (expanded) {
-        return 1;
+        return defaultTreeNodeIconDataBase + 1;
       }
-      return 2;
+      return defaultTreeNodeIconDataBase + 2;
     }
-    return 0;
+    return defaultTreeNodeIconDataBase;
   }
 
   bool get isRoot {
@@ -347,28 +347,20 @@ class MyTreeNode {
 Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeData appThemeData, final double rowHeight, final bool selected, final int pathLen, final bool hiLight, final Function(Path) onClick, final Function(Path) onExpand) {
   if (node.parentIsExpanded && node.isNotLeaf) {
     node.index = index;
+
     return Container(
       height: rowHeight,
       color: appThemeData.selectedAndHiLightColour(selected, hiLight),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        textBaseline: TextBaseline.alphabetic,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
         children: [
-          SizedBox(width: 20.0 * (pathLen - 1)),
+          SizedBox(width: 20.0 * (pathLen - 1)), // Indent
           IconButton(
               onPressed: () {
                 onExpand(node.path);
               },
+              tooltip: defaultTreeNodeToolTip[node.iconIndex],
               icon: appThemeData.treeNodeIcons[node.iconIndex]),
-          node.hasLeafNodes
-              ? IconButton(
-                  onPressed: () {
-                    onClick(node.path);
-                  },
-                  icon: appThemeData.treeNodeIcons[appThemeData.treeNodeIcons.length - 1])
-              : const SizedBox(
-                  width: 0,
-                ),
           TextButton(
             child: Text(
               node.label,
@@ -378,6 +370,16 @@ Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeD
               onClick(node.path);
             },
           ),
+          node.hasLeafNodes
+              ? IconButton(
+                  onPressed: () {
+                    onClick(node.path);
+                  },
+                  tooltip: defaultTreeNodeToolTip[defaultTreeNodeIconDataHasData],
+                  icon: appThemeData.treeNodeIcons[defaultTreeNodeIconDataHasData])
+              : const SizedBox(
+                  width: 0,
+                ),
         ],
       ),
     );

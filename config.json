@@ -17,7 +17,7 @@
   "file": {
     "getDataUrl": "http://localhost:3000/file",
     "postDataUrl": "http://localhost:3000/file",
-    "datafile": "data05.json",
+    "datafile": "real.json",
     "datafilePath": "../data_repo_server/local"
   }
 }

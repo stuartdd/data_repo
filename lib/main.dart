@@ -22,6 +22,8 @@ const navBarHeight = 50.0;
 const statusBarHeight = 35.0;
 const inputTextTitleStyleHeight = 35.0;
 
+enum GroupCopyMoveAction { cancel, copy, move, delete, listRemove, listClear }
+
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
 
@@ -247,7 +249,7 @@ class _MyHomePageState extends State<MyHomePage> {
           const Duration(milliseconds: 300),
           () {
             log("__WARNING__ Data source has changed");
-            _showModalButtonsDialog(context, "Data source has Changed", ["If you CONTINUE:","Saving and Reloading","will use OLD config data","and UNSAVED config","changes may be lost."], ["RESTART", "CONTINUE"], Path.empty(), (path, button) {
+            _showModalButtonsDialog(context, "Data source has Changed", ["If you CONTINUE:", "Saving and Reloading", "will use OLD config data", "and UNSAVED config", "changes may be lost."], ["RESTART", "CONTINUE"], Path.empty(), (path, button) {
               if (button == "RESTART") {
                 setState(() {
                   _loadedData = DataContainer.empty();
@@ -297,11 +299,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   GroupCopyMoveSummary _checkNodeForGroupSelection(final Path from, final Path to, final bool isValue, final bool groupCopy) {
-    String dr = _loadedData.copyInto(to, from, isValue, dryRun: true);
-    if (dr.isNotEmpty) {
-      return GroupCopyMoveSummary(from, dr, isValue);
+    if (groupCopy) {
+      return GroupCopyMoveSummary(from, _loadedData.copyInto(to, from, isValue, dryRun: true), isValue);
     }
-    return GroupCopyMoveSummary(from, "", isValue);
+    return GroupCopyMoveSummary(from, _loadedData.remove(from, isValue, dryRun: true), isValue);
   }
 
   GroupCopyMoveSummaryList _summariseGroupSelection(final PathPropertiesList pathPropertiesList, final bool groupCopy) {
@@ -341,21 +342,48 @@ class _MyHomePageState extends State<MyHomePage> {
                   _selectedPath,
                   _summariseGroupSelection(_pathPropertiesList, groupCopy),
                   groupCopy,
-                  (button, path) {
+                  (action, intoPath) {
                     setState(() {
-                      if (button == "COPY") {
-                        final copyMap = _pathPropertiesList.groupSelectsClone;
-                        for (var k in copyMap.keys) {
-                          _loadedData.copyInto(path, Path.fromDotPath(k), copyMap[k]!.isValue, dryRun: false);
+                      if (action == GroupCopyMoveAction.copy || action == GroupCopyMoveAction.move || action == GroupCopyMoveAction.delete) {
+                        final groupMap = _pathPropertiesList.groupSelectsClone;
+                        for (var k in groupMap.keys) {
+                          // For copy and delete do each one in turn
+                          if (action == GroupCopyMoveAction.copy || action == GroupCopyMoveAction.move) {
+                            // for move and copy we must do a copy first
+                            final resp = _loadedData.copyInto(intoPath, Path.fromDotPath(k), groupMap[k]!.isValue, dryRun: false);
+                            if (resp.isEmpty) {
+                              groupMap[k]!.done = true;
+                              if (action == GroupCopyMoveAction.copy) {
+                                // if not copy then move so we are not done, we need to delete after!
+                                _dataWasUpdated = true;
+                              }
+                              _pathPropertiesList.setRenamed(intoPath.cloneAppendList([Path.fromDotPath(k).last]));
+                              _pathPropertiesList.setRenamed(intoPath);
+                            }
+                          }
                         }
+
+                        if (action == GroupCopyMoveAction.move || action == GroupCopyMoveAction.delete) {
+                          for (var k in groupMap.keys) {
+                            final resp = _loadedData.remove(Path.fromDotPath(k), groupMap[k]!.isValue, dryRun: false);
+                            if (resp.isEmpty) {
+                              groupMap[k]!.done = true;
+                              _dataWasUpdated = true;
+                              _pathPropertiesList.setRenamed(intoPath.cloneParentPath());
+                            }
+                          }
+                        }
+
+                        _pathPropertiesList.clearAllGroupSelectDone((path) {
+                          return (_loadedData.getNodeFromJson(path) != null);
+                        },);
+
+                        _reloadAndCopyFlags();
                       }
-                      if (button == "REMOVE") {
-                        debugPrint("REMOVE");
+                      if (action == GroupCopyMoveAction.listRemove) {
+                        _pathPropertiesList.setGroupSelect(intoPath, false);
                       }
-                      if (button == "DELETE_FROM_LIST") {
-                        _pathPropertiesList.setGroupSelect(path, false);
-                      }
-                      if (button == "CLEAR_LIST") {
+                      if (action == GroupCopyMoveAction.listClear) {
                         _pathPropertiesList.clearAllGroupSelect();
                       }
                     });
@@ -1450,7 +1478,7 @@ Future<void> _showOptionsDialog(final BuildContext context, final Path path, fin
   );
 }
 
-Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, Path into, final String head, final bool copyMove, final void Function(String, Path) onAction) {
+Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, Path into, final String head, final bool copyMove, final void Function(GroupCopyMoveAction, Path) onAction) {
   final wl = <Widget>[];
   final tab = _configData.getAppThemeData().textSize("Group: ", _configData.getAppThemeData().tsMedium);
   wl.add(Text("Selected Data:", style: _configData.getAppThemeData().tsMediumBold));
@@ -1472,7 +1500,7 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, Path into, fin
       children: [
         IconButton(
             onPressed: () {
-              onAction("DELETE_FROM_LIST", summaryList.list[i].copyFromPath);
+              onAction(GroupCopyMoveAction.listRemove, summaryList.list[i].copyFromPath);
             },
             tooltip: "Delete from this list",
             icon: const Icon(Icons.delete)),
@@ -1511,7 +1539,7 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, Path into, fin
   return ListBody(children: wl);
 }
 
-Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, final GroupCopyMoveSummaryList summaryList, bool copyMove, final void Function(String, Path) onAction) async {
+Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, final GroupCopyMoveSummaryList summaryList, bool copyMove, final void Function(GroupCopyMoveAction, Path) onAction) async {
   final head = copyMove ? "Copy or Move" : "Delete";
   final toFrom = copyMove ? "To" : "";
   final top = Column(children: [
@@ -1527,8 +1555,8 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
         // title: Text("Copy or Move TO:\n'$into'", style: _configData.getAppThemeData().tsMedium),
         title: top,
         content: SingleChildScrollView(
-          child: _copyMoveSummaryList(summaryList, into, head, copyMove, (p0, p1) {
-            onAction(p0, p1);
+          child: _copyMoveSummaryList(summaryList, into, head, copyMove, (action, path) {
+            onAction(action, path);
             Navigator.of(context).pop();
           }),
         ),
@@ -1547,7 +1575,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 text: "COPY",
                 show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
-                  onAction("COPY", into);
+                  onAction(GroupCopyMoveAction.copy, into);
                   Navigator.of(context).pop();
                 },
               ),
@@ -1556,7 +1584,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 text: "MOVE",
                 show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
-                  onAction("MOVE", Path.empty());
+                  onAction(GroupCopyMoveAction.move, Path.empty());
                   Navigator.of(context).pop();
                 },
               ),
@@ -1565,7 +1593,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 text: "REMOVE",
                 show: summaryList.hasNoErrors && !copyMove,
                 onPressed: () {
-                  onAction("REMOVE", Path.empty());
+                  onAction(GroupCopyMoveAction.delete, Path.empty());
                   Navigator.of(context).pop();
                 },
               ),
@@ -1573,7 +1601,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 appThemeData: _configData.getAppThemeData(),
                 text: "CLEAR",
                 onPressed: () {
-                  onAction("CLEAR_LIST", Path.empty());
+                  onAction(GroupCopyMoveAction.listClear, Path.empty());
                   Navigator.of(context).pop();
                 },
               ),

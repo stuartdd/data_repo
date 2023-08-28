@@ -5,6 +5,7 @@ class PathProperties {
   String updatedFrom = "";
   bool groupSelect = false;
   bool isValue = false;
+  bool done = false;
 
   PathProperties(this.updatedFrom, this.groupSelect, this.isValue, this.renamedFrom);
 
@@ -22,6 +23,7 @@ class PathProperties {
     updatedFrom = "";
     groupSelect = false;
     isValue = false;
+    done = false;
   }
 
   bool get isEmpty {
@@ -109,6 +111,32 @@ class PathPropertiesList {
     }
     if (log != null) {
       log!("__NODE__ GROUP SELECTION CLEARED");
+    }
+  }
+
+  void clearAllGroupSelectDone(final bool Function(Path p) testRequired) {
+    for (var k in cloneKeys()) {
+      final v = _list[k];
+      if (v != null) {
+        if (v.done && v.groupSelect) {
+          v.done = false;
+          v.groupSelect = false;
+        }
+        if (v.isEmpty) {
+          _list.remove(k);
+        }
+      }
+    }
+    for (var k in cloneKeys()) {
+      final v = _list[k];
+      if (v != null) {
+        if (testRequired(Path.fromDotPath(k))) {
+          _list.remove(k);
+        }
+      }
+    }
+    if (log != null) {
+      log!("__NODE__ DONE SELECTION CLEARED");
     }
   }
 

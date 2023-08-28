@@ -66,7 +66,11 @@ class ColorPallet {
   }
 }
 
-const List<IconData> defaultTreeNodeIconData = [Icons.list_sharp, Icons.arrow_downward, Icons.arrow_forward, Icons.tour_outlined];
+const List<String> defaultTreeNodeToolTip = ["Data only", "Collapse", "Expand", "Has Data"];
+const List<IconData> defaultTreeNodeIconData = [Icons.circle_outlined, Icons.arrow_downward, Icons.arrow_forward, Icons.dataset];
+const defaultTreeNodeIconDataBase = 0;
+const defaultTreeNodeIconDataHasData = 3;
+
 
 Map<String, ColorPallet> colourNames = <String, ColorPallet>{
   'black': const ColorPallet("white", Colors.white, Colors.black12, Colors.black26, Colors.black38, Colors.black45, Colors.black54, Colors.black),
