@@ -22,7 +22,7 @@ const navBarHeight = 50.0;
 const statusBarHeight = 35.0;
 const inputTextTitleStyleHeight = 35.0;
 
-enum GroupCopyMoveAction { cancel, copy, move, delete, listRemove, listClear }
+enum SimpleButtonActions { ok, cancel, validate, copy, move, delete, listRemove, listClear }
 
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
@@ -344,16 +344,16 @@ class _MyHomePageState extends State<MyHomePage> {
                   groupCopy,
                   (action, intoPath) {
                     setState(() {
-                      if (action == GroupCopyMoveAction.copy || action == GroupCopyMoveAction.move || action == GroupCopyMoveAction.delete) {
+                      if (action == SimpleButtonActions.copy || action == SimpleButtonActions.move || action == SimpleButtonActions.delete) {
                         final groupMap = _pathPropertiesList.groupSelectsClone;
                         for (var k in groupMap.keys) {
                           // For copy and delete do each one in turn
-                          if (action == GroupCopyMoveAction.copy || action == GroupCopyMoveAction.move) {
+                          if (action == SimpleButtonActions.copy || action == SimpleButtonActions.move) {
                             // for move and copy we must do a copy first
                             final resp = _loadedData.copyInto(intoPath, Path.fromDotPath(k), groupMap[k]!.isValue, dryRun: false);
                             if (resp.isEmpty) {
                               groupMap[k]!.done = true;
-                              if (action == GroupCopyMoveAction.copy) {
+                              if (action == SimpleButtonActions.copy) {
                                 // if not copy then move so we are not done, we need to delete after!
                                 _dataWasUpdated = true;
                               }
@@ -363,7 +363,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           }
                         }
 
-                        if (action == GroupCopyMoveAction.move || action == GroupCopyMoveAction.delete) {
+                        if (action == SimpleButtonActions.move || action == SimpleButtonActions.delete) {
                           for (var k in groupMap.keys) {
                             final resp = _loadedData.remove(Path.fromDotPath(k), groupMap[k]!.isValue, dryRun: false);
                             if (resp.isEmpty) {
@@ -374,16 +374,18 @@ class _MyHomePageState extends State<MyHomePage> {
                           }
                         }
 
-                        _pathPropertiesList.clearAllGroupSelectDone((path) {
-                          return (_loadedData.getNodeFromJson(path) != null);
-                        },);
+                        _pathPropertiesList.clearAllGroupSelectDone(
+                          (path) {
+                            return (_loadedData.getNodeFromJson(path) != null);
+                          },
+                        );
 
                         _reloadAndCopyFlags();
                       }
-                      if (action == GroupCopyMoveAction.listRemove) {
+                      if (action == SimpleButtonActions.listRemove) {
                         _pathPropertiesList.setGroupSelect(intoPath, false);
                       }
-                      if (action == GroupCopyMoveAction.listClear) {
+                      if (action == SimpleButtonActions.listClear) {
                         _pathPropertiesList.clearAllGroupSelect();
                       }
                     });
@@ -542,6 +544,27 @@ class _MyHomePageState extends State<MyHomePage> {
       case ActionType.save:
         {
           _saveDataState(_loadedData.password);
+          break;
+        }
+      case ActionType.createFile:
+        {
+          Timer(const Duration(milliseconds: 1), () {
+            if (mounted) {
+              _showFileNamePasswordDialog(context, "New File", ["Password if required:", "Enter a valid file name:", "The extension is added automatically."], (action, list) {
+                if (action == SimpleButtonActions.ok) {
+                  if (list[0].isEmpty) {
+                    return "File name cannot be empty";
+                  }
+                }
+                if (action == SimpleButtonActions.validate) {
+                  if (list[0].isEmpty) {
+                    return "File name cannot be empty";
+                  }
+                }
+                return "";
+              });
+            }
+          });
           break;
         }
       case ActionType.reload:
@@ -1095,6 +1118,15 @@ class _MyHomePageState extends State<MyHomePage> {
           });
         },
       ));
+      toolBarItems.add(DetailIconButton(
+        show: _dataWasUpdated,
+        appThemeData: _configData.getAppThemeData(),
+        iconData: Icons.save,
+        tooltip: "Save",
+        onPressed: () {
+          _saveDataState(_loadedData.password);
+        },
+      ));
       if (_isEditDataDisplay) {
         toolBarItems.add(VerticalDivider(
           color: _configData.getAppThemeData().screenForegroundColour(true),
@@ -1117,10 +1149,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 MenuOptionDetails("Reload data file", "Reload %{4}", ActionType.reload, () {
                   return Icons.refresh;
                 }),
-                MenuOptionDetails("Add NEW Group", "Add a new group to %{3}", ActionType.addGroup, () {
+                MenuOptionDetails("New data file", "Create a new data file", ActionType.createFile, () {
+                  return Icons.post_add;
+                }),
+                MenuOptionDetails("Add NEW Group", "Add a new group to '%{3}'", ActionType.addGroup, () {
                   return Icons.add_box_outlined;
                 }),
-                MenuOptionDetails("Add NEW Detail", "Add a new detail to group %{3}", ActionType.addDetail, () {
+                MenuOptionDetails("Add NEW Detail", "Add a new detail to group '%{3}'", ActionType.addDetail, () {
                   return Icons.add;
                 }),
               ], [
@@ -1407,8 +1442,8 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
             },
             onUpdateState: (l, hint) {
               final enable = l.canSaveOrApply & hint.isEmpty;
-              applyButton.disabled = !enable;
-              saveButton.disabled = !enable;
+              applyButton.setDisabled(!enable);
+              saveButton.setDisabled(!enable);
             },
             stateFileData: (delete) {
               final fn = _applicationState.activeAppStateFileName();
@@ -1478,10 +1513,100 @@ Future<void> _showOptionsDialog(final BuildContext context, final Path path, fin
   );
 }
 
-Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, Path into, final String head, final bool copyMove, final void Function(GroupCopyMoveAction, Path) onAction) {
+List<Widget> _stringsToTextList(final List<String> values, final int startAt, final Widget separator, final AppThemeData theme) {
   final wl = <Widget>[];
-  final tab = _configData.getAppThemeData().textSize("Group: ", _configData.getAppThemeData().tsMedium);
-  wl.add(Text("Selected Data:", style: _configData.getAppThemeData().tsMediumBold));
+  for (int i = startAt; i < values.length; i++) {
+    wl.add(Text(values[i], style: theme.tsMedium));
+    wl.add(separator);
+  }
+  return wl;
+}
+
+Future<void> _showFileNamePasswordDialog(final BuildContext context, final String title, final List<String> info, final String Function(SimpleButtonActions, List<String>) onAction) async {
+  final theme = _configData.getAppThemeData();
+  const separator = SizedBox(height: 5);
+  final controller1 = TextEditingController();
+  final controller2 = TextEditingController();
+  final content = _stringsToTextList(info, 1, separator, theme);
+
+  final okButton = DetailButton(
+    text: "OK",
+    disable: true,
+    appThemeData: theme,
+    onPressed: () {},
+  );
+
+  content.add(ValidatedInputField(
+    options: [],
+    isPassword: false,
+    hasButtons: false,
+    initialOption: OptionsTypeData.empty(),
+    prompt: "File Name",
+    initialValue: "",
+    appThemeData: _configData.getAppThemeData(),
+    onClose: (action, text, type) {
+      Navigator.of(context).pop();
+    },
+    onValidate: (ix, vx, it, vt) {
+      if (vx.isNotEmpty) {
+        okButton.setDisabled(false);
+      }
+      return "";
+    },
+  ));
+  content.add(separator);
+  content.add(Text(info[0], style: theme.tsMedium));
+  content.add(ValidatedInputField(
+    options: [],
+    isPassword: true,
+    hasButtons: false,
+    initialOption: OptionsTypeData.empty(),
+    prompt: "Password",
+    initialValue: "",
+    appThemeData: _configData.getAppThemeData(),
+    onClose: (action, text, type) {
+      Navigator.of(context).pop();
+    },
+    onValidate: (ix, vx, it, vt) {
+      return "";
+    },
+  ));
+
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: theme.dialogBackgroundColor,
+        // title: Text("Copy or Move TO:\n'$into'", style: theme.tsMedium),
+        title: Text(title, style: theme.tsMediumBold),
+        content: SingleChildScrollView(
+          child: ListBody(children: content),
+        ),
+        actions: [
+          Row(
+            children: [
+              DetailButton(
+                text: "CANCEL",
+                disable: false,
+                appThemeData: theme,
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              okButton
+            ],
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, AppThemeData theme, Path into, final String head, final bool copyMove, final void Function(SimpleButtonActions, Path) onAction) {
+  final wl = <Widget>[];
+  final tab = theme.textSize("Group: ", theme.tsMedium);
+  wl.add(Text("Selected Data:", style: theme.tsMediumBold));
   wl.add(Container(
     color: Colors.black,
     height: 2,
@@ -1500,23 +1625,23 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, Path into, fin
       children: [
         IconButton(
             onPressed: () {
-              onAction(GroupCopyMoveAction.listRemove, summaryList.list[i].copyFromPath);
+              onAction(SimpleButtonActions.listRemove, summaryList.list[i].copyFromPath);
             },
             tooltip: "Delete from this list",
             icon: const Icon(Icons.delete)),
-        summary.isError ? Text(summary.error, style: _configData.getAppThemeData().tsMediumError) : Text("OK: Can $head", style: _configData.getAppThemeData().tsMedium),
+        summary.isError ? Text(summary.error, style: theme.tsMediumError) : Text("OK: Can $head", style: theme.tsMedium),
       ],
     );
     final r2 = Row(
       children: [
-        SizedBox(width: tab.width, child: Text(tag, style: _configData.getAppThemeData().tsMedium)),
-        Text(summary.name, style: _configData.getAppThemeData().tsMediumBold),
+        SizedBox(width: tab.width, child: Text(tag, style: theme.tsMedium)),
+        Text(summary.name, style: theme.tsMediumBold),
       ],
     );
     final r3 = Row(
       children: [
-        SizedBox(width: tab.width, child: Text("In:", style: _configData.getAppThemeData().tsMedium)),
-        Text(summary.parent, style: _configData.getAppThemeData().tsMediumBold),
+        SizedBox(width: tab.width, child: Text("In:", style: theme.tsMedium)),
+        Text(summary.parent, style: theme.tsMediumBold),
       ],
     );
     wl.add(r1);
@@ -1525,8 +1650,8 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, Path into, fin
     if (copyMove) {
       final r4 = Row(
         children: [
-          SizedBox(width: tab.width, child: Text("To:", style: _configData.getAppThemeData().tsMedium)),
-          Text(into.toString(), style: _configData.getAppThemeData().tsMediumBold),
+          SizedBox(width: tab.width, child: Text("To:", style: theme.tsMedium)),
+          Text(into.toString(), style: theme.tsMediumBold),
         ],
       );
       wl.add(r4);
@@ -1539,23 +1664,24 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, Path into, fin
   return ListBody(children: wl);
 }
 
-Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, final GroupCopyMoveSummaryList summaryList, bool copyMove, final void Function(GroupCopyMoveAction, Path) onAction) async {
+Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, final GroupCopyMoveSummaryList summaryList, bool copyMove, final void Function(SimpleButtonActions, Path) onAction) async {
   final head = copyMove ? "Copy or Move" : "Delete";
   final toFrom = copyMove ? "To" : "";
+  final theme = _configData.getAppThemeData();
   final top = Column(children: [
-    Text("$head $toFrom", style: _configData.getAppThemeData().tsMedium),
-    copyMove ? Text(into.toString(), style: _configData.getAppThemeData().tsMedium) : const SizedBox(height: 0),
+    Text("$head $toFrom", style: theme.tsMedium),
+    copyMove ? Text(into.toString(), style: theme.tsMedium) : const SizedBox(height: 0),
   ]);
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
-        // title: Text("Copy or Move TO:\n'$into'", style: _configData.getAppThemeData().tsMedium),
+        backgroundColor: theme.dialogBackgroundColor,
+        // title: Text("Copy or Move TO:\n'$into'", style: theme.tsMedium),
         title: top,
         content: SingleChildScrollView(
-          child: _copyMoveSummaryList(summaryList, into, head, copyMove, (action, path) {
+          child: _copyMoveSummaryList(summaryList, theme, into, head, copyMove, (action, path) {
             onAction(action, path);
             Navigator.of(context).pop();
           }),
@@ -1575,7 +1701,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 text: "COPY",
                 show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
-                  onAction(GroupCopyMoveAction.copy, into);
+                  onAction(SimpleButtonActions.copy, into);
                   Navigator.of(context).pop();
                 },
               ),
@@ -1584,7 +1710,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 text: "MOVE",
                 show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
-                  onAction(GroupCopyMoveAction.move, Path.empty());
+                  onAction(SimpleButtonActions.move, Path.empty());
                   Navigator.of(context).pop();
                 },
               ),
@@ -1593,7 +1719,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 text: "REMOVE",
                 show: summaryList.hasNoErrors && !copyMove,
                 onPressed: () {
-                  onAction(GroupCopyMoveAction.delete, Path.empty());
+                  onAction(SimpleButtonActions.delete, Path.empty());
                   Navigator.of(context).pop();
                 },
               ),
@@ -1601,7 +1727,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 appThemeData: _configData.getAppThemeData(),
                 text: "CLEAR",
                 onPressed: () {
-                  onAction(GroupCopyMoveAction.listClear, Path.empty());
+                  onAction(SimpleButtonActions.listClear, Path.empty());
                   Navigator.of(context).pop();
                 },
               ),
@@ -1805,6 +1931,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                   : ValidatedInputField(
                       options: options,
                       isPassword: isPassword,
+                      hasButtons: true,
                       initialOption: currentOption,
                       prompt: "Input: ${isRename ? "New Name" : "[type]"}",
                       initialValue: currentValue,

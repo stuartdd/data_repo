@@ -49,16 +49,7 @@ class DetailIconButton extends StatefulWidget {
   final String tooltip;
   final AppThemeData appThemeData;
   final EdgeInsetsGeometry padding;
-  const DetailIconButton(
-      {super.key,
-      this.show = true,
-      this.enabled = true,
-      required this.onPressed,
-      this.timerMs = 100,
-      required this.iconData,
-      this.tooltip = "",
-      required this.appThemeData,
-      this.padding = const EdgeInsets.fromLTRB(1, 1, 1, 0)});
+  const DetailIconButton({super.key, this.show = true, this.enabled = true, required this.onPressed, this.timerMs = 100, required this.iconData, this.tooltip = "", required this.appThemeData, this.padding = const EdgeInsets.fromLTRB(1, 1, 1, 0)});
   @override
   State<DetailIconButton> createState() => _DetailIconButton();
 }
@@ -77,9 +68,7 @@ class _DetailIconButton extends State<DetailIconButton> {
     if (widget.show) {
       return IconButton(
         padding: widget.padding,
-        icon: Icon(widget.iconData,
-            color: widget.appThemeData
-                .screenForegroundColour(widget.enabled && !grey)),
+        icon: Icon(widget.iconData, color: widget.appThemeData.screenForegroundColour(widget.enabled && !grey)),
         tooltip: widget.tooltip,
         onPressed: () {
           if (!widget.enabled) {
@@ -112,17 +101,8 @@ class _DetailIconButton extends State<DetailIconButton> {
 }
 
 class DetailButton extends StatefulWidget {
-  DetailButton(
-      {super.key,
-      required this.onPressed,
-      required this.text,
-      this.timerMs = 100,
-      this.show = true,
-      disable = false,
-      required this.appThemeData}) {
+  DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = 100, this.show = true, disable = false, required this.appThemeData}) {
     _disable = disable;
-    _instance = _DetailButtonState();
-    _instance.grey = _disable;
   }
   final bool show;
   final AppThemeData appThemeData;
@@ -130,35 +110,32 @@ class DetailButton extends StatefulWidget {
   final String text;
   final int timerMs;
   late final bool _disable;
-  late final _DetailButtonState _instance;
-
-  void set disabled(bool dis) {
-    _instance._setDisable(dis);
-  }
-
-  bool get disabled {
-    return _instance.grey;
-  }
+  late final void Function(bool) setDisabled;
+  late final bool Function() getDisabled;
 
   @override
-  State<DetailButton> createState() {
-    return _instance;
-  }
+  State<DetailButton> createState() => _DetailButtonState();
 }
 
 class _DetailButtonState extends State<DetailButton> {
   bool grey = false;
-
-  void _setDisable(bool dis) {
-    setState(() {
-      grey = dis;
-    });
+  @override
+  initState() {
+    super.initState();
+    grey = widget._disable;
+    widget.setDisabled = (dis) {
+      setState(() {
+        grey = dis;
+      });
+    };
+    widget.getDisabled = () {
+      return grey;
+    };
   }
 
   @override
   Widget build(BuildContext context) {
-    final style = BorderSide(
-        color: widget.appThemeData.screenForegroundColour(!grey), width: 2);
+    final style = BorderSide(color: widget.appThemeData.screenForegroundColour(!grey), width: 2);
     if (widget.show) {
       return Row(
         children: [
@@ -182,10 +159,7 @@ class _DetailButtonState extends State<DetailButton> {
                 });
               },
               style: OutlinedButton.styleFrom(side: style),
-              child: Text(widget.text,
-                  style: grey
-                      ? widget.appThemeData.tsMediumDisabled
-                      : widget.appThemeData.tsMedium),
+              child: Text(widget.text, style: grey ? widget.appThemeData.tsMediumDisabled : widget.appThemeData.tsMedium),
             ),
           ),
           const SizedBox(width: 8)
@@ -202,12 +176,7 @@ class OptionListWidget extends StatefulWidget {
   final OptionsTypeData selectedOption;
   final void Function(String, OptionsTypeData) onSelect;
   final AppThemeData appThemeData;
-  const OptionListWidget(
-      {super.key,
-      required this.optionList,
-      required this.selectedOption,
-      required this.onSelect,
-      required this.appThemeData});
+  const OptionListWidget({super.key, required this.optionList, required this.selectedOption, required this.onSelect, required this.appThemeData});
   // Find the element type index for a given type name.
   //    -1 indicated not found
   int _findIndexFroOption(String key) {
@@ -283,16 +252,7 @@ class MarkDownInputField extends StatefulWidget {
   final bool Function(bool) shouldDisplayPreview;
   final Path Function(DetailAction) dataAction;
 
-  const MarkDownInputField(
-      {super.key,
-      required this.initialText,
-      required this.onClose,
-      required this.height,
-      required this.width,
-      required this.shouldDisplayHelp,
-      required this.shouldDisplayPreview,
-      required this.dataAction,
-      required this.appThemeData});
+  const MarkDownInputField({super.key, required this.initialText, required this.onClose, required this.height, required this.width, required this.shouldDisplayHelp, required this.shouldDisplayPreview, required this.dataAction, required this.appThemeData});
   @override
   State<MarkDownInputField> createState() => _MarkDownInputField();
 }
@@ -377,14 +337,12 @@ class _MarkDownInputField extends State<MarkDownInputField> {
                 appThemeData: widget.appThemeData,
                 text: 'Cancel',
                 onPressed: () {
-                  widget.onClose(
-                      "Cancel", widget.initialText, optionTypeDataMarkDown);
+                  widget.onClose("Cancel", widget.initialText, optionTypeDataMarkDown);
                 },
               ),
               DetailButton(
                 appThemeData: widget.appThemeData,
-                text:
-                    widget.shouldDisplayHelp(false) ? 'Hide Help' : "Show Help",
+                text: widget.shouldDisplayHelp(false) ? 'Hide Help' : "Show Help",
                 onPressed: () {
                   setState(() {
                     widget.shouldDisplayHelp(true);
@@ -393,9 +351,7 @@ class _MarkDownInputField extends State<MarkDownInputField> {
               ),
               DetailButton(
                 appThemeData: widget.appThemeData,
-                text: widget.shouldDisplayPreview(false)
-                    ? 'Hide Preview'
-                    : "Show Preview",
+                text: widget.shouldDisplayPreview(false) ? 'Hide Preview' : "Show Preview",
                 onPressed: () {
                   setState(() {
                     widget.shouldDisplayPreview(true);
@@ -411,24 +367,15 @@ class _MarkDownInputField extends State<MarkDownInputField> {
 }
 
 class ValidatedInputField extends StatefulWidget {
-  ValidatedInputField(
-      {super.key,
-      required this.initialValue,
-      required this.isPassword,
-      required this.onClose,
-      required this.onValidate,
-      required this.prompt,
-      required this.options,
-      required this.initialOption,
-      required this.appThemeData});
+  ValidatedInputField({super.key, required this.initialValue, required this.isPassword, required this.hasButtons, required this.onClose, required this.onValidate, required this.prompt, required this.options, required this.initialOption, required this.appThemeData});
   final String initialValue;
   final List<OptionsTypeData> options;
   final OptionsTypeData initialOption;
   final String prompt;
   final bool isPassword;
+  final bool hasButtons;
   final void Function(String, String, OptionsTypeData) onClose;
-  final String Function(String, String, OptionsTypeData, OptionsTypeData)
-      onValidate;
+  final String Function(String, String, OptionsTypeData, OptionsTypeData) onValidate;
   final controller = TextEditingController();
   final AppThemeData appThemeData;
 
@@ -467,8 +414,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
 
   @override
   Widget build(BuildContext context) {
-    final bool showOkButton =
-        (current != initial || currentOption.notEqual(initialOption));
+    final bool showOkButton = (current != initial || currentOption.notEqual(initialOption));
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -488,10 +434,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
             ? const SizedBox(height: 0)
             : Container(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                    widget.prompt
-                        .replaceAll("[type]", currentOption.description),
-                    style: widget.appThemeData.tsMedium),
+                child: Text(widget.prompt.replaceAll("[type]", currentOption.description), style: widget.appThemeData.tsMedium),
               ),
         (widget.isPassword)
             ? Row(
@@ -502,9 +445,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                           obscurePw = !obscurePw;
                         });
                       },
-                      icon: Icon(obscurePw
-                          ? Icons.visibility
-                          : Icons.visibility_outlined)),
+                      icon: Icon(obscurePw ? Icons.visibility : Icons.visibility_outlined)),
                   Text(obscurePw ? "Show password" : "Hide password")
                 ],
               )
@@ -558,25 +499,27 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
         const SizedBox(
           height: 10,
         ),
-        Row(
-          children: [
-            DetailButton(
-              appThemeData: widget.appThemeData,
-              show: currentIsValid && showOkButton,
-              text: 'OK',
-              onPressed: () {
-                widget.onClose("OK", current, currentOption);
-              },
-            ),
-            DetailButton(
-              appThemeData: widget.appThemeData,
-              text: 'Cancel',
-              onPressed: () {
-                widget.onClose("Cancel", current, currentOption);
-              },
-            )
-          ],
-        ),
+        widget.hasButtons
+            ? Row(
+                children: [
+                  DetailButton(
+                    appThemeData: widget.appThemeData,
+                    show: currentIsValid && showOkButton,
+                    text: 'OK',
+                    onPressed: () {
+                      widget.onClose("OK", current, currentOption);
+                    },
+                  ),
+                  DetailButton(
+                    appThemeData: widget.appThemeData,
+                    text: 'Cancel',
+                    onPressed: () {
+                      widget.onClose("Cancel", current, currentOption);
+                    },
+                  )
+                ],
+              )
+            : SizedBox(height: 0),
       ],
     );
   }

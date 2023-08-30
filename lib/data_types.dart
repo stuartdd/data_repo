@@ -189,7 +189,7 @@ const List<OptionsTypeData> optionsEditElementValue = [];
 //
 // An action from a GUI component serviced by the maim State full GUI.
 //
-enum ActionType { none, save, saveAlt, addGroup, addDetail, reload, edit, rename, select, querySelect, delete, link, clip, group, groupCopy, groupDelete }
+enum ActionType { none, save, saveAlt, addGroup, addDetail, reload, edit, createFile, rename, select, querySelect, delete, link, clip, group, groupCopy, groupDelete }
 
 class MenuOptionDetails {
   final IconData Function()? _getIcon;
@@ -314,6 +314,10 @@ class DetailAction {
         {
           return "ADD-GROUP: $s";
         }
+      case ActionType.createFile:
+        {
+          return "CREATE_FILE: $s";
+        }
       case ActionType.addDetail:
         {
           return "ADD-DETAIL: $s";
@@ -321,6 +325,7 @@ class DetailAction {
     }
   }
 }
+
 class GroupCopyMoveSummaryList {
   final List<GroupCopyMoveSummary> list;
   GroupCopyMoveSummaryList(this.list);
@@ -354,7 +359,6 @@ class GroupCopyMoveSummaryList {
     }
     return false;
   }
-
 }
 
 class GroupCopyMoveSummary {
@@ -464,5 +468,4 @@ class SuccessState {
   String toString() {
     return toLogString(bold: false);
   }
-
 }
