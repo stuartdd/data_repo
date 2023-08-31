@@ -101,17 +101,19 @@ class _DetailIconButton extends State<DetailIconButton> {
 }
 
 class DetailButton extends StatefulWidget {
-  DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = 100, this.show = true, disable = false, required this.appThemeData}) {
-    _disable = disable;
-  }
+  DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = 100, this.show = true, disable = false, required this.appThemeData});
   final bool show;
   final AppThemeData appThemeData;
   final Function() onPressed;
   final String text;
   final int timerMs;
-  late final bool _disable;
-  late final void Function(bool) setDisabled;
-  late final bool Function() getDisabled;
+  void Function(bool)? _setDisabled;
+
+  void setDisabled(bool dis) {
+    if (_setDisabled != null) {
+      _setDisabled!(dis);
+    }
+  }
 
   @override
   State<DetailButton> createState() => _DetailButtonState();
@@ -119,17 +121,14 @@ class DetailButton extends StatefulWidget {
 
 class _DetailButtonState extends State<DetailButton> {
   bool grey = false;
+
   @override
   initState() {
     super.initState();
-    grey = widget._disable;
-    widget.setDisabled = (dis) {
+    widget._setDisabled = (dis) {
       setState(() {
         grey = dis;
       });
-    };
-    widget.getDisabled = () {
-      return grey;
     };
   }
 
@@ -496,30 +495,6 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                   border: OutlineInputBorder(),
                 ),
               ),
-        const SizedBox(
-          height: 10,
-        ),
-        widget.hasButtons
-            ? Row(
-                children: [
-                  DetailButton(
-                    appThemeData: widget.appThemeData,
-                    show: currentIsValid && showOkButton,
-                    text: 'OK',
-                    onPressed: () {
-                      widget.onClose("OK", current, currentOption);
-                    },
-                  ),
-                  DetailButton(
-                    appThemeData: widget.appThemeData,
-                    text: 'Cancel',
-                    onPressed: () {
-                      widget.onClose("Cancel", current, currentOption);
-                    },
-                  )
-                ],
-              )
-            : SizedBox(height: 0),
       ],
     );
   }

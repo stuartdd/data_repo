@@ -1442,8 +1442,8 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
             },
             onUpdateState: (l, hint) {
               final enable = l.canSaveOrApply & hint.isEmpty;
-              applyButton.setDisabled(!enable);
-              saveButton.setDisabled(!enable);
+              applyButton.setDisabled!(!enable);
+              saveButton.setDisabled!(!enable);
             },
             stateFileData: (delete) {
               final fn = _applicationState.activeAppStateFileName();
@@ -1549,7 +1549,7 @@ Future<void> _showFileNamePasswordDialog(final BuildContext context, final Strin
     },
     onValidate: (ix, vx, it, vt) {
       if (vx.isNotEmpty) {
-        okButton.setDisabled(false);
+        okButton.setDisabled!(false);
       }
       return "";
     },
@@ -1885,6 +1885,13 @@ Future<void> _showModalButtonsDialog(final BuildContext context, final String ti
 }
 
 Future<void> _showModalInputDialog(final BuildContext context, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(String, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
+  var okButton = DetailButton(
+    text: "OK",
+    disable: true,
+    appThemeData: _configData.getAppThemeData(),
+    onPressed: () {},
+  );
+
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -1941,12 +1948,30 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                         Navigator.of(context).pop();
                       },
                       onValidate: (ix, vx, it, vt) {
-                        return externalValidate(ix.trim(), vx.trim(), it, vt);
+                        final validMsg = externalValidate(ix.trim(), vx.trim(), it, vt);
+                        debugPrint("setDis");
+                        okButton.setDisabled!(validMsg.isNotEmpty);
+                        return validMsg;
                       },
                     ),
             ],
           ),
         ),
+        actions: [
+          Row(
+            children: [
+              DetailButton(
+                text: "CANCEL",
+                disable: false,
+                appThemeData: _configData.getAppThemeData(),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              okButton
+            ],
+          ),
+        ],
       );
     },
   );
