@@ -12,6 +12,9 @@ import 'path.dart';
 //
 enum DisplayType { simpleDisplay, positionalString, markDown }
 
+enum SimpleButtonActions { ok, cancel, validate, copy, move, delete, listRemove, listClear, link}
+enum ActionType { none, reload, save, saveAlt, addGroup, addDetail, edit, createFile, rename, select, querySelect, delete, link, clip, group, groupCopy, groupDelete }
+
 const int maxIntValue = -1 >>> 1;
 
 class DisplayTypeData {
@@ -189,7 +192,6 @@ const List<OptionsTypeData> optionsEditElementValue = [];
 //
 // An action from a GUI component serviced by the maim State full GUI.
 //
-enum ActionType { none, save, saveAlt, addGroup, addDetail, reload, edit, createFile, rename, select, querySelect, delete, link, clip, group, groupCopy, groupDelete }
 
 class MenuOptionDetails {
   final IconData Function()? _getIcon;

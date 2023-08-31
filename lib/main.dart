@@ -550,16 +550,10 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              _showFileNamePasswordDialog(context, "New File", ["Password if required:", "Enter a valid file name:", "The extension is added automatically."], (action, list) {
-                if (action == SimpleButtonActions.ok) {
-                  if (list[0].isEmpty) {
-                    return "File name cannot be empty";
-                  }
-                }
+              _showFileNamePasswordDialog(context, "New File", ["Password if required:", "Enter a valid file name:", "The extension is added automatically."], (action, fileName, password) {
                 if (action == SimpleButtonActions.validate) {
-                  if (list[0].isEmpty) {
-                    return "File name cannot be empty";
-                  }
+                }
+                if (action == SimpleButtonActions.ok) {
                 }
                 return "";
               });
@@ -1442,8 +1436,8 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
             },
             onUpdateState: (l, hint) {
               final enable = l.canSaveOrApply & hint.isEmpty;
-              applyButton.setDisabled!(!enable);
-              saveButton.setDisabled!(!enable);
+              applyButton.setDisabled(!enable);
+              saveButton.setDisabled(!enable);
             },
             stateFileData: (delete) {
               final fn = _applicationState.activeAppStateFileName();
@@ -1522,18 +1516,21 @@ List<Widget> _stringsToTextList(final List<String> values, final int startAt, fi
   return wl;
 }
 
-Future<void> _showFileNamePasswordDialog(final BuildContext context, final String title, final List<String> info, final String Function(SimpleButtonActions, List<String>) onAction) async {
+Future<void> _showFileNamePasswordDialog(final BuildContext context, final String title, final List<String> info, final String Function(SimpleButtonActions, String, String) onAction) async {
   final theme = _configData.getAppThemeData();
   const separator = SizedBox(height: 5);
-  final controller1 = TextEditingController();
-  final controller2 = TextEditingController();
   final content = _stringsToTextList(info, 1, separator, theme);
+
+  var fileName = "";
+  var password = "";
 
   final okButton = DetailButton(
     text: "OK",
     disable: true,
     appThemeData: theme,
-    onPressed: () {},
+    onPressed: () {
+      onAction(SimpleButtonActions.validate, fileName, password);
+    },
   );
 
   content.add(ValidatedInputField(
@@ -1548,10 +1545,21 @@ Future<void> _showFileNamePasswordDialog(final BuildContext context, final Strin
       Navigator.of(context).pop();
     },
     onValidate: (ix, vx, it, vt) {
-      if (vx.isNotEmpty) {
-        okButton.setDisabled!(false);
+      var message = "";
+      if (vx.length < 2) {
+        message = "Must be longer than 2";
+      } else {
+        if (vx.contains('.')) {
+          message = "Don't specify an extension";
+        } else {
+          message = onAction(SimpleButtonActions.validate, vx, password);
+        }
       }
-      return "";
+      if (message.isEmpty) {
+        fileName = vx;
+      }
+      okButton.setDisabled(message.isNotEmpty);
+      return message;
     },
   ));
   content.add(separator);
@@ -1568,7 +1576,17 @@ Future<void> _showFileNamePasswordDialog(final BuildContext context, final Strin
       Navigator.of(context).pop();
     },
     onValidate: (ix, vx, it, vt) {
-      return "";
+      var message = "";
+      if (vx.length < 2) {
+        message = "Must be longer than 8";
+      } else {
+        message = onAction(SimpleButtonActions.validate, fileName, vx);
+      }
+      if (message.isEmpty) {
+        password = vx;
+      }
+      okButton.setDisabled(message.isNotEmpty);
+      return message;
     },
   ));
 
@@ -1950,7 +1968,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                       onValidate: (ix, vx, it, vt) {
                         final validMsg = externalValidate(ix.trim(), vx.trim(), it, vt);
                         debugPrint("setDis");
-                        okButton.setDisabled!(validMsg.isNotEmpty);
+                        okButton.setDisabled(validMsg.isNotEmpty);
                         return validMsg;
                       },
                     ),

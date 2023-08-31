@@ -101,8 +101,9 @@ class _DetailIconButton extends State<DetailIconButton> {
 }
 
 class DetailButton extends StatefulWidget {
-  DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = 100, this.show = true, disable = false, required this.appThemeData});
+  DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = 100, this.show = true, this.disable= false, required this.appThemeData});
   final bool show;
+  final bool disable;
   final AppThemeData appThemeData;
   final Function() onPressed;
   final String text;
@@ -130,6 +131,7 @@ class _DetailButtonState extends State<DetailButton> {
         grey = dis;
       });
     };
+    grey = widget.disable;
   }
 
   @override
