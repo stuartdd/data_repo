@@ -253,7 +253,6 @@ class MarkDownInputField extends StatefulWidget {
   final bool Function(bool) shouldDisplayHelp;
   final bool Function(bool) shouldDisplayPreview;
   final String Function(String, String, OptionsTypeData, OptionsTypeData) onValidate;
-
   final Path Function(DetailAction) dataAction;
 
   const MarkDownInputField({super.key, required this.initialText, required this.onValidate, required this.height, required this.width, required this.shouldDisplayHelp, required this.shouldDisplayPreview, required this.dataAction, required this.appThemeData});

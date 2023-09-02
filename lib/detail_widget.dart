@@ -213,7 +213,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               show: widget.isEditDataDisplay,
               text: 'Edit',
               onPressed: () {
-                widget.dataAction(DetailAction(ActionType.edit, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                widget.dataAction(DetailAction(ActionType.editItemData, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
               },
             ),
             DetailButton(
@@ -221,7 +221,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               show: widget.isEditDataDisplay,
               text: 'Change',
               onPressed: () {
-                widget.dataAction(DetailAction(ActionType.rename, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
+                widget.dataAction(DetailAction(ActionType.renameItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
               },
             ),
             DetailButton(
@@ -249,7 +249,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               timerMs: 500,
               text: 'Remove',
               onPressed: () {
-                widget.dataAction(DetailAction(ActionType.delete, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                widget.dataAction(DetailAction(ActionType.removeItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
               },
             ),
           ],
@@ -283,7 +283,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   show: widget.isEditDataDisplay,
                   text: 'Change',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.rename, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.renameItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
                   },
                 ),
                 DetailButton(
@@ -291,7 +291,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   show: widget.isEditDataDisplay,
                   text: 'Remove',
                   onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.delete, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
+                    widget.dataAction(DetailAction(ActionType.removeItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
                   },
                 ),
               ],

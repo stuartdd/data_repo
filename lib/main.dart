@@ -395,7 +395,7 @@ class _MyHomePageState extends State<MyHomePage> {
           }
           break;
         }
-      case ActionType.delete:
+      case ActionType.removeItem:
         {
           _showModalButtonsDialog(context, "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState);
           break;
@@ -417,7 +417,7 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           return querySelect(detailActionData.path, detailActionData.additional);
         }
-      case ActionType.rename:
+      case ActionType.renameItem:
         {
           final title = detailActionData.valueName;
           _showModalInputDialog(
@@ -442,7 +442,7 @@ class _MyHomePageState extends State<MyHomePage> {
           );
           break;
         }
-      case ActionType.edit:
+      case ActionType.editItemData:
         {
           _showModalInputDialog(
             context,
