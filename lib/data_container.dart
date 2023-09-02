@@ -1,5 +1,3 @@
-import 'package:flutter/cupertino.dart';
-
 import "path.dart";
 import 'package:http/http.dart' as http;
 import 'package:http_status_code/http_status_code.dart';
@@ -28,18 +26,7 @@ class DataContainer {
   DataContainer(final String fileContents, final FileDataPrefix filePrefixData, this.remoteSourcePath, this.localSourcePath, this.fileName, final String pw) {
     password = pw;
     _timeStamp = filePrefixData.timeStamp;
-    _dataMap = _convertStringToMap(fileContents, pw);
-  }
-
-  Map<String, dynamic> _convertStringToMap(String jsonText, String pw) {
-    if (jsonText.isEmpty) {
-      return <String, dynamic>{};
-    }
-    if (pw.isNotEmpty) {
-      return jsonDecode(EncryptData.decrypt(jsonText, pw));
-    } else {
-      return jsonDecode(jsonText);
-    }
+    _dataMap = convertStringToMap(fileContents, pw);
   }
 
   String get timeStampString {
@@ -222,31 +209,53 @@ class DataContainer {
   }
 
   String dataToStringFormatted() {
-    return formattedJsonEncoder.convert(_dataMap);
+    return staticDataToStringFormatted(_dataMap);
   }
 
   String dataToStringUnFormatted() {
-    return jsonEncode(_dataMap);
+    return staticDataToStringUnFormatted(_dataMap);
   }
 
   String dataToStringFormattedWithTs(final String pw, {final bool addTimeStamp = true}) {
+    return staticDataToStringFormattedWithTs(_dataMap, pw);
+  }
+  //
+  // ****************************************************************************************************************
+  //
+  // Static tools to store and load files
+  //
+  static Map<String, dynamic> convertStringToMap(String jsonText, String pw) {
+    if (jsonText.isEmpty) {
+      return <String, dynamic>{};
+    }
+    if (pw.isNotEmpty) {
+      return jsonDecode(EncryptData.decrypt(jsonText, pw));
+    } else {
+      return jsonDecode(jsonText);
+    }
+  }
+
+  static String staticDataToStringFormatted(Map<String, dynamic> map) {
+    return formattedJsonEncoder.convert(map);
+  }
+
+  static String staticDataToStringUnFormatted(Map<String, dynamic> map) {
+    return jsonEncode(map);
+  }
+
+  static String staticDataToStringFormattedWithTs(Map<String, dynamic> map, final String pw, {final bool addTimeStamp = true}) {
     String tsString = "";
     if (addTimeStamp) {
       final ts = DateTime.timestamp().millisecondsSinceEpoch;
       tsString = "${pw.isEmpty ? timeStampPrefixClear : timeStampPrefixEnc}$ts:";
     }
     if (pw.isEmpty) {
-      return "$tsString${dataToStringFormatted()}";
+      return "$tsString${staticDataToStringFormatted(map)}";
     } else {
-      return "$tsString${EncryptData.encryptAES(dataToStringUnFormatted(), pw).base64}";
+      return "$tsString${EncryptData.encryptAES(staticDataToStringUnFormatted(map), pw).base64}";
     }
   }
 
-  //
-  // ****************************************************************************************************************
-  //
-  // Static tools to store and load files
-  //
   static Future<SuccessState> toHttpPost(final String url, final String body, {void Function(String)? log}) async {
     try {
       final uri = Uri.parse(url);

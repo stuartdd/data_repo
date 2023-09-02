@@ -12,7 +12,8 @@ import 'path.dart';
 //
 enum DisplayType { simpleDisplay, positionalString, markDown }
 
-enum SimpleButtonActions { ok, cancel, validate, copy, move, delete, listRemove, listClear, link}
+enum SimpleButtonActions { ok, cancel, validate, copy, move, delete, listRemove, listClear, link }
+
 enum ActionType { none, reload, save, saveAlt, addGroup, addDetail, edit, createFile, rename, select, querySelect, delete, link, clip, group, groupCopy, groupDelete }
 
 const int maxIntValue = -1 >>> 1;
@@ -194,11 +195,14 @@ const List<OptionsTypeData> optionsEditElementValue = [];
 //
 
 class MenuOptionDetails {
-  final IconData Function()? _getIcon;
+  final IconData Function() _getIcon;
+  late final bool _enabled;
   final String _s1;
   final String _s2;
   final ActionType action;
-  MenuOptionDetails(this._s1, this._s2, this.action, this._getIcon);
+  MenuOptionDetails(this._s1, this._s2, this.action, this._getIcon, {bool enabled = true}) {
+    _enabled = enabled;
+  }
 
   String s1(final List<String> x) {
     if (_s1.isEmpty) {
@@ -208,7 +212,11 @@ class MenuOptionDetails {
   }
 
   IconData? get icon {
-    return _getIcon!();
+    return _getIcon();
+  }
+
+  bool get enabled {
+    return _enabled;
   }
 
   String s2(final List<String> x) {

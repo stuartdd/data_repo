@@ -71,7 +71,6 @@ const List<IconData> defaultTreeNodeIconData = [Icons.circle_outlined, Icons.arr
 const defaultTreeNodeIconDataBase = 0;
 const defaultTreeNodeIconDataHasData = 3;
 
-
 Map<String, ColorPallet> colourNames = <String, ColorPallet>{
   'black': const ColorPallet("white", Colors.white, Colors.black12, Colors.black26, Colors.black38, Colors.black45, Colors.black54, Colors.black),
   'white': const ColorPallet("black", Colors.black, Colors.black54, Colors.black45, Colors.black38, Colors.black26, Colors.black12, Colors.white),
@@ -274,7 +273,7 @@ class ConfigData {
     log("__USER:__ ID(${getUserId()}) ${getUserName()}");
   }
 
-  void update() {
+  void update({bool callOnUpdate = true}) {
     _userName = _data.getStringFromJson(userNamePath, fallback: defaultUserName, create: true);
     _userId = _data.getStringFromJson(userIdPath, fallback: defaultUserName.toLowerCase(), create: true);
     _getDataFileUrl = _data.getStringFromJson(getDataUrlPath, fallback: defaultRemoteGetUrl, create: true);
@@ -291,7 +290,7 @@ class ConfigData {
     _appColoursError = validColour(_data.getStringFromJson(appColoursErrorPath, fallback: "red", create: true), appColoursErrorPath);
     _darkMode = _data.getBoolFromJson(appColoursDarkMode, fallback: false);
     _appThemeData = null;
-    if (_onUpdate != null) {
+    if (_onUpdate != null && callOnUpdate) {
       _onUpdate!();
     }
   }
@@ -304,8 +303,22 @@ class ConfigData {
   set onUpdate(void Function() onUpdateFunc) {
     _onUpdate = onUpdateFunc;
   }
+
   DataContainer getDataContainer() {
     return _data;
+  }
+
+  String localFileExists(String fileName) {
+    if (File(_pathFromStrings(getDataFileDir(), fileName)).existsSync()) {
+      return "Local file exists";
+    }
+    return "";
+  }
+
+  Map<String,dynamic> getMinimumDataContentMap() {
+    final dt = DateTime.now();
+    final result = '${dt.year}-${dt.month}-${dt.day} ${dt.hour}:${dt.minute}:${dt.second}';
+    return DataContainer.convertStringToMap('{"$_userName":{"Info":{"Created":"$result"}}}', "");
   }
 
   String getStringFromJson(Path path, {String fallback = "", bool create = false}) {
@@ -377,6 +390,10 @@ class ConfigData {
 
   String getDataFileLocal() {
     return _pathFromStrings(_dataFileLocalDir, _dataFileName);
+  }
+
+  String getDataFileLocalAlt(final String fileName) {
+    return _pathFromStrings(_dataFileLocalDir, fileName);
   }
 
   String getDataFileName() {

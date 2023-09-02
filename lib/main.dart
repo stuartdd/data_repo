@@ -22,8 +22,6 @@ const navBarHeight = 50.0;
 const statusBarHeight = 35.0;
 const inputTextTitleStyleHeight = 35.0;
 
-enum SimpleButtonActions { ok, cancel, validate, copy, move, delete, listRemove, listClear }
-
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
 
@@ -431,7 +429,7 @@ class _MyHomePageState extends State<MyHomePage> {
             true,
             false,
             (action, text, type) {
-              if (action == "OK") {
+              if (action == SimpleButtonActions.ok) {
                 _handleRenameState(detailActionData, text, type);
               }
             },
@@ -455,10 +453,10 @@ class _MyHomePageState extends State<MyHomePage> {
             false,
             false,
             (action, text, type) {
-              if (action == "OK") {
+              if (action == SimpleButtonActions.ok) {
                 _handleEditState(detailActionData, text, type);
               } else {
-                if (action == "link") {
+                if (action == SimpleButtonActions.link) {
                   _implementLinkState(text, detailActionData.path.last);
                 }
               }
@@ -516,7 +514,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
               _showModalInputDialog(context, "New Group Name", "", [], OptionsTypeData.empty(), false, false, (action, text, type) {
-                if (action == "OK") {
+                if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataGroup);
                 }
               }, (initial, value, initialType, valueType) {
@@ -531,7 +529,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
               _showModalInputDialog(context, "New Detail Name", "", [], OptionsTypeData.empty(), false, false, (action, text, type) {
-                if (action == "OK") {
+                if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataValue);
                 }
               }, (initial, value, initialType, valueType) {
@@ -541,19 +539,51 @@ class _MyHomePageState extends State<MyHomePage> {
           });
           break;
         }
-      case ActionType.save:
-        {
-          _saveDataState(_loadedData.password);
-          break;
-        }
       case ActionType.createFile:
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
               _showFileNamePasswordDialog(context, "New File", ["Password if required:", "Enter a valid file name:", "The extension is added automatically."], (action, fileName, password) {
-                if (action == SimpleButtonActions.validate) {
+                if (fileName.isEmpty) {
+                  return "Cannot be empty";
                 }
-                if (action == SimpleButtonActions.ok) {
+                if (fileName.contains(".")) {
+                  return "Don't add an extension";
+                }
+                final fn = password.isEmpty ? "$fileName.json" : "$fileName.data";
+
+                if (_configData.localFileExists(fn).isNotEmpty) {
+                  return "$fn Exists";
+                }
+                 if (action == SimpleButtonActions.ok) {
+                  final content = DataContainer.staticDataToStringFormattedWithTs(_configData.getMinimumDataContentMap(), password, addTimeStamp: true);
+                  final success = DataContainer.saveToFile(_configData.getDataFileLocalAlt(fn), content);
+                  _globalSuccessState = success;
+                  if (success.isFail) {
+                    log("__CREATE__ Failed. ${success.message}");
+                    Timer(const Duration(milliseconds: 1), () {
+                      if (mounted) {
+                        _showModalButtonsDialog(context, "Create File Failed", ["Reason - ${success.message}", "No changes were made"], ["Acknowledge"], Path.empty(), (path, button) {
+                          setState(() {});
+                        });
+                      }
+                    });
+                  } else {
+                    Timer(const Duration(milliseconds: 1), () {
+                      if (mounted) {
+                        _showModalButtonsDialog(context, "Create File:", ["Make this your new file", "Continue with existing file"], ["NEW", "CONTINUE"], Path.empty(), (path, button) {
+                          setState(() {
+                            if (button == "NEW") {
+                              _configData.setValueForJsonPath(dataFileLocalNamePath, fn);
+                              _configData.save(log);
+                              _configData.update(callOnUpdate: false);
+                              _loadedData = DataContainer.empty();
+                            }
+                          });
+                        });
+                      }
+                    });
+                  }
                 }
                 return "";
               });
@@ -578,12 +608,17 @@ class _MyHomePageState extends State<MyHomePage> {
           }
           break;
         }
+      case ActionType.save:
+        {
+          _saveDataState(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
+          break;
+        }
       case ActionType.saveAlt:
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              _showModalInputDialog(context, _loadedData.hasPassword ? "Confirm Password" : "New Password", "", [], OptionsTypeData.empty(), false, true, (action, pw, type) {
-                if (action == "OK") {
+              _showModalInputDialog(context, _loadedData.hasPassword ? "Confirm Password" : "New Password", "", [], OptionsTypeData.empty(), false, true, (button, pw, type) {
+                if (button == SimpleButtonActions.ok) {
                   if (_loadedData.hasPassword) {
                     // Confirm PW (Save un-encrypted)
                     log("__SAVE__ Data as plain text");
@@ -593,7 +628,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     log("__SAVE__ Data as ENCRYPTED text");
                     _loadedData.password = pw;
                   }
-                  _saveDataState(_loadedData.password);
+                  _saveDataState(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
                 }
               }, (initial, value, initialType, valueType) {
                 if (_loadedData.hasPassword) {
@@ -622,8 +657,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Path.empty();
   }
 
-  Future<void> _saveDataState(String pw) async {
-    final String content = _loadedData.dataToStringFormattedWithTs(pw);
+  Future<void> _saveDataState(final String content) async {
     final localSaveState = DataContainer.saveToFile(_configData.getDataFileLocal(), content);
     int success = 0;
     final String lm;
@@ -978,7 +1012,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Path.empty(),
           (path, button) {
             if (button == "SAVE") {
-              _saveDataState(_loadedData.password);
+              _saveDataState(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
             }
             if (button == "CANCEL") {
               shouldExit = false;
@@ -1118,7 +1152,7 @@ class _MyHomePageState extends State<MyHomePage> {
         iconData: Icons.save,
         tooltip: "Save",
         onPressed: () {
-          _saveDataState(_loadedData.password);
+          _saveDataState(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
         },
       ));
       if (_isEditDataDisplay) {
@@ -1144,8 +1178,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   return Icons.refresh;
                 }),
                 MenuOptionDetails("New data file", "Create a new data file", ActionType.createFile, () {
-                  return Icons.post_add;
-                }),
+                  return _dataWasUpdated ? Icons.disabled_by_default_outlined : Icons.post_add;
+                }, enabled: !_dataWasUpdated),
                 MenuOptionDetails("Add NEW Group", "Add a new group to '%{3}'", ActionType.addGroup, () {
                   return Icons.add_box_outlined;
                 }),
@@ -1483,22 +1517,26 @@ Future<void> _showOptionsDialog(final BuildContext context, final Path path, fin
         child: ListView(
           children: [
             for (int i = 0; i < menuOptionsList.length; i++) ...[
-              Card(
-                color: _configData.getAppThemeData().detailBackgroundColor,
-                child: ListTile(
-                  leading: Icon(menuOptionsList[i].icon, color: _configData.getAppThemeData().screenForegroundColour(true)),
-                  title: Container(
-                    padding: const EdgeInsets.all(5.0),
-                    color: _configData.getAppThemeData().dialogBackgroundColor,
-                    child: Text(menuOptionsList[i].s1(sub), style: _configData.getAppThemeData().tsLarge),
-                  ),
-                  subtitle: menuOptionsList[i].hasSubText ? Text(menuOptionsList[i].s2(sub), style: _configData.getAppThemeData().tsMedium) : null,
-                  onTap: () {
-                    onSelect(menuOptionsList[i].action, path);
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ),
+              menuOptionsList[i].enabled
+                  ? Card(
+                      color: _configData.getAppThemeData().detailBackgroundColor,
+                      child: ListTile(
+                        leading: Icon(menuOptionsList[i].icon, color: _configData.getAppThemeData().screenForegroundColour(true)),
+                        title: Container(
+                          padding: const EdgeInsets.all(5.0),
+                          color: _configData.getAppThemeData().dialogBackgroundColor,
+                          child: Text(menuOptionsList[i].s1(sub), style: _configData.getAppThemeData().tsLarge),
+                        ),
+                        subtitle: menuOptionsList[i].hasSubText ? Text(menuOptionsList[i].s2(sub), style: _configData.getAppThemeData().tsMedium) : null,
+                        onTap: () {
+                          if (menuOptionsList[i].enabled) {
+                            onSelect(menuOptionsList[i].action, path);
+                            Navigator.of(context).pop();
+                          }
+                        },
+                      ),
+                    )
+                  : SizedBox(height: 0),
             ]
           ],
         ),
@@ -1529,11 +1567,12 @@ Future<void> _showFileNamePasswordDialog(final BuildContext context, final Strin
     disable: true,
     appThemeData: theme,
     onPressed: () {
-      onAction(SimpleButtonActions.validate, fileName, password);
+      onAction(SimpleButtonActions.ok, fileName, password);
+      Navigator.of(context).pop();
     },
   );
 
-  content.add(ValidatedInputField(
+  final fileNameInput = ValidatedInputField(
     options: [],
     isPassword: false,
     hasButtons: false,
@@ -1545,15 +1584,12 @@ Future<void> _showFileNamePasswordDialog(final BuildContext context, final Strin
       Navigator.of(context).pop();
     },
     onValidate: (ix, vx, it, vt) {
+      debugPrint("VALIDATE $vx");
       var message = "";
       if (vx.length < 2) {
         message = "Must be longer than 2";
       } else {
-        if (vx.contains('.')) {
-          message = "Don't specify an extension";
-        } else {
-          message = onAction(SimpleButtonActions.validate, vx, password);
-        }
+        message = onAction(SimpleButtonActions.validate, vx, password);
       }
       if (message.isEmpty) {
         fileName = vx;
@@ -1561,7 +1597,9 @@ Future<void> _showFileNamePasswordDialog(final BuildContext context, final Strin
       okButton.setDisabled(message.isNotEmpty);
       return message;
     },
-  ));
+  );
+
+  content.add(fileNameInput);
   content.add(separator);
   content.add(Text(info[0], style: theme.tsMedium));
   content.add(ValidatedInputField(
@@ -1577,15 +1615,17 @@ Future<void> _showFileNamePasswordDialog(final BuildContext context, final Strin
     },
     onValidate: (ix, vx, it, vt) {
       var message = "";
-      if (vx.length < 2) {
-        message = "Must be longer than 8";
-      } else {
-        message = onAction(SimpleButtonActions.validate, fileName, vx);
+      if (vx.isNotEmpty && vx.length <= 4) {
+        message = "Must be longer than 4";
       }
       if (message.isEmpty) {
         password = vx;
+        okButton.setDisabled(false);
+      } else {
+        password = "";
+        okButton.setDisabled(true);
       }
-      okButton.setDisabled(message.isNotEmpty);
+      fileNameInput.reValidate();
       return message;
     },
   ));
@@ -1902,12 +1942,16 @@ Future<void> _showModalButtonsDialog(final BuildContext context, final String ti
   );
 }
 
-Future<void> _showModalInputDialog(final BuildContext context, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(String, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
+Future<void> _showModalInputDialog(final BuildContext context, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
+  var updatedText = currentValue;
   var okButton = DetailButton(
     text: "OK",
     disable: true,
     appThemeData: _configData.getAppThemeData(),
-    onPressed: () {},
+    onPressed: () {
+      onAction(SimpleButtonActions.ok, updatedText, optionTypeDataSimple);
+      Navigator.of(context).pop();
+    },
   );
 
   return showDialog<void>(
@@ -1924,9 +1968,10 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                   ? MarkDownInputField(
                       appThemeData: _configData.getAppThemeData(),
                       initialText: currentValue,
-                      onClose: (action, text, type) {
-                        onAction(action, text, type);
-                        Navigator.of(context).pop();
+                      onValidate: (ix, vx, it, vt) {
+                        okButton.setDisabled(ix == vx);
+                        updatedText = vx;
+                        return "";
                       },
                       height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
                       width: MediaQuery.of(context).size.width,
@@ -1949,7 +1994,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                         return _shouldDisplayMarkdownPreview;
                       },
                       dataAction: (detailAction) {
-                        onAction(detailAction.action.name, detailAction.oldValue, OptionsTypeData.forTypeOrName(String, "link"));
+                        onAction(SimpleButtonActions.link, detailAction.oldValue, OptionsTypeData.forTypeOrName(String, "link"));
                         return Path.empty();
                       },
                     )
@@ -1967,8 +2012,12 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                       },
                       onValidate: (ix, vx, it, vt) {
                         final validMsg = externalValidate(ix.trim(), vx.trim(), it, vt);
-                        debugPrint("setDis");
-                        okButton.setDisabled(validMsg.isNotEmpty);
+                        if (validMsg.isEmpty) {
+                          okButton.setDisabled(false);
+                          updatedText = vx;
+                        } else {
+                          okButton.setDisabled(true);
+                        }
                         return validMsg;
                       },
                     ),

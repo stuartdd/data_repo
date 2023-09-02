@@ -245,15 +245,17 @@ class _OptionListWidgetState extends State<OptionListWidget> {
 
 class MarkDownInputField extends StatefulWidget {
   final String initialText;
-  final void Function(String, String, OptionsTypeData) onClose;
   final double height;
   final double width;
   final AppThemeData appThemeData;
   final bool Function(bool) shouldDisplayHelp;
   final bool Function(bool) shouldDisplayPreview;
+  final String Function(String, String, OptionsTypeData, OptionsTypeData) onValidate;
+
+
   final Path Function(DetailAction) dataAction;
 
-  const MarkDownInputField({super.key, required this.initialText, required this.onClose, required this.height, required this.width, required this.shouldDisplayHelp, required this.shouldDisplayPreview, required this.dataAction, required this.appThemeData});
+  const MarkDownInputField({super.key, required this.initialText, required this.onValidate, required this.height, required this.width, required this.shouldDisplayHelp, required this.shouldDisplayPreview, required this.dataAction, required this.appThemeData});
   @override
   State<MarkDownInputField> createState() => _MarkDownInputField();
 }
@@ -320,28 +322,15 @@ class _MarkDownInputField extends State<MarkDownInputField> {
               maxLines: null,
               expands: true,
               onChanged: (value) {
-                setState(() {});
+                setState(() {
+                  widget.onValidate(widget.initialText, controller.text, optionTypeDataString, optionTypeDataString);
+                });
               },
             ),
           ),
           Row(
             children: [
-              DetailButton(
-                show: controller.text != widget.initialText,
-                appThemeData: widget.appThemeData,
-                text: 'OK',
-                onPressed: () {
-                  widget.onClose("OK", controller.text, optionTypeDataMarkDown);
-                },
-              ),
-              DetailButton(
-                appThemeData: widget.appThemeData,
-                text: 'Cancel',
-                onPressed: () {
-                  widget.onClose("Cancel", widget.initialText, optionTypeDataMarkDown);
-                },
-              ),
-              DetailButton(
+               DetailButton(
                 appThemeData: widget.appThemeData,
                 text: widget.shouldDisplayHelp(false) ? 'Hide Help' : "Show Help",
                 onPressed: () {
@@ -375,10 +364,17 @@ class ValidatedInputField extends StatefulWidget {
   final String prompt;
   final bool isPassword;
   final bool hasButtons;
-  final void Function(String, String, OptionsTypeData) onClose;
+  final void Function(SimpleButtonActions, String, OptionsTypeData) onClose;
   final String Function(String, String, OptionsTypeData, OptionsTypeData) onValidate;
   final controller = TextEditingController();
   final AppThemeData appThemeData;
+  void Function()? _reValidate;
+
+  void reValidate() {
+    if (_reValidate != null) {
+      _reValidate;
+    }
+  }
 
   @override
   State<ValidatedInputField> createState() => _ValidatedInputFieldState();
@@ -404,6 +400,10 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
     help = widget.onValidate(initial, current, initialOption, currentOption);
     currentIsValid = help.isEmpty;
     obscurePw = widget.isPassword;
+    widget._reValidate = () {
+      
+       _validate();
+    };
   }
 
   void _validate() {
@@ -490,7 +490,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                 onSubmitted: (value) {
                   _validate();
                   if (currentIsValid) {
-                    widget.onClose("OK", current, currentOption);
+                    widget.onClose(SimpleButtonActions.ok, current, currentOption);
                   }
                 },
                 decoration: const InputDecoration(
