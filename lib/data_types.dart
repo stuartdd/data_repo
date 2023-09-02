@@ -54,10 +54,6 @@ class OptionsTypeData {
   final int max;
   const OptionsTypeData(this.elementType, this.key, this.description, {this.suffix = "", this.min = -maxIntValue, this.max = maxIntValue});
 
-  factory OptionsTypeData.empty() {
-    return optionsDataTypeEmpty;
-  }
-
   static OptionsTypeData locateTypeInOptionsList(String key, List<OptionsTypeData> l, OptionsTypeData fallback) {
     for (int i = 0; i < l.length; i++) {
       if (l[i].key == key) {

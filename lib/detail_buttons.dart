@@ -101,7 +101,7 @@ class _DetailIconButton extends State<DetailIconButton> {
 }
 
 class DetailButton extends StatefulWidget {
-  DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = 100, this.show = true, this.disable= false, required this.appThemeData});
+  DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = 100, this.show = true, this.disable = false, required this.appThemeData});
   final bool show;
   final bool disable;
   final AppThemeData appThemeData;
@@ -113,6 +113,8 @@ class DetailButton extends StatefulWidget {
   void setDisabled(bool dis) {
     if (_setDisabled != null) {
       _setDisabled!(dis);
+    } else {
+      debugPrint("DetailButton _setDisabled is null");
     }
   }
 
@@ -252,7 +254,6 @@ class MarkDownInputField extends StatefulWidget {
   final bool Function(bool) shouldDisplayPreview;
   final String Function(String, String, OptionsTypeData, OptionsTypeData) onValidate;
 
-
   final Path Function(DetailAction) dataAction;
 
   const MarkDownInputField({super.key, required this.initialText, required this.onValidate, required this.height, required this.width, required this.shouldDisplayHelp, required this.shouldDisplayPreview, required this.dataAction, required this.appThemeData});
@@ -330,7 +331,7 @@ class _MarkDownInputField extends State<MarkDownInputField> {
           ),
           Row(
             children: [
-               DetailButton(
+              DetailButton(
                 appThemeData: widget.appThemeData,
                 text: widget.shouldDisplayHelp(false) ? 'Hide Help' : "Show Help",
                 onPressed: () {
@@ -357,22 +358,22 @@ class _MarkDownInputField extends State<MarkDownInputField> {
 }
 
 class ValidatedInputField extends StatefulWidget {
-  ValidatedInputField({super.key, required this.initialValue, required this.isPassword, required this.hasButtons, required this.onClose, required this.onValidate, required this.prompt, required this.options, required this.initialOption, required this.appThemeData});
+  ValidatedInputField({super.key, this.initialValue = "", this.isPassword = false, this.onSubmit = null, required this.onValidate, required this.prompt, this.options = const [], this.initialOption = optionsDataTypeEmpty, required this.appThemeData});
   final String initialValue;
   final List<OptionsTypeData> options;
   final OptionsTypeData initialOption;
   final String prompt;
   final bool isPassword;
-  final bool hasButtons;
-  final void Function(SimpleButtonActions, String, OptionsTypeData) onClose;
+  final void Function(String, OptionsTypeData)? onSubmit;
   final String Function(String, String, OptionsTypeData, OptionsTypeData) onValidate;
   final controller = TextEditingController();
   final AppThemeData appThemeData;
-  void Function()? _reValidate;
-
-  void reValidate() {
+  void Function(String)? _reValidate;
+  void reValidate({String id = ""}) {
     if (_reValidate != null) {
-      _reValidate;
+      _reValidate!(id);
+    } else {
+      debugPrint("ValidatedInputField _reValidate(id=$id) is null");
     }
   }
 
@@ -381,12 +382,11 @@ class ValidatedInputField extends StatefulWidget {
 }
 
 class _ValidatedInputFieldState extends State<ValidatedInputField> {
-  String help = "";
+  String validateResponse = "";
   String initial = "";
   String current = "";
   OptionsTypeData initialOption = optionTypeDataNotFound;
   OptionsTypeData currentOption = optionTypeDataNotFound;
-  bool currentIsValid = false;
   bool obscurePw = true;
 
   @override
@@ -397,25 +397,21 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
     initialOption = widget.initialOption;
     currentOption = initialOption;
     widget.controller.text = current;
-    help = widget.onValidate(initial, current, initialOption, currentOption);
-    currentIsValid = help.isEmpty;
+    validateResponse = widget.onValidate(initial, current, initialOption, currentOption);
     obscurePw = widget.isPassword;
-    widget._reValidate = () {
-      
-       _validate();
+    widget._reValidate = (id) {
+      _validate();
     };
   }
 
   void _validate() {
     setState(() {
-      help = widget.onValidate(initial, current, initialOption, currentOption);
-      currentIsValid = help.isEmpty;
+      validateResponse = widget.onValidate(initial, current, initialOption, currentOption);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool showOkButton = (current != initial || currentOption.notEqual(initialOption));
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -451,7 +447,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                 ],
               )
             : const SizedBox(height: 10),
-        (help.isEmpty)
+        (validateResponse.isEmpty)
             ? const SizedBox(
                 height: 0,
               )
@@ -460,7 +456,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                   alignment: Alignment.centerLeft,
                   color: widget.appThemeData.error.light,
                   child: Text(
-                    " $help ",
+                    " $validateResponse ",
                     style: widget.appThemeData.tsMedium,
                   ),
                 ),
@@ -488,9 +484,10 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                   _validate();
                 },
                 onSubmitted: (value) {
+                  current = value;
                   _validate();
-                  if (currentIsValid) {
-                    widget.onClose(SimpleButtonActions.ok, current, currentOption);
+                  if (validateResponse.isEmpty && widget.onSubmit != null) {
+                    widget.onSubmit!(current, currentOption);
                   }
                 },
                 decoration: const InputDecoration(

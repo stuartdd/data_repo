@@ -513,7 +513,7 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              _showModalInputDialog(context, "New Group Name", "", [], OptionsTypeData.empty(), false, false, (action, text, type) {
+              _showModalInputDialog(context, "New Group Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataGroup);
                 }
@@ -528,7 +528,7 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              _showModalInputDialog(context, "New Detail Name", "", [], OptionsTypeData.empty(), false, false, (action, text, type) {
+              _showModalInputDialog(context, "New Detail Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataValue);
                 }
@@ -543,19 +543,18 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              _showFileNamePasswordDialog(context, "New File", ["Password if required:", "Enter a valid file name:", "The extension is added automatically."], (action, fileName, password) {
-                if (fileName.isEmpty) {
-                  return "Cannot be empty";
-                }
-                if (fileName.contains(".")) {
-                  return "Don't add an extension";
-                }
+              _showFileNamePasswordDialog(context, "New File", [
+                "Password if encryption is required:",
+                "Enter a valid file name:",
+                "File extension is added automatically.",
+                "Un-Encrypted extension = .json",
+                "Encrypted extension = .data",
+              ], (action, fileName, password) {
                 final fn = password.isEmpty ? "$fileName.json" : "$fileName.data";
-
                 if (_configData.localFileExists(fn).isNotEmpty) {
-                  return "$fn Exists";
+                  return "${password.isNotEmpty ? "Encrypted" : ""} file '$fn' Exists";
                 }
-                 if (action == SimpleButtonActions.ok) {
+                if (action == SimpleButtonActions.ok) {
                   final content = DataContainer.staticDataToStringFormattedWithTs(_configData.getMinimumDataContentMap(), password, addTimeStamp: true);
                   final success = DataContainer.saveToFile(_configData.getDataFileLocalAlt(fn), content);
                   _globalSuccessState = success;
@@ -571,7 +570,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   } else {
                     Timer(const Duration(milliseconds: 1), () {
                       if (mounted) {
-                        _showModalButtonsDialog(context, "Create File:", ["Make this your new file", "Continue with existing file"], ["NEW", "CONTINUE"], Path.empty(), (path, button) {
+                        _showModalButtonsDialog(context, "Create File:", ["Make this your NEW file","or", "Continue with EXISTING file"], ["NEW", "EXISTING"], Path.empty(), (path, button) {
                           setState(() {
                             if (button == "NEW") {
                               _configData.setValueForJsonPath(dataFileLocalNamePath, fn);
@@ -617,7 +616,7 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              _showModalInputDialog(context, _loadedData.hasPassword ? "Confirm Password" : "New Password", "", [], OptionsTypeData.empty(), false, true, (button, pw, type) {
+              _showModalInputDialog(context, _loadedData.hasPassword ? "Confirm Password" : "New Password", "", [], optionsDataTypeEmpty, false, true, (button, pw, type) {
                 if (button == SimpleButtonActions.ok) {
                   if (_loadedData.hasPassword) {
                     // Confirm PW (Save un-encrypted)
@@ -1573,23 +1572,18 @@ Future<void> _showFileNamePasswordDialog(final BuildContext context, final Strin
   );
 
   final fileNameInput = ValidatedInputField(
-    options: [],
-    isPassword: false,
-    hasButtons: false,
-    initialOption: OptionsTypeData.empty(),
     prompt: "File Name",
-    initialValue: "",
     appThemeData: _configData.getAppThemeData(),
-    onClose: (action, text, type) {
-      Navigator.of(context).pop();
-    },
     onValidate: (ix, vx, it, vt) {
-      debugPrint("VALIDATE $vx");
       var message = "";
       if (vx.length < 2) {
-        message = "Must be longer than 2";
+        message = "Must be longer than 2 characters";
       } else {
-        message = onAction(SimpleButtonActions.validate, vx, password);
+        if (fileName.contains(".")) {
+          message = "Don't add an extension";
+        } else {
+          message = onAction(SimpleButtonActions.validate, vx, password);
+        }
       }
       if (message.isEmpty) {
         fileName = vx;
@@ -1599,20 +1593,10 @@ Future<void> _showFileNamePasswordDialog(final BuildContext context, final Strin
     },
   );
 
-  content.add(fileNameInput);
-  content.add(separator);
-  content.add(Text(info[0], style: theme.tsMedium));
-  content.add(ValidatedInputField(
-    options: [],
+  final passwordInput = ValidatedInputField(
     isPassword: true,
-    hasButtons: false,
-    initialOption: OptionsTypeData.empty(),
     prompt: "Password",
-    initialValue: "",
     appThemeData: _configData.getAppThemeData(),
-    onClose: (action, text, type) {
-      Navigator.of(context).pop();
-    },
     onValidate: (ix, vx, it, vt) {
       var message = "";
       if (vx.isNotEmpty && vx.length <= 4) {
@@ -1620,15 +1604,18 @@ Future<void> _showFileNamePasswordDialog(final BuildContext context, final Strin
       }
       if (message.isEmpty) {
         password = vx;
-        okButton.setDisabled(false);
       } else {
         password = "";
-        okButton.setDisabled(true);
       }
-      fileNameInput.reValidate();
+      fileNameInput.reValidate(id: "xxx");
       return message;
     },
-  ));
+  );
+
+  content.add(fileNameInput);
+  content.add(separator);
+  content.add(Text(info[0], style: theme.tsMedium));
+  content.add(passwordInput);
 
   return showDialog<void>(
     context: context,
@@ -2001,13 +1988,12 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                   : ValidatedInputField(
                       options: options,
                       isPassword: isPassword,
-                      hasButtons: true,
                       initialOption: currentOption,
-                      prompt: "Input: ${isRename ? "New Name" : "[type]"}",
                       initialValue: currentValue,
+                      prompt: "Input: ${isRename ? "New Name" : "[type]"}",
                       appThemeData: _configData.getAppThemeData(),
-                      onClose: (action, text, type) {
-                        onAction(action, text, type);
+                      onSubmit: (text, type) {
+                        onAction(SimpleButtonActions.ok, text, type);
                         Navigator.of(context).pop();
                       },
                       onValidate: (ix, vx, it, vt) {
