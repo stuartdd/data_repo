@@ -108,81 +108,60 @@ class _DetailWidgetState extends State<DetailWidget> {
   }
 
   Widget _rowForString(final String value, final AppThemeData appThemeData, final bool updated, final TextStyle ts) {
-    return Row(
-      children: [
-        for (int i = 0; i < value.length; i++) ...[
-          Container(
-            color: appThemeData.primaryOrSecondaryPallet(updated).light,
-            width: (i < 9) ? 20 : 32,
-            child: Text(
-              (i < 9) ? value[i] : " ${value[i]}",
-              style: ts,
-            ),
-          ),
-          Container(
-            color: appThemeData.screenForegroundColour(true),
-            width: 2,
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _rowForPosition(final int last, final AppThemeData appThemeData, final bool updated, final TextStyle ts) {
-    return Row(
-      children: [
-        for (int i = 0; i < last; i++) ...[
-          Container(
-            color: (i % 2 == 0) ? appThemeData.primaryOrSecondaryPallet(updated).med : appThemeData.primaryOrSecondaryPallet(updated).medDark,
-            width: (i < 9) ? 20 : 32,
-            child: Text(
-              "${i + 1}",
-              style: ts,
-            ),
-          ),
-          Container(
-            color: appThemeData.screenForegroundColour(true),
-            width: 2,
-          ),
-        ],
-      ],
-    );
+    return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Container(color: Colors.black, width: 2),
+            for (int i = 0; i < value.length; i++) ...[
+              Container(
+                padding: EdgeInsets.all(2.0),
+                color: appThemeData.primary.light,
+                width: i < 10 ? 25 : 30,
+                child: Column(children: [
+                  SizedBox(height: 5,),
+                  Text(
+                    "$i",
+                    style: ts,
+                  ),
+                  SizedBox(height: 5,),
+                  Container(color: appThemeData.screenForegroundColour(true), height: 2),
+                  SizedBox(height: 10,),
+                  Text(
+                    (i < 9) ? value[i] : " ${value[i]}",
+                    style: ts,
+                  ),
+                  SizedBox(height: 5,),
+                ]),
+              ),
+              Container(color: Colors.black, width: 2),
+            ],
+          ],
+        ));
   }
 
   Widget _cardForValue(final DataValueDisplayRow dataValueRow, final AppThemeData appThemeData, final PathProperties plp) {
     if (dataValueRow.type.equal(optionTypeDataPositional)) {
-      return Card(
-        margin: const EdgeInsets.all(5.0),
+      return Container(
+        height: 80,
         color: appThemeData.selectedAndHiLightColour(true, plp.updated),
-        child: Column(
-          children: [
-            _rowForPosition(dataValueRow.value.length, appThemeData, plp.updated, appThemeData.tsMedium),
-            Container(
-              color: Colors.black,
-              height: 2,
-            ),
-            _rowForString(dataValueRow.value, appThemeData, plp.updated, appThemeData.tsMedium),
-          ],
-        ),
+        child: _rowForString(dataValueRow.value, appThemeData, plp.updated, appThemeData.tsMediumBold),
       );
     }
     if (dataValueRow.type.equal(optionTypeDataMarkDown)) {
-      return Card(
-        margin: const EdgeInsets.all(5.0),
+      return Container(
         color: appThemeData.selectedAndHiLightColour(true, plp.updated),
-        child: SizedBox(
-          child: Markdown(
-            data: dataValueRow.value,
-            selectable: true,
-            shrinkWrap: true,
-            styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
-            onTapLink: doOnTapLink,
-          ),
+        child: Markdown(
+          data: dataValueRow.value,
+          selectable: true,
+          shrinkWrap: true,
+          styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
+          onTapLink: doOnTapLink,
         ),
       );
     }
-    return Card(
-      margin: const EdgeInsets.all(5.0),
+    return Container(
       color: appThemeData.selectedAndHiLightColour(true, plp.updated),
       child: Padding(padding: const EdgeInsets.all(5.0), child: Text(dataValueRow.value, style: appThemeData.tsLarge)),
     );
@@ -202,8 +181,7 @@ class _DetailWidgetState extends State<DetailWidget> {
           subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: appThemeData.tsSmall) : null,
         ),
         SizedBox(
-          width: double.infinity,
-          child: _cardForValue(widget.dataValueRow, appThemeData, pathProperties),
+          child: Padding(padding: const EdgeInsets.all(5.0), child: _cardForValue(widget.dataValueRow, appThemeData, pathProperties)),
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
