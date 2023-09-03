@@ -436,13 +436,14 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
             ? Row(
                 children: [
                   IconButton(
+                    color: widget.appThemeData.screenForegroundColour(true),
                       onPressed: () {
                         setState(() {
                           obscurePw = !obscurePw;
                         });
                       },
                       icon: Icon(obscurePw ? Icons.visibility : Icons.visibility_outlined)),
-                  Text(obscurePw ? "Show password" : "Hide password")
+                  Text(obscurePw ? "Show password" : "Hide password", style: widget.appThemeData.tsMedium)
                 ],
               )
             : const SizedBox(height: 10),
@@ -477,7 +478,6 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                 obscureText: widget.isPassword && obscurePw,
                 style: widget.appThemeData.tsMedium,
                 cursorColor: widget.appThemeData.cursorColor,
-                autofocus: true,
                 onChanged: (value) {
                   current = value;
                   _validate();
@@ -489,8 +489,11 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                     widget.onSubmit!(current, currentOption);
                   }
                 },
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: widget.appThemeData.primary.light
                 ),
               ),
       ],

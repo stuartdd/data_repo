@@ -1579,7 +1579,7 @@ Future<void> _showFileNamePasswordDialog(final BuildContext context, final Strin
       if (vx.length < 2) {
         message = "Must be longer than 2 characters";
       } else {
-        if (fileName.contains(".")) {
+        if (vx.contains(".")) {
           message = "Don't add an extension";
         } else {
           message = onAction(SimpleButtonActions.validate, vx, password);
