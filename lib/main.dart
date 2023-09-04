@@ -73,7 +73,12 @@ class MyApp extends StatelessWidget with WindowListener {
 
   @override
   onWindowEvent(final String eventName) async {
+    debugPrint("EN:$eventName");
     switch (eventName) {
+      case 'close':
+        {
+          return;
+        }
       case 'maximize':
       case 'minimize':
         {
@@ -84,10 +89,6 @@ class MyApp extends StatelessWidget with WindowListener {
         {
           _applicationState.screenNotMaximised = true;
           break;
-        }
-      case 'close':
-        {
-          return;
         }
       case 'move':
       case 'resize':
@@ -374,6 +375,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
                         _pathPropertiesList.clearAllGroupSelectDone(
                           (path) {
+                            if (path.isEmpty) {
+                              return false;
+                            }
                             return (_loadedData.getNodeFromJson(path) != null);
                           },
                         );
@@ -570,7 +574,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   } else {
                     Timer(const Duration(milliseconds: 1), () {
                       if (mounted) {
-                        _showModalButtonsDialog(context, "Create File:", ["Make this your NEW file","or", "Continue with EXISTING file"], ["NEW", "EXISTING"], Path.empty(), (path, button) {
+                        _showModalButtonsDialog(context, "Create File:", ["Make this your NEW file", "or", "Continue with EXISTING file"], ["NEW", "EXISTING"], Path.empty(), (path, button) {
                           setState(() {
                             if (button == "NEW") {
                               _configData.setValueForJsonPath(dataFileLocalNamePath, fn);
@@ -1755,7 +1759,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 text: "MOVE",
                 show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
-                  onAction(SimpleButtonActions.move, Path.empty());
+                  onAction(SimpleButtonActions.move, into);
                   Navigator.of(context).pop();
                 },
               ),
@@ -1931,12 +1935,14 @@ Future<void> _showModalButtonsDialog(final BuildContext context, final String ti
 
 Future<void> _showModalInputDialog(final BuildContext context, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
   var updatedText = currentValue;
+  var updatedType = currentOption;
+
   var okButton = DetailButton(
     text: "OK",
     disable: true,
     appThemeData: _configData.getAppThemeData(),
     onPressed: () {
-      onAction(SimpleButtonActions.ok, updatedText, optionTypeDataSimple);
+      onAction(SimpleButtonActions.ok, updatedText, updatedType);
       Navigator.of(context).pop();
     },
   );
@@ -1958,6 +1964,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                       onValidate: (ix, vx, it, vt) {
                         okButton.setDisabled(ix == vx);
                         updatedText = vx;
+                        updatedType = vt;
                         return "";
                       },
                       height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
@@ -2001,6 +2008,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                         if (validMsg.isEmpty) {
                           okButton.setDisabled(false);
                           updatedText = vx;
+                          updatedType = vt;
                         } else {
                           okButton.setDisabled(true);
                         }

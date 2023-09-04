@@ -107,51 +107,63 @@ class _DetailWidgetState extends State<DetailWidget> {
     return _detailForMap(widget.appThemeData, hiLight, widget.isHorizontal);
   }
 
-  Widget _rowForString(final String value, final AppThemeData appThemeData, final bool updated, final TextStyle ts) {
-    return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            Container(color: Colors.black, width: 2),
-            for (int i = 0; i < value.length; i++) ...[
-              Container(
-                padding: EdgeInsets.all(2.0),
-                color: appThemeData.primary.light,
-                width: i < 10 ? 25 : 30,
-                child: Column(children: [
-                  SizedBox(height: 5,),
-                  Text(
-                    "$i",
-                    style: ts,
-                  ),
-                  SizedBox(height: 5,),
-                  Container(color: appThemeData.screenForegroundColour(true), height: 2),
-                  SizedBox(height: 10,),
-                  Text(
-                    (i < 9) ? value[i] : " ${value[i]}",
-                    style: ts,
-                  ),
-                  SizedBox(height: 5,),
-                ]),
-              ),
-              Container(color: Colors.black, width: 2),
-            ],
-          ],
-        ));
+  List<Widget> _tableRowForString(final String value, final bool updated, final TextStyle ts, final Color bg, final Color fg, final int height) {
+    List<Widget> l = [];
+    for (int i = 0; i < value.length; i++) {
+      l.add(Container(
+        alignment: Alignment.center,
+        height: height / 2,
+        color: bg,
+        child: Text(
+          value[i],
+          style: ts,
+        ),
+      ));
+    }
+    return l;
+  }
+
+  List<Widget> _tableRowForIndex(final int last, final bool updated, final TextStyle ts, final Color bg, final Color fg, final int height) {
+    List<Widget> l = [];
+    for (int i = 0; i < last; i++) {
+      l.add(Container(
+        alignment: Alignment.center,
+        height: height / 2,
+        color: bg,
+        child: Text(
+          "$i",
+          style: ts,
+        ),
+      ));
+    }
+    return l;
+  }
+
+  Widget _tableForString(final String value, final bool updated, final TextStyle ts1, final TextStyle ts2, final Color bg, final Color fg, final int height) {
+    return Table(
+      defaultVerticalAlignment: TableCellVerticalAlignment.top,
+      border: TableBorder.all(color: fg),
+      children: <TableRow>[
+        TableRow(children: _tableRowForIndex(value.length, updated, ts1, bg, fg, height)),
+        TableRow(children: _tableRowForString(value, updated, ts2, bg, fg, height)),
+      ],
+    );
   }
 
   Widget _cardForValue(final DataValueDisplayRow dataValueRow, final AppThemeData appThemeData, final PathProperties plp) {
+    final bgColour = appThemeData.selectedAndHiLightColour(true, plp.updated);
+    final fgColour = appThemeData.screenForegroundColour(true);
+
     if (dataValueRow.type.equal(optionTypeDataPositional)) {
       return Container(
-        height: 80,
-        color: appThemeData.selectedAndHiLightColour(true, plp.updated),
-        child: _rowForString(dataValueRow.value, appThemeData, plp.updated, appThemeData.tsMediumBold),
+        alignment: Alignment.center,
+        child: _tableForString(dataValueRow.value, plp.updated, appThemeData.tsSmall, appThemeData.tsMediumBold, bgColour, fgColour, 70),
       );
     }
     if (dataValueRow.type.equal(optionTypeDataMarkDown)) {
       return Container(
-        color: appThemeData.selectedAndHiLightColour(true, plp.updated),
+        color: bgColour,
+        alignment: Alignment.centerLeft,
         child: Markdown(
           data: dataValueRow.value,
           selectable: true,
@@ -162,26 +174,31 @@ class _DetailWidgetState extends State<DetailWidget> {
       );
     }
     return Container(
-      color: appThemeData.selectedAndHiLightColour(true, plp.updated),
+      color: bgColour,
+      alignment: Alignment.centerLeft,
       child: Padding(padding: const EdgeInsets.all(5.0), child: Text(dataValueRow.value, style: appThemeData.tsLarge)),
     );
   }
 
   Widget _detailForValue(final AppThemeData appThemeData, final PathProperties pathProperties, final bool horizontal) {
+    final double rm = widget.dataValueRow.type.equal(optionTypeDataMarkDown) ? 15 : 5;
     return Card(
       color: appThemeData.detailBackgroundColor,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         ListTile(
           leading: groupButton(pathProperties, true, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
           title: Container(
-            padding: const EdgeInsets.all(5.0),
+            padding: const EdgeInsets.all(5),
             color: appThemeData.selectedAndHiLightColour(true, pathProperties.renamed),
             child: Text(widget.dataValueRow.getDisplayName(widget.isEditDataDisplay), style: appThemeData.tsMedium),
           ),
           subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: appThemeData.tsSmall) : null,
         ),
         SizedBox(
-          child: Padding(padding: const EdgeInsets.all(5.0), child: _cardForValue(widget.dataValueRow, appThemeData, pathProperties)),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(5, 0, rm, 10),
+            child: _cardForValue(widget.dataValueRow, appThemeData, pathProperties),
+          ),
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -231,6 +248,9 @@ class _DetailWidgetState extends State<DetailWidget> {
               },
             ),
           ],
+        ),
+        const SizedBox(
+          height: 10,
         ),
       ]),
     );
