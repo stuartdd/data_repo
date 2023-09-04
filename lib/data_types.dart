@@ -14,7 +14,7 @@ enum DisplayType { simpleDisplay, positionalString, markDown }
 
 enum SimpleButtonActions { ok, cancel, validate, copy, move, delete, listRemove, listClear, link }
 
-enum ActionType { none, reload, save, saveAlt, addGroup, addDetail, editItemData, createFile, renameItem, select, querySelect, removeItem, link, clip, group, groupCopy, groupDelete }
+enum ActionType { none, reload, restart, save, saveAlt, addGroup, addDetail, editItemData, createFile, renameItem, select, querySelect, removeItem, link, clip, group, groupCopy, groupDelete }
 
 const int maxIntValue = -1 >>> 1;
 
@@ -271,6 +271,10 @@ class DetailAction {
       case ActionType.reload:
         {
           return "RELOAD: $s";
+        }
+      case ActionType.restart:
+        {
+          return "RESTART: $s";
         }
       case ActionType.save:
         {

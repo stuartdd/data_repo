@@ -65,7 +65,7 @@ class ApplicationState {
   List<String> _lastFind; // A new list is created when a fine is added.
   ApplicationScreen screen; // A new Screen is created each time the screen is updated.
   bool _shouldWriteFile = false;
-  bool _screenNotMaximised = true;
+  bool _saveScreenSizeAndPos = true;
 
   ApplicationState(this.screen, this._lastFind, this._appStateConfigFileName, this.log) {
     countdownTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
@@ -153,8 +153,8 @@ class ApplicationState {
     return ApplicationState(applicationScreen, lastFindList, fileName, log);
   }
 
-  set screenNotMaximised(bool notMax) {
-    _screenNotMaximised = notMax;
+  set saveScreenSizeAndPos(bool save) {
+    _saveScreenSizeAndPos = save;
   }
 
   void updateDividerPosState(final double d) {
@@ -165,7 +165,7 @@ class ApplicationState {
   }
 
   void updateScreenPos(final double x, y, w, h) {
-    if (_screenNotMaximised && appIsDesktop() && screen.posIsNotEqual(x, y, w, h)) {
+    if (_saveScreenSizeAndPos && appIsDesktop() && screen.posIsNotEqual(x, y, w, h)) {
       screen = ApplicationScreen(x.round(), y.round(), w.round(), h.round(), screen._div, screen.isDesktop, isDefault: false);
       _shouldWriteFile = true;
     }

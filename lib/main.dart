@@ -73,7 +73,6 @@ class MyApp extends StatelessWidget with WindowListener {
 
   @override
   onWindowEvent(final String eventName) async {
-    debugPrint("EN:$eventName");
     switch (eventName) {
       case 'close':
         {
@@ -82,19 +81,18 @@ class MyApp extends StatelessWidget with WindowListener {
       case 'maximize':
       case 'minimize':
         {
-          _applicationState.screenNotMaximised = false;
+          _applicationState.saveScreenSizeAndPos = false;
           break;
         }
       case 'unmaximize':
         {
-          _applicationState.screenNotMaximised = true;
+          _applicationState.saveScreenSizeAndPos = true;
           break;
         }
       case 'move':
       case 'resize':
         {
           if (_configData.isDesktop()) {
-            _applicationState.screenNotMaximised = true;
             final info = await getWindowInfo();
             _applicationState.updateScreenPos(info.frame.left, info.frame.top, info.frame.width, info.frame.height);
           }
@@ -251,7 +249,7 @@ class _MyHomePageState extends State<MyHomePage> {
             _showModalButtonsDialog(context, "Data source has Changed", ["If you CONTINUE:", "Saving and Reloading", "will use OLD config data", "and UNSAVED config", "changes may be lost."], ["RESTART", "CONTINUE"], Path.empty(), (path, button) {
               if (button == "RESTART") {
                 setState(() {
-                  _loadedData = DataContainer.empty();
+                  _clearData("Config updated - RESTART");
                   log("__RESTART__ Local file ${_configData.getDataFileLocal()}");
                   log("__RESTART__ Remote file ${_configData.getGetDataFileUrl()}");
                   setWindowTitle("${_configData.getTitle()}: ${_configData.getDataFileName()}");
@@ -580,7 +578,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               _configData.setValueForJsonPath(dataFileLocalNamePath, fn);
                               _configData.save(log);
                               _configData.update(callOnUpdate: false);
-                              _loadedData = DataContainer.empty();
+                              _clearData("New Data File");
                             }
                           });
                         });
@@ -594,6 +592,21 @@ class _MyHomePageState extends State<MyHomePage> {
           });
           break;
         }
+      case ActionType.restart:
+        if (_dataWasUpdated) {
+          Timer(const Duration(milliseconds: 1), () {
+            if (mounted) {
+              _showModalButtonsDialog(context, "Restart Alert", ["Restart - Discard changes", "Cancel - Don't Restart"], ["Restart", "Cancel"], Path.empty(), (p, sel) {
+                if (sel == "RESTART") {
+                  _clearDataState("Application RESTART");
+                }
+              });
+            }
+          });
+        } else {
+          _clearDataState("Application RESTART");
+        }
+        break;
       case ActionType.reload:
         {
           if (_dataWasUpdated) {
@@ -690,10 +703,28 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _clearDataState(String reason) async {
+    setState(() {
+      _clearData(reason);
+    });
+  }
+
+  void _clearData(String reason) async {
+    _loadedData = DataContainer.empty();
+    _isEditDataDisplay = false;
+    _initialPassword = "";
+    _search = "";
+    _lastSearch = "";
+    _dataWasUpdated = false;
+    _pathPropertiesList.clear();
+    log("__DATA_CLEARED__ $reason");
+  }
+
   void _loadDataState() async {
     FileDataPrefix fileDataPrefixRemote = FileDataPrefix.empty();
     FileDataPrefix fileDataPrefix = FileDataPrefix.empty();
     String fileDataContent = "";
+    String source = "Local";
     //
     // Are we reloading the existing data? If yes is there existing data?
     //
@@ -720,7 +751,8 @@ class _MyHomePageState extends State<MyHomePage> {
       fileDataPrefixRemote = FileDataPrefix.fromString(successStateRemote.fileContent);
       fileDataContent = successStateRemote.fileContent.substring(fileDataPrefixRemote.startPos);
       fileDataPrefix = fileDataPrefixRemote;
-      log("__INFO:__ Remote __TS:__ ${fileDataPrefix.timeStamp}");
+      source = "Remote";
+      log("__INFO:__ $source __TS:__ ${fileDataPrefix.timeStamp}");
     } else {
       log(successStateRemote.toLogString());
     }
@@ -735,7 +767,8 @@ class _MyHomePageState extends State<MyHomePage> {
       if (successStateRemote.isFail || fileDataPrefixLocal.isLaterThan(fileDataPrefixRemote)) {
         fileDataContent = successStateLocal.fileContent.substring(fileDataPrefixLocal.startPos);
         fileDataPrefix = fileDataPrefixLocal;
-        log("__INFO:__ Local __TS:__ ${fileDataPrefix.timeStamp}");
+        source = "Local";
+        log("__INFO:__ $source __TS:__ ${fileDataPrefix.timeStamp}");
       }
     } else {
       log(successStateLocal.toLogString());
@@ -782,7 +815,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _filteredNodeDataRoot = MyTreeNode.empty();
       _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
       _selectedPath = _selectedTreeNode.path;
-      _globalSuccessState = SuccessState(true, message: "${fileDataPrefix.encrypted ? "Encrypted" : ""} File loaded: ${_loadedData.timeStampString}", log: log);
+      _globalSuccessState = SuccessState(true, message: "${fileDataPrefix.encrypted ? "Encrypted" : ""} [$source] File: ${_loadedData.timeStampString}", log: log);
     });
   }
 
@@ -1177,17 +1210,20 @@ class _MyHomePageState extends State<MyHomePage> {
                 MenuOptionDetails("Save %{1}", "Save %{4} %{2}%{1}", ActionType.saveAlt, () {
                   return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;
                 }),
-                MenuOptionDetails("Reload data file", "Reload %{4}", ActionType.reload, () {
-                  return Icons.refresh;
-                }),
-                MenuOptionDetails("New data file", "Create a new data file", ActionType.createFile, () {
-                  return _dataWasUpdated ? Icons.disabled_by_default_outlined : Icons.post_add;
-                }, enabled: !_dataWasUpdated),
                 MenuOptionDetails("Add NEW Group", "Add a new group to '%{3}'", ActionType.addGroup, () {
                   return Icons.add_box_outlined;
                 }),
                 MenuOptionDetails("Add NEW Detail", "Add a new detail to group '%{3}'", ActionType.addDetail, () {
                   return Icons.add;
+                }),
+                MenuOptionDetails("New data file", "Create a new data file", ActionType.createFile, () {
+                  return _dataWasUpdated ? Icons.disabled_by_default_outlined : Icons.post_add;
+                }, enabled: !_dataWasUpdated),
+                 MenuOptionDetails("Reload data file", "Reload %{4}", ActionType.reload, () {
+                  return Icons.refresh;
+                }),
+                MenuOptionDetails("Restart application", "Restart this application", ActionType.restart, () {
+                  return Icons.restart_alt;
                 }),
               ], [
                 _loadedData.hasPassword ? 'ENCRYPTED' : 'UN-ENCRYPTED',

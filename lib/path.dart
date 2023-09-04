@@ -86,9 +86,6 @@ class PathPropertiesList {
 
   void clear() {
     _list.clear();
-    if (log != null) {
-      log!("__NODE__ LIST CLEARED");
-    }
   }
 
   List<String> cloneKeys() {
