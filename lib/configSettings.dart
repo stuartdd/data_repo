@@ -103,7 +103,6 @@ class ConfigInputPage extends StatefulWidget {
   final SettingControlList settingsControlList;
   final SettingValidation Function(String, SettingDetail) onValidate;
   final void Function(SettingControlList, String) onUpdateState;
-  final String Function(bool) stateFileData;
   final String hint;
   final double width;
 
@@ -113,7 +112,6 @@ class ConfigInputPage extends StatefulWidget {
     required this.settingsControlList,
     required this.onValidate,
     required this.onUpdateState,
-    required this.stateFileData,
     required this.hint,
     required this.width,
   });

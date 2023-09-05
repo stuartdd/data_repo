@@ -1219,7 +1219,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 MenuOptionDetails("New data file", "Create a new data file", ActionType.createFile, () {
                   return _dataWasUpdated ? Icons.disabled_by_default_outlined : Icons.post_add;
                 }, enabled: !_dataWasUpdated),
-                 MenuOptionDetails("Reload data file", "Reload %{4}", ActionType.reload, () {
+                MenuOptionDetails("Reload data file", "Reload %{4}", ActionType.reload, () {
                   return Icons.refresh;
                 }),
                 MenuOptionDetails("Restart application", "Restart this application", ActionType.restart, () {
@@ -1493,6 +1493,14 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
               ),
               Icon(
                 Icons.circle_rounded,
+                color: appThemeData.primary.medLight,
+              ),
+              Icon(
+                Icons.circle_rounded,
+                color: appThemeData.primary.medDark,
+              ),
+              Icon(
+                Icons.circle_rounded,
                 color: appThemeData.primary.dark,
               ),
               Icon(
@@ -1507,21 +1515,10 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
             onValidate: (dynamicValue, settingDetail) {
               return validate(dynamicValue, settingDetail);
             },
-            onUpdateState: (l, hint) {
-              final enable = l.canSaveOrApply & hint.isEmpty;
+            onUpdateState: (settingsControlList, hint) {
+              final enable = settingsControlList.canSaveOrApply & hint.isEmpty;
               applyButton.setDisabled(!enable);
               saveButton.setDisabled(!enable);
-            },
-            stateFileData: (delete) {
-              final fn = _applicationState.activeAppStateFileName();
-              if (fn.isEmpty) {
-                return "";
-              }
-              if (delete) {
-                _applicationState.deleteAppStateConfigFile();
-                return _applicationState.activeAppStateFileName();
-              }
-              return fn;
             },
             hint: canChangeConfig(),
             width: MediaQuery.of(context).size.width,
