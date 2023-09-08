@@ -357,7 +357,7 @@ class _MarkDownInputField extends State<MarkDownInputField> {
 }
 
 class ValidatedInputField extends StatefulWidget {
-  ValidatedInputField({super.key, this.initialValue = "", this.isPassword = false, this.onSubmit = null, required this.onValidate, required this.prompt, this.options = const [], this.initialOption = optionsDataTypeEmpty, required this.appThemeData});
+  ValidatedInputField({super.key, this.initialValue = "", this.isPassword = false, this.onSubmit, required this.onValidate, required this.prompt, this.options = const [], this.initialOption = optionsDataTypeEmpty, required this.appThemeData});
   final String initialValue;
   final List<OptionsTypeData> options;
   final OptionsTypeData initialOption;
@@ -491,7 +491,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                 },
                 decoration: InputDecoration(
                   border: const OutlineInputBorder(),
-                  focusedBorder: OutlineInputBorder(),
+                  focusedBorder: const OutlineInputBorder(),
                   filled: true,
                   fillColor: widget.appThemeData.primary.light
                 ),

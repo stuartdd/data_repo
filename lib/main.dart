@@ -45,6 +45,14 @@ void log(final String text) {
   eventLog.writeln("\n");
 }
 
+Size screenSize(BuildContext context) {
+  final pt = MediaQuery.of(context).padding.top;
+  final bi = MediaQuery.of(context).viewInsets.bottom - MediaQuery.of(context).viewInsets.top;
+  final height = MediaQuery.of(context).size.height - (bi + pt);
+  final width = MediaQuery.of(context).size.width;
+  return Size(width, height);
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -1096,7 +1104,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _navBarHeight = navBarHeight;
     }
 
-    final DisplayData displayData = createSplitView(
+    final DisplaySplitView displayData = createSplitView(
       _loadedData,
       _filteredNodeDataRoot,
       _selectedTreeNode,
@@ -1138,7 +1146,7 @@ class _MyHomePageState extends State<MyHomePage> {
       toolBarItems.add(Container(
         color: _configData.getAppThemeData().primary.med,
         child: SizedBox(
-          width: MediaQuery.of(context).size.width / 3,
+          width: screenSize(context).width / 3,
           child: TextField(
             style: _configData.getAppThemeData().tsLarge,
             decoration: const InputDecoration(
@@ -1267,7 +1275,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Container(
             color: _configData.getAppThemeData().primary.med,
             child: SizedBox(
-              width: MediaQuery.of(context).size.width / 3,
+              width: screenSize(context).width / 3,
               child: TextField(
                 style: _configData.getAppThemeData().tsMedium,
                 decoration: const InputDecoration(
@@ -1326,7 +1334,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     final settings = Positioned(
-        left: MediaQuery.of(context).size.width - appBarHeight,
+        left: screenSize(context).width - appBarHeight,
         top: 0,
         child: DetailIconButton(
           iconData: Icons.settings,
@@ -1370,81 +1378,79 @@ class _MyHomePageState extends State<MyHomePage> {
     final appBackgroundColor = _configData.getAppThemeData().screenBackgroundColor;
     final appBackgroundErrorColor = _configData.getAppThemeData().screenBackgroundErrorColor;
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: SingleChildScrollView(
-          child: Stack(
-        children: [
-          Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              // Center is a layout widget. It takes a single child and positions it
-              // in the middle of the parent.
-              children: [
-                Container(
-                  height: appBarHeight,
-                  color: appBackgroundColor,
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: toolBarItems),
-                ),
-                Container(
-                  color: Colors.black,
-                  height: 1,
-                ),
-                _loadedData.isEmpty
-                    ? const SizedBox(
-                        height: 0,
-                      )
-                    : _filteredNodeDataRoot.isEmpty
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+          maintainBottomViewPadding: true,
+          child: SingleChildScrollView(
+              child: Stack(
+            children: [
+              Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  // Center is a layout widget. It takes a single child and positions it
+                  // in the middle of the parent.
+                  children: [
+                    Container(
+                      height: appBarHeight,
+                      color: appBackgroundColor,
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: toolBarItems),
+                    ),
+                    Container(
+                      color: Colors.black,
+                      height: 1,
+                    ),
+                    _loadedData.isEmpty
+                        ? const SizedBox(
+                            height: 0,
+                          )
+                        : _filteredNodeDataRoot.isEmpty
+                            ? const SizedBox(
+                                height: 0,
+                              )
+                            : Container(
+                                height: _navBarHeight,
+                                color: appBackgroundColor,
+                                child: createNodeNavButtonBar(_selectedPath, _configData.getAppThemeData(), _isEditDataDisplay, _loadedData.isEmpty, (detailActionData) {
+                                  return _handleAction(detailActionData);
+                                }),
+                              ),
+                    _loadedData.isEmpty
                         ? const SizedBox(
                             height: 0,
                           )
                         : Container(
-                            height: _navBarHeight,
-                            color: appBackgroundColor,
-                            child: createNodeNavButtonBar(_selectedPath, _configData.getAppThemeData(), _isEditDataDisplay, _loadedData.isEmpty, (detailActionData) {
-                              return _handleAction(detailActionData);
-                            }),
+                            color: Colors.black,
+                            height: 1,
                           ),
-                _loadedData.isEmpty
-                    ? const SizedBox(
-                        height: 0,
-                      )
-                    : Container(
-                        color: Colors.black,
-                        height: 1,
+                    Container(
+                      height: screenSize(context).height - (appBarHeight + statusBarHeight + _navBarHeight),
+                      color: appBackgroundColor,
+                      child: displayData.splitView,
+                    ),
+                    Container(
+                      height: statusBarHeight,
+                      color: _globalSuccessState.isSuccess ? appBackgroundColor : appBackgroundErrorColor,
+                      child: Row(
+                        children: [
+                          DetailIconButton(
+                            appThemeData: _configData.getAppThemeData(),
+                            iconData: Icons.view_timeline,
+                            tooltip: 'Log',
+                            padding: const EdgeInsets.all(1.0),
+                            onPressed: () {
+                              _showLogDialog(context, eventLog.toString());
+                            },
+                          ),
+                          Text(
+                            _globalSuccessState.toString(),
+                            style: _configData.getAppThemeData().tsMedium,
+                          )
+                        ],
                       ),
-                Container(
-                  height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + (_loadedData.isEmpty ? 2 : _navBarHeight + 3)),
-                  color: appBackgroundColor,
-                  child: displayData.splitView,
-                ),
-                Container(
-                  height: 1,
-                  color: Colors.black,
-                ),
-                Container(
-                  height: statusBarHeight,
-                  color: _globalSuccessState.isSuccess ? appBackgroundColor : appBackgroundErrorColor,
-                  child: Row(
-                    children: [
-                      DetailIconButton(
-                        appThemeData: _configData.getAppThemeData(),
-                        iconData: Icons.view_timeline,
-                        tooltip: 'Log',
-                        padding: const EdgeInsets.all(1.0),
-                        onPressed: () {
-                          _showLogDialog(context, eventLog.toString());
-                        },
-                      ),
-                      Text(
-                        _globalSuccessState.toString(),
-                        style: _configData.getAppThemeData().tsMedium,
-                      )
-                    ],
-                  ),
-                ),
-              ]),
-          settings,
-        ],
-      )),
+                    ),
+                  ]),
+              settings,
+            ],
+          ))),
     );
   }
 }
@@ -1453,7 +1459,7 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
   final settingsControlList = SettingControlList(appThemeData.desktop, dataFileDir, _configData);
   final applyButton = DetailButton(
     disable: true,
-    text: "APPLY",
+    text: "Apply",
     appThemeData: appThemeData,
     onPressed: () {
       onCommit(settingsControlList, false);
@@ -1463,7 +1469,7 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
   );
   final saveButton = DetailButton(
     disable: true,
-    text: "SAVE",
+    text: "Save",
     appThemeData: appThemeData,
     onPressed: () {
       onCommit(settingsControlList, true);
@@ -1476,6 +1482,7 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
+          insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
           title: Row(
             children: [
               Text("Settings: ", style: appThemeData.tsLarge),
@@ -1521,13 +1528,13 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
               saveButton.setDisabled(!enable);
             },
             hint: canChangeConfig(),
-            width: MediaQuery.of(context).size.width,
+            width: screenSize(context).width,
           ),
           actions: [
             Row(
               children: [
                 DetailButton(
-                  text: "CANCEL",
+                  text: "Cancel",
                   appThemeData: appThemeData,
                   onPressed: () {
                     settingsControlList.clear();
@@ -1572,7 +1579,7 @@ Future<void> _showOptionsDialog(final BuildContext context, final Path path, fin
                         },
                       ),
                     )
-                  : SizedBox(height: 0),
+                  : const SizedBox(height: 0),
             ]
           ],
         ),
@@ -1659,6 +1666,7 @@ Future<void> _showFileNamePasswordDialog(final BuildContext context, final Strin
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
+        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         backgroundColor: theme.dialogBackgroundColor,
         // title: Text("Copy or Move TO:\n'$into'", style: theme.tsMedium),
         title: Text(title, style: theme.tsMediumBold),
@@ -1759,6 +1767,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
+        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         backgroundColor: theme.dialogBackgroundColor,
         // title: Text("Copy or Move TO:\n'$into'", style: theme.tsMedium),
         title: top,
@@ -1773,14 +1782,14 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
             children: [
               DetailButton(
                 appThemeData: _configData.getAppThemeData(),
-                text: "CANCEL",
+                text: "Cancel",
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
               ),
               DetailButton(
                 appThemeData: _configData.getAppThemeData(),
-                text: "COPY",
+                text: "Copy",
                 show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
                   onAction(SimpleButtonActions.copy, into);
@@ -1789,7 +1798,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
               ),
               DetailButton(
                 appThemeData: _configData.getAppThemeData(),
-                text: "MOVE",
+                text: "Move",
                 show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
                   onAction(SimpleButtonActions.move, into);
@@ -1798,7 +1807,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
               ),
               DetailButton(
                 appThemeData: _configData.getAppThemeData(),
-                text: "REMOVE",
+                text: "Remove",
                 show: summaryList.hasNoErrors && !copyMove,
                 onPressed: () {
                   onAction(SimpleButtonActions.delete, Path.empty());
@@ -1807,7 +1816,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
               ),
               DetailButton(
                 appThemeData: _configData.getAppThemeData(),
-                text: "CLEAR",
+                text: "Clear",
                 onPressed: () {
                   onAction(SimpleButtonActions.listClear, Path.empty());
                   Navigator.of(context).pop();
@@ -1836,12 +1845,13 @@ Future<void> _showLogDialog(final BuildContext context, final String log) async 
     builder: (BuildContext context) {
       return AlertDialog(
         backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
+        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         title: Text('Event Log', style: _configData.getAppThemeData().tsMedium),
         content: SingleChildScrollView(
             child: Container(
           color: _configData.getAppThemeData().primary.light,
-          height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight),
-          width: MediaQuery.of(context).size.width,
+          height: screenSize(context).height,
+          width: screenSize(context).width,
           child: Markdown(
             controller: scrollController,
             data: log,
@@ -1889,6 +1899,7 @@ Future<void> _showSearchDialog(final BuildContext context, final List<String> pr
     builder: (BuildContext context) {
       return AlertDialog(
         backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
+        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         title: Text('Previous Searches', style: _configData.getAppThemeData().tsMedium),
         content: SingleChildScrollView(
           child: ListBody(
@@ -1935,6 +1946,7 @@ Future<void> _showModalButtonsDialog(final BuildContext context, final String ti
     builder: (BuildContext context) {
       return AlertDialog(
         backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
+        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         title: Text(title, style: _configData.getAppThemeData().tsMedium),
         content: SingleChildScrollView(
           child: ListBody(
@@ -1986,6 +1998,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
     builder: (BuildContext context) {
       return AlertDialog(
         backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
+        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         title: Text(title, style: _configData.getAppThemeData().tsMedium),
         content: SingleChildScrollView(
           child: ListBody(
@@ -2000,8 +2013,8 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                         updatedType = vt;
                         return "";
                       },
-                      height: MediaQuery.of(context).size.height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
-                      width: MediaQuery.of(context).size.width,
+                      height: screenSize(context).height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
+                      width: screenSize(context).width,
                       shouldDisplayHelp: (flipValue) {
                         if (flipValue) {
                           _shouldDisplayMarkdownHelp = !_shouldDisplayMarkdownHelp;

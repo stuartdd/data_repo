@@ -11,14 +11,14 @@ import 'detail_widget.dart';
 const double splitMinTree = 0.2;
 const double splitMinDetail = 0.4;
 
-class DisplayData {
-  DisplayData(this.splitView, this.scrollController, {this.isOk = true});
+class DisplaySplitView {
+  DisplaySplitView(this.splitView, this.scrollController, {this.isOk = true});
   final Widget splitView;
   final ScrollController scrollController;
   final bool isOk;
 
-  factory DisplayData.error(final AppThemeData appThemeData, final String message) {
-    return DisplayData(
+  factory DisplaySplitView.error(final AppThemeData appThemeData, final String message) {
+    return DisplaySplitView(
         Container(
           color: appThemeData.error.med,
           child: Center(child: Text(message, style: appThemeData.tsLarge)),
@@ -42,7 +42,7 @@ class MyTreeWidget extends StatelessWidget {
 }
 
 /// Creates both Left and Right panes.
-DisplayData createSplitView(
+DisplaySplitView createSplitView(
     final DataContainer data,
     final MyTreeNode treeNodeDataRoot,
     final MyTreeNode selectedTreeNode,
@@ -61,11 +61,11 @@ DisplayData createSplitView(
   ///
   if (data.isEmpty) {
     log("__DATA:__ No data loaded");
-    return DisplayData.error(appThemeData, ("No data has been loaded"));
+    return DisplaySplitView.error(appThemeData, ("No data has been loaded"));
   }
   if (treeNodeDataRoot.isEmpty) {
     log("__DATA:__ No data to display");
-    return DisplayData.error(appThemeData, ("No data to display"));
+    return DisplaySplitView.error(appThemeData, ("No data to display"));
   }
 
   final selectedPath = selectedTreeNode.path;
@@ -78,10 +78,8 @@ DisplayData createSplitView(
   if (node != null) {
     detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, pathPropertiesList, appThemeData, onDataAction);
   } else {
-    detailContainer = Container(
-      color: appThemeData.error.darkest,
-      child: const Center(child: Text("Selected Node was not found in the data")),
-    );
+    log("__DATA:__ Selected Node was not found in the data");
+    return DisplaySplitView.error(appThemeData, ("Selected Node was not found in the data"));
   }
 
   final scrollController = ScrollController();
@@ -124,7 +122,7 @@ DisplayData createSplitView(
     ],
   );
 
-  return DisplayData(splitView, scrollController);
+  return DisplaySplitView(splitView, scrollController);
 }
 
 List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> json, Path path) {
