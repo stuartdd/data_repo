@@ -59,7 +59,7 @@
         },
         "file": {
             "backupfile": {
-                "path": "test",
+                "path.x": "test",
                 "sep": "/",
                 "pre": "mydb-",
                 "mask": "%d-%h%m",

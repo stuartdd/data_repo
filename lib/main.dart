@@ -48,7 +48,7 @@ void log(final String text) {
 Size screenSize(BuildContext context) {
   final pt = MediaQuery.of(context).padding.top;
   final bi = MediaQuery.of(context).viewInsets.bottom - MediaQuery.of(context).viewInsets.top;
-  final height = MediaQuery.of(context).size.height - (bi + pt);
+  final height = MediaQuery.of(context).size.height - (bi + pt) - 2;
   final width = MediaQuery.of(context).size.width;
   return Size(width, height);
 }
@@ -365,7 +365,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   groupCopy,
                   (action, intoPath) {
                     setState(() {
-                      if (action == SimpleButtonActions.copy || action == SimpleButtonActions.move || action == SimpleButtonActions.delete) {
+                       if (action == SimpleButtonActions.copy || action == SimpleButtonActions.move || action == SimpleButtonActions.delete) {
                         final groupMap = _pathPropertiesList.groupSelectsClone;
                         for (var k in groupMap.keys) {
                           // For copy and delete do each one in turn
@@ -414,6 +414,11 @@ class _MyHomePageState extends State<MyHomePage> {
                       }
                     });
                     _handleAction(detailActionData);
+                  },
+                  (action, intoPath) {
+                    if (action == SimpleButtonActions.ok) {
+                      _selectNodeState(intoPath);
+                    }
                   },
                 );
               }
@@ -1739,18 +1744,23 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, AppThemeData t
     color: Colors.black,
     height: 2,
   ));
+  int count = 0;
   for (int i = 0; i < summaryList.length; i++) {
     for (int j = 0; j < summaryList.length; j++) {
       final ni = summaryList.list[i];
       final nj = summaryList.list[j];
-      debugPrint("! ni:${ni.copyFromPath} nj:${nj.copyFromPath}");
+      count++;
     }
   }
+  debugPrint("***** Count $count");
   for (int i = 0; i < summaryList.length; i++) {
     final summary = summaryList.list[i];
     final tag = summary.isValue ? "Value:" : "Group:";
     final r1 = Row(
       children: [
+        IconButton(onPressed: () {
+          onAction(SimpleButtonActions.ok, summaryList.list[i].copyFromPath);
+        }, tooltip: "Go To", icon: const Icon(Icons.select_all)),
         IconButton(
             onPressed: () {
               onAction(SimpleButtonActions.listRemove, summaryList.list[i].copyFromPath);
@@ -1792,7 +1802,7 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, AppThemeData t
   return ListBody(children: wl);
 }
 
-Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, final GroupCopyMoveSummaryList summaryList, bool copyMove, final void Function(SimpleButtonActions, Path) onAction) async {
+Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, final GroupCopyMoveSummaryList summaryList, bool copyMove, final void Function(SimpleButtonActions, Path) onActionReturn, final void Function(SimpleButtonActions, Path) onActionClose) async {
   final head = copyMove ? "Copy or Move" : "Delete";
   final toFrom = copyMove ? "To" : "";
   final theme = _configData.getAppThemeData();
@@ -1811,7 +1821,11 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
         title: top,
         content: SingleChildScrollView(
           child: _copyMoveSummaryList(summaryList, theme, into, head, copyMove, (action, path) {
-            onAction(action, path);
+            if (action != SimpleButtonActions.ok) {
+              onActionReturn(action, path);
+            } else {
+              onActionClose(action, path);
+            }
             Navigator.of(context).pop();
           }),
         ),
@@ -1830,7 +1844,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 text: "Copy",
                 show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
-                  onAction(SimpleButtonActions.copy, into);
+                  onActionReturn(SimpleButtonActions.copy, into);
                   Navigator.of(context).pop();
                 },
               ),
@@ -1839,7 +1853,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 text: "Move",
                 show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
-                  onAction(SimpleButtonActions.move, into);
+                  onActionReturn(SimpleButtonActions.move, into);
                   Navigator.of(context).pop();
                 },
               ),
@@ -1848,7 +1862,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 text: "Remove",
                 show: summaryList.hasNoErrors && !copyMove,
                 onPressed: () {
-                  onAction(SimpleButtonActions.delete, Path.empty());
+                  onActionReturn(SimpleButtonActions.delete, Path.empty());
                   Navigator.of(context).pop();
                 },
               ),
@@ -1856,7 +1870,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
                 appThemeData: _configData.getAppThemeData(),
                 text: "Clear",
                 onPressed: () {
-                  onAction(SimpleButtonActions.listClear, Path.empty());
+                  onActionReturn(SimpleButtonActions.listClear, Path.empty());
                   Navigator.of(context).pop();
                 },
               ),

@@ -16,7 +16,24 @@ void main() {
   //     fail(r.exception.toString());
   //   }
   // });
-  test('Test Set Node', () async {
+  test('Visit each node', () async {
+    final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").fileContent, FileDataPrefix.empty(), "", "", "", "");
+    Path p = Path.empty();
+    data.visitEachSubNode((k, p, v) {
+      if (k.contains('.')) {
+        debugPrint("ERR[$k]: path:$p");
+      } else {
+        if (v is Map) {
+          debugPrint("MAP[$k]: path:$p");
+        } else {
+          debugPrint("VAL[$k]: val:$v path:$p");
+        }
+      }
+    });
+  });
+
+
+    test('Test Set Node', () async {
     final appTitle = Path.fromDotPath("application.title");
     final appAdd1 = Path.fromDotPath("application.added1");
     final appAdd2 = Path.fromDotPath("application.added2.add");

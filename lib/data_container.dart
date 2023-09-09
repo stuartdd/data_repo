@@ -27,6 +27,7 @@ class DataContainer {
     password = pw;
     _timeStamp = filePrefixData.timeStamp;
     _dataMap = convertStringToMap(fileContents, pw);
+
   }
 
   String get timeStampString {
@@ -219,11 +220,30 @@ class DataContainer {
   String dataToStringFormattedWithTs(final String pw, {final bool addTimeStamp = true}) {
     return staticDataToStringFormattedWithTs(_dataMap, pw);
   }
-  //
+
+  void visitEachSubNode(final void Function(String, Path, dynamic) func) {
+    staticVisitEachSubNode(dataMap, Path.empty(), func);
+  }
+
+    //
   // ****************************************************************************************************************
   //
   // Static tools to store and load files
   //
+
+  static void staticVisitEachSubNode(Map<String,dynamic> map, Path p, final void Function(String, Path, dynamic) func) {
+    for (var key in map.keys) {
+      final me = map[key];
+      final pp = p.cloneAppendList([key]);
+      if (me is Map<String, dynamic>) {
+        func(key,pp,me);
+        staticVisitEachSubNode(me, pp, func);
+      } else {
+        func(key,pp,me);
+      }
+    }
+  }
+
   static Map<String, dynamic> convertStringToMap(String jsonText, String pw) {
     if (jsonText.isEmpty) {
       return <String, dynamic>{};
