@@ -305,7 +305,7 @@ Widget groupButton(PathProperties plp, bool value, Path path, AppThemeData appTh
     icon: plp.groupSelect ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
     tooltip: plp.groupSelect ? 'Remove from select' : 'Add to select',
     onPressed: () {
-      dataAction(DetailAction(ActionType.group, value, path));
+      dataAction(DetailAction(ActionType.groupSelect, value, path));
     },
   );
 }

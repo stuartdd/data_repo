@@ -315,6 +315,12 @@ class MyTreeNode {
     return n;
   }
 
+  void visitEachChildNode(final void Function(MyTreeNode) func) {
+    for (var element in children) {
+      func(element);
+    }
+  }
+
   void visitEachSubNode(final void Function(MyTreeNode) func) {
     for (var element in children) {
       func(element);

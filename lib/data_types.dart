@@ -14,7 +14,7 @@ enum DisplayType { simpleDisplay, positionalString, markDown }
 
 enum SimpleButtonActions { ok, cancel, validate, copy, move, delete, listRemove, listClear, link }
 
-enum ActionType { none, reload, restart, save, saveAlt, addGroup, addDetail, editItemData, createFile, renameItem, select, querySelect, removeItem, link, clip, group, groupCopy, groupDelete }
+enum ActionType { none, reload, restart, save, saveAlt, addGroup, addDetail, editItemData, createFile, renameItem, select, querySelect, removeItem, link, clip, groupSelectClearAll, groupSelectAll, groupSelect, groupCopy, groupDelete }
 
 const int maxIntValue = -1 >>> 1;
 
@@ -288,13 +288,21 @@ class DetailAction {
         {
           return "EDIT: $s";
         }
-      case ActionType.group:
+      case ActionType.groupSelect:
         {
           return "GROUP-SEL: $s";
         }
       case ActionType.groupCopy:
         {
           return "GROUP-COPY: $s";
+        }
+      case ActionType.groupSelectClearAll:
+        {
+          return "GROUP-SELECT-CLEAR-ALL: $s";
+        }
+      case ActionType.groupSelectAll:
+        {
+          return "GROUP-SELECT-ALL: $s";
         }
       case ActionType.groupDelete:
         {

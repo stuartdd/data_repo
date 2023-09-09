@@ -236,7 +236,7 @@ class _MyHomePageState extends State<MyHomePage> {
         if (tni < 0) {
           tni = 0;
         }
-        final index = tni * (_configData.getAppThemeData().treeNodeHeight+1);
+        final index = tni * (_configData.getAppThemeData().treeNodeHeight + 1);
         _treeViewScrollController.animateTo(index, duration: const Duration(milliseconds: 400), curve: Curves.ease);
       },
     );
@@ -328,7 +328,23 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Path _handleAction(DetailAction detailActionData) {
     switch (detailActionData.action) {
-      case ActionType.group:
+      case ActionType.groupSelectAll:
+        {
+          setState(() {
+            _selectedTreeNode.visitEachChildNode((sn) {
+              _pathPropertiesList.setGroupSelect(sn.path, sn.isLeaf);
+            });
+          });
+          break;
+        }
+      case ActionType.groupSelectClearAll:
+        {
+          setState(() {
+            _pathPropertiesList.clearAllGroupSelect();
+          });
+          break;
+        }
+      case ActionType.groupSelect:
         {
           setState(() {
             _pathPropertiesList.setGroupSelect(detailActionData.path, detailActionData.value);
@@ -1212,17 +1228,23 @@ class _MyHomePageState extends State<MyHomePage> {
                 MenuOptionDetails("Done", "", ActionType.none, () {
                   return Icons.arrow_back;
                 }),
-                MenuOptionDetails("Save %{0}", "Save %{4} %{2}%{0}", ActionType.save, () {
-                  return Icons.save;
+                MenuOptionDetails("Invert Select '%{3}'", "Invert ALL selected in '%{3}'", ActionType.groupSelectAll, () {
+                  return Icons.select_all;
                 }),
-                MenuOptionDetails("Save %{1}", "Save %{4} %{2}%{1}", ActionType.saveAlt, () {
-                  return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;
+                MenuOptionDetails("Clear Select", "Clear ALL selected", ActionType.groupSelectClearAll, () {
+                  return Icons.deselect;
                 }),
                 MenuOptionDetails("Add NEW Group", "Add a new group to '%{3}'", ActionType.addGroup, () {
                   return Icons.add_box_outlined;
                 }),
                 MenuOptionDetails("Add NEW Detail", "Add a new detail to group '%{3}'", ActionType.addDetail, () {
                   return Icons.add;
+                }),
+                MenuOptionDetails("Save %{0}", "Save %{4} %{2}%{0}", ActionType.save, () {
+                  return Icons.save;
+                }),
+                MenuOptionDetails("Save %{1}", "Save %{4} %{2}%{1}", ActionType.saveAlt, () {
+                  return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;
                 }),
                 MenuOptionDetails("New data file", "Create a new data file", ActionType.createFile, () {
                   return _dataWasUpdated ? Icons.disabled_by_default_outlined : Icons.post_add;
@@ -1251,8 +1273,24 @@ class _MyHomePageState extends State<MyHomePage> {
         toolBarItems.add(VerticalDivider(
           color: _configData.getAppThemeData().screenForegroundColour(true),
         ));
+        toolBarItems.add(DetailIconButton(
+          onPressed: () {
+            _handleAction(DetailAction(ActionType.groupSelectAll, false, _selectedPath));
+          },
+          tooltip: "Invert Selection",
+          iconData: Icons.select_all,
+          appThemeData: _configData.getAppThemeData(),
+        ));
         final canPaste = _pathPropertiesList.hasGroupSelects;
         if (canPaste) {
+          toolBarItems.add(DetailIconButton(
+            onPressed: () {
+              _handleAction(DetailAction(ActionType.groupSelectClearAll, false, _selectedPath));
+            },
+            tooltip: "Clear ALL Selected",
+            iconData: Icons.deselect,
+            appThemeData: _configData.getAppThemeData(),
+          ));
           toolBarItems.add(DetailIconButton(
             onPressed: () {
               _handleAction(DetailAction(ActionType.groupCopy, false, _selectedPath));
