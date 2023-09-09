@@ -6,7 +6,7 @@ import 'package:data_repo/path.dart';
 import 'dart:convert' as json_tools;
 
 void log(String text) {
- debugPrint(text);
+  debugPrint(text);
 }
 
 void main() {
@@ -17,23 +17,16 @@ void main() {
   //   }
   // });
   test('Visit each node', () async {
-    final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").fileContent, FileDataPrefix.empty(), "", "", "", "");
-    Path p = Path.empty();
+    final data = DataContainer(DataContainer.loadFromFile("test/data/data04.json").fileContent, FileDataPrefix.empty(), "", "", "", "");
+    final sb = StringBuffer();
     data.visitEachSubNode((k, p, v) {
-      if (k.contains('.')) {
-        debugPrint("ERR[$k]: path:$p");
-      } else {
-        if (v is Map) {
-          debugPrint("MAP[$k]: path:$p");
-        } else {
-          debugPrint("VAL[$k]: val:$v path:$p");
-        }
-      }
+      sb.write(p);
+      sb.write('|');
     });
+    expect(sb.toString(),"A|A.A1|A.A1.A11|A.A1.A11.A111|A.A1.A11.A112|A.B|A.B.B1|A.B.B1.B11|A.B.B1.B12|A.B.B2|A.B.B2.B21|A.B.B2.B21.B211|A.B.B2.B21.B212|C|");
   });
 
-
-    test('Test Set Node', () async {
+  test('Test Set Node', () async {
     final appTitle = Path.fromDotPath("application.title");
     final appAdd1 = Path.fromDotPath("application.added1");
     final appAdd2 = Path.fromDotPath("application.added2.add");

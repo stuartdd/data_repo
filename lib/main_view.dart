@@ -53,6 +53,7 @@ DisplaySplitView createSplitView(
     final PathPropertiesList pathPropertiesList,
     final Function(Path) onSelect, // Called when a tree node in selected
     final Function(Path) onExpand, // Called when a tree node in selected
+    final String Function(String, Path) onResolve, // Called when a tree node in selected
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final Path Function(DetailAction) onDataAction,
     final void Function(String) log) {
@@ -76,7 +77,7 @@ DisplaySplitView createSplitView(
   final Widget detailContainer;
   final node = data.getNodeFromJson(selectedPath);
   if (node != null) {
-    detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, pathPropertiesList, appThemeData, onDataAction);
+    detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, pathPropertiesList, appThemeData, onDataAction, onResolve);
   } else {
     log("__DATA:__ Selected Node was not found in the data");
     return DisplaySplitView.error(appThemeData, ("Selected Node was not found in the data"));
@@ -196,7 +197,7 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
   );
 }
 
-Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, final Path Function(DetailAction) dataAction) {
+Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, final Path Function(DetailAction) dataAction, String Function(String, Path) onResolve) {
   if (selectedNode is! Map<String, dynamic>) {
     throw JsonException(selectedPath, message: "Selected path should be a map");
   }
@@ -215,6 +216,7 @@ Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, fin
           appThemeData: appThemeData,
           pathPropertiesList: pathPropertiesList,
           dataAction: dataAction,
+          onResolve: onResolve,
           isEditDataDisplay: isEditDataDisplay,
           isHorizontal: isHorizontal,
         )

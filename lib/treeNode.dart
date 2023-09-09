@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'path.dart';
 
 class MyTreeNode {
-  final String label;
+  late final String label;
   final String pathKey;
   final MyTreeNode? parent;
 
@@ -14,7 +14,8 @@ class MyTreeNode {
   bool _required = true;
   int index = 0;
 
-  MyTreeNode(this.pathKey, this.label, this.parent, this.leaf, {index = 0}) {
+  MyTreeNode(this.pathKey, String labelIn, this.parent, this.leaf, {index = 0}) {
+    label = labelIn.trim();
     children = List.empty(growable: true);
   }
 

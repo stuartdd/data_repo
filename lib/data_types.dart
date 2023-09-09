@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-
 import 'path.dart';
 
 //
@@ -26,8 +25,8 @@ class DisplayTypeData {
   const DisplayTypeData({required this.displayType, required this.extension, required this.extensionLength, required this.description});
 }
 
-const positionalStringMarker = ".pl";
-const markDownMarker = ".md";
+const positionalStringMarker = ":pl";
+const markDownMarker = ":md";
 const simpleMarker = "";
 
 const DisplayTypeData simpleDisplayData = DisplayTypeData(displayType: DisplayType.simpleDisplay, extension: simpleMarker, extensionLength: simpleMarker.length, description: 'Simple Value [str,int,bool]');

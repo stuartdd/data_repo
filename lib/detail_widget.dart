@@ -33,6 +33,10 @@ class DataValueDisplayRow {
   int get mapSize => _mapSize;
   DisplayTypeData get displayTypeData => _displayTypeData;
 
+  Path get fullPath {
+    return _path.cloneAppendList([_name]);
+  }
+
   String getDisplayName(bool editMode) {
     if (editMode) {
       return name;
@@ -70,13 +74,14 @@ class DataValueDisplayRow {
 }
 
 class DetailWidget extends StatefulWidget {
-  const DetailWidget({super.key, required this.dataValueRow, required this.appThemeData, required this.dataAction, required this.pathPropertiesList, required this.isEditDataDisplay, required this.isHorizontal});
+  const DetailWidget({super.key, required this.dataValueRow, required this.appThemeData, required this.dataAction, required this.onResolve, required this.pathPropertiesList, required this.isEditDataDisplay, required this.isHorizontal});
   final DataValueDisplayRow dataValueRow;
   final AppThemeData appThemeData;
   final PathPropertiesList pathPropertiesList;
   final bool isEditDataDisplay;
   final bool isHorizontal;
   final Path Function(DetailAction) dataAction;
+  final String Function(String, Path) onResolve;
 
   @override
   State<DetailWidget> createState() => _DetailWidgetState();
@@ -85,10 +90,8 @@ class DetailWidget extends StatefulWidget {
 class _DetailWidgetState extends State<DetailWidget> {
   bool _onCompleteAction(String option, value1, value2) {
     if (value1 == value2) {
-      debugPrint("_onCompleteAction:FALSE: Action: $option, v1:$value1 v2:$value2");
       return false;
     }
-    debugPrint("_onCompleteAction:TRUE: Action: $option, v1:$value1 v2:$value2");
     return true;
   }
 
@@ -150,7 +153,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _cardForValue(final DataValueDisplayRow dataValueRow, final AppThemeData appThemeData, final PathProperties plp) {
+  Widget _containerForValue(final DataValueDisplayRow dataValueRow, final AppThemeData appThemeData, final PathProperties plp) {
     final bgColour = appThemeData.selectedAndHiLightColour(true, plp.updated);
     final fgColour = appThemeData.screenForegroundColour(true);
 
@@ -176,7 +179,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     return Container(
       color: bgColour,
       alignment: Alignment.centerLeft,
-      child: Padding(padding: const EdgeInsets.all(5.0), child: Text(dataValueRow.value, style: appThemeData.tsLarge)),
+      child: Padding(padding: const EdgeInsets.all(5.0), child: Text(widget.onResolve(dataValueRow.value, dataValueRow.fullPath), style: appThemeData.tsLarge)),
     );
   }
 
@@ -197,7 +200,7 @@ class _DetailWidgetState extends State<DetailWidget> {
         SizedBox(
           child: Padding(
             padding: EdgeInsets.fromLTRB(5, 0, rm, 10),
-            child: _cardForValue(widget.dataValueRow, appThemeData, pathProperties),
+            child: _containerForValue(widget.dataValueRow, appThemeData, pathProperties),
           ),
         ),
         Row(
@@ -225,7 +228,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               timerMs: 500,
               text: 'Copy',
               onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: widget.dataValueRow.value));
+                await Clipboard.setData(ClipboardData(text: widget.onResolve(widget.dataValueRow.value, Path.empty())));
                 widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
               },
             ),
@@ -247,6 +250,14 @@ class _DetailWidgetState extends State<DetailWidget> {
                 widget.dataAction(DetailAction(ActionType.removeItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
               },
             ),
+            widget.isEditDataDisplay ? IconButton(
+              color: appThemeData.screenForegroundColour(true),
+              icon: const Icon(Icons.copy),
+              tooltip: 'Copy Path',
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: widget.dataValueRow.fullPath.toString()));
+              }
+            ) : const SizedBox(width: 0,)
           ],
         ),
         const SizedBox(

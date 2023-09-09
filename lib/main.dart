@@ -365,7 +365,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   groupCopy,
                   (action, intoPath) {
                     setState(() {
-                       if (action == SimpleButtonActions.copy || action == SimpleButtonActions.move || action == SimpleButtonActions.delete) {
+                      if (action == SimpleButtonActions.copy || action == SimpleButtonActions.move || action == SimpleButtonActions.delete) {
                         final groupMap = _pathPropertiesList.groupSelectsClone;
                         for (var k in groupMap.keys) {
                           // For copy and delete do each one in turn
@@ -549,7 +549,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   _handleAddState(_selectedPath, text, optionTypeDataGroup);
                 }
               }, (initial, value, initialType, valueType) {
-                return value.trim().isEmpty ? "Cannot be empty" : "";
+                if (value.trim().isEmpty) {
+                  return "Cannot be empty";
+                }
+                if (value.contains(".")) {
+                  return "Cannot contain '.";
+                }
+                return "";
               });
             }
           });
@@ -564,7 +570,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   _handleAddState(_selectedPath, text, optionTypeDataValue);
                 }
               }, (initial, value, initialType, valueType) {
-                return value.trim().isEmpty ? "Cannot be empty" : "";
+                if (value.trim().isEmpty) {
+                  return "Cannot be empty";
+                }
+                if (value.contains(".")) {
+                  return "Cannot contain '.";
+                }
+                return "";
               });
             }
           });
@@ -920,6 +932,9 @@ class _MyHomePageState extends State<MyHomePage> {
     if (newNameNoSuffix.length < 2) {
       return "New Name is too short";
     }
+    if (newNameNoSuffix.contains(".")) {
+      return "New Name Cannot contain '.'";
+    }
     final newName = "$newNameNoSuffix${newType.suffix}";
     if (detailActionData.oldValue != newName) {
       final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
@@ -1125,6 +1140,13 @@ class _MyHomePageState extends State<MyHomePage> {
       _navBarHeight = navBarHeight;
     }
 
+    if (_loadedData.warning.isNotEmpty) {
+      _loadedData.warning = "";
+      Timer(const Duration(milliseconds: 500), () {
+        _showLogDialog(context, eventLog.toString());
+      });
+    }
+
     final DisplaySplitView displayData = createSplitView(
       _loadedData,
       _filteredNodeDataRoot,
@@ -1136,6 +1158,32 @@ class _MyHomePageState extends State<MyHomePage> {
       _pathPropertiesList,
       _selectNodeState,
       _expandNodeState,
+      (resolve, fromPath) {
+        if (!_isEditDataDisplay && resolve.startsWith("<path>")) {
+          final p = Path.fromDotPath(resolve.substring(6));
+          if (p.isEmpty) {
+            return "Path: Is empty";
+          }
+          if (p.last.endsWith(positionalStringMarker)) {
+            return "Path:$p: Is positional list";
+          }
+          if (p.last.endsWith(markDownMarker)) {
+            return "Path:$p: Is MarkDown";
+          }
+          if (p.isEqual(fromPath)) {
+            return "Path:$p: Is Self reference";
+          }
+          final n = _loadedData.getNodeFromJson(p);
+          if (n == null) {
+            return "Path:$p: Not Found";
+          }
+          if (n is Map) {
+            return "Path:$p: Not Data Node";
+          }
+          return "$n";
+        }
+        return resolve;
+      },
       (divPos) {
         // On divider change
         _applicationState.updateDividerPosState(divPos);
@@ -1744,23 +1792,24 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, AppThemeData t
     color: Colors.black,
     height: 2,
   ));
-  int count = 0;
   for (int i = 0; i < summaryList.length; i++) {
     for (int j = 0; j < summaryList.length; j++) {
       final ni = summaryList.list[i];
       final nj = summaryList.list[j];
-      count++;
     }
   }
-  debugPrint("***** Count $count");
+
   for (int i = 0; i < summaryList.length; i++) {
     final summary = summaryList.list[i];
     final tag = summary.isValue ? "Value:" : "Group:";
     final r1 = Row(
       children: [
-        IconButton(onPressed: () {
-          onAction(SimpleButtonActions.ok, summaryList.list[i].copyFromPath);
-        }, tooltip: "Go To", icon: const Icon(Icons.select_all)),
+        IconButton(
+            onPressed: () {
+              onAction(SimpleButtonActions.ok, summaryList.list[i].copyFromPath);
+            },
+            tooltip: "Go To",
+            icon: const Icon(Icons.select_all)),
         IconButton(
             onPressed: () {
               onAction(SimpleButtonActions.listRemove, summaryList.list[i].copyFromPath);

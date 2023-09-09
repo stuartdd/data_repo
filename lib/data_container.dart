@@ -1,3 +1,5 @@
+import 'package:data_repo/main.dart';
+
 import "path.dart";
 import 'package:http/http.dart' as http;
 import 'package:http_status_code/http_status_code.dart';
@@ -18,6 +20,7 @@ class DataContainer {
   late final int _timeStamp;
   late final Map<String, dynamic> _dataMap;
   String password = "";
+  String warning = "";
 
   factory DataContainer.empty() {
     return DataContainer("", FileDataPrefix.empty(), "", "", "", "");
@@ -27,7 +30,15 @@ class DataContainer {
     password = pw;
     _timeStamp = filePrefixData.timeStamp;
     _dataMap = convertStringToMap(fileContents, pw);
-
+    warning = "";
+    visitEachSubNode((key, path, value) {
+      if (key.contains('.')) {
+        if (warning.isEmpty) {
+          warning = "Check logs for warnings!";
+        }
+        log("## __ALERT__ Node:$path has a '.' in the node name");
+      }
+    });
   }
 
   String get timeStampString {
@@ -225,21 +236,21 @@ class DataContainer {
     staticVisitEachSubNode(dataMap, Path.empty(), func);
   }
 
-    //
+  //
   // ****************************************************************************************************************
   //
   // Static tools to store and load files
   //
 
-  static void staticVisitEachSubNode(Map<String,dynamic> map, Path p, final void Function(String, Path, dynamic) func) {
+  static void staticVisitEachSubNode(Map<String, dynamic> map, Path p, final void Function(String, Path, dynamic) func) {
     for (var key in map.keys) {
       final me = map[key];
       final pp = p.cloneAppendList([key]);
       if (me is Map<String, dynamic>) {
-        func(key,pp,me);
+        func(key, pp, me);
         staticVisitEachSubNode(me, pp, func);
       } else {
-        func(key,pp,me);
+        func(key, pp, me);
       }
     }
   }
