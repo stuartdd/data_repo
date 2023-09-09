@@ -232,11 +232,11 @@ class _MyHomePageState extends State<MyHomePage> {
     Future.delayed(
       const Duration(milliseconds: 300),
       () {
-        int tni = _selectedTreeNode.index - 1;
+        int tni = _selectedTreeNode.index - 3;
         if (tni < 0) {
           tni = 0;
         }
-        final index = tni * _configData.getAppThemeData().treeNodeHeight;
+        final index = tni * (_configData.getAppThemeData().treeNodeHeight+1);
         _treeViewScrollController.animateTo(index, duration: const Duration(milliseconds: 400), curve: Curves.ease);
       },
     );

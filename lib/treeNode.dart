@@ -6,6 +6,7 @@ class MyTreeNode {
   final String label;
   final String pathKey;
   final MyTreeNode? parent;
+
   final bool leaf;
   late final List<MyTreeNode> children;
 
@@ -344,10 +345,8 @@ class MyTreeNode {
   }
 }
 
-Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeData appThemeData, final double rowHeight, final bool selected, final int pathLen, final bool hiLight, final Function(Path) onClick, final Function(Path) onExpand) {
+Widget? buildNodeDefault(final MyTreeNode node, final AppThemeData appThemeData, final double rowHeight, final bool selected, final int pathLen, final bool hiLight, final Function(Path) onClick, final Function(Path) onExpand) {
   if (node.parentIsExpanded && node.isNotLeaf) {
-    node.index = index;
-
     return Container(
       height: rowHeight,
       color: appThemeData.selectedAndHiLightColour(selected, hiLight),
@@ -389,7 +388,7 @@ Widget? buildNodeDefault(final int index, final MyTreeNode node, final AppThemeD
 
 class MyTreeNodeWidgetList extends StatefulWidget {
   const MyTreeNodeWidgetList(this.rootNode, this.selectedNode, this.selectedNodePath, this.appThemeData, this.rowHeight, this.onSelect, this.onExpand, this.pathListProperties, {super.key, this.buildNode = buildNodeDefault});
-  final Widget? Function(int, MyTreeNode, AppThemeData, double, bool, int, bool, Function(Path), Function(Path)) buildNode;
+  final Widget? Function(MyTreeNode, AppThemeData, double, bool, int, bool, Function(Path), Function(Path)) buildNode;
   final void Function(Path) onSelect;
   final void Function(Path) onExpand;
   final AppThemeData appThemeData;
@@ -412,12 +411,12 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
     widget.rootNode.visitEachSubNode(
       (aNode) {
         final aNodePath = aNode.path;
+        final isSelected = widget.selectedNodePath.isEqual(aNodePath);
         final w = widget.buildNode(
-          c,
           aNode,
           widget.appThemeData,
           widget.rowHeight,
-          widget.selectedNodePath.isEqual(aNodePath),
+          isSelected,
           aNode.pathLen,
           widget.pathListProperties.propertiesForPath(aNodePath).changed,
           (selectPath) {
@@ -427,7 +426,11 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
             widget.onExpand(expandPath);
           },
         );
+
         if (w != null) {
+          if (isSelected) {
+            widget.selectedNode.index = c;
+          }
           children.add(w);
           children.add(Container(
             height: 1,
