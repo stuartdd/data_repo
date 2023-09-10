@@ -758,6 +758,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _lastSearch = "";
     _dataWasUpdated = false;
     _pathPropertiesList.clear();
+    _globalSuccessState = SuccessState(true, message: reason);
     log("__DATA_CLEARED__ $reason");
   }
 
@@ -836,10 +837,19 @@ class _MyHomePageState extends State<MyHomePage> {
       data = DataContainer(fileDataContent, fileDataPrefix, successStateRemote.path, successStateLocal.path, fileName, pw);
     } catch (r) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file could not be parsed", exception: r as Exception, log: log);
+        if (r is Exception) {
+          _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file could not be parsed", exception: r, log: log);
+        } else {
+          if (pw.isEmpty) {
+            _globalSuccessState = SuccessState(false, message: "__LOAD__ $r", log: log);
+          } else {
+            _globalSuccessState = SuccessState(false, message: "__LOAD__ ${r.runtimeType.toString()}. Please try again!", log: log);
+          }
+        }
       });
       return;
     }
+
     if (data.isEmpty) {
       setState(() {
         _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file does not contain any data", log: log);
@@ -1130,14 +1140,13 @@ class _MyHomePageState extends State<MyHomePage> {
         _filteredNodeDataRoot = _treeNodeDataRoot.clone(requiredOnly: true);
       }
     }
+
     if (_filteredNodeDataRoot.isEmpty) {
       _isEditDataDisplay = false;
-      _navBarHeight = 0;
     } else {
       if (_search.isNotEmpty) {
         _applicationState.addLastFind(_search, 10);
       }
-      _navBarHeight = navBarHeight;
     }
 
     if (_loadedData.warning.isNotEmpty) {
@@ -1210,8 +1219,8 @@ class _MyHomePageState extends State<MyHomePage> {
         appThemeData: _configData.getAppThemeData(),
       ),
     );
-
     if (_loadedData.isEmpty) {
+      _navBarHeight = 0;
       toolBarItems.add(Container(
         color: _configData.getAppThemeData().primary.med,
         child: SizedBox(
@@ -1248,6 +1257,7 @@ class _MyHomePageState extends State<MyHomePage> {
       //
       // Data is loaded
       //
+      _navBarHeight = navBarHeight;
       toolBarItems.add(DetailIconButton(
         show: _loadedData.isNotEmpty,
         appThemeData: _configData.getAppThemeData(),
@@ -1532,7 +1542,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             },
                           ),
                           Text(
-                            _globalSuccessState.toString(),
+                            _globalSuccessState.toStatusString(),
                             style: _configData.getAppThemeData().tsMedium,
                           )
                         ],

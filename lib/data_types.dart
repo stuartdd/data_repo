@@ -480,6 +480,28 @@ class SuccessState {
       }
     }
   }
+  String toStatusString() {
+    final m = message.trim().replaceFirst("__", " ").replaceFirst("__", ':');
+    if (_exception != null) {
+      if (m.isEmpty) {
+        return "EXCEPTION: ${_exception.toString()}";
+      } else {
+        return "EXCEPTION: $m. ${_exception.toString()}";
+      }
+    } else {
+      if (isFail) {
+        if (m.isNotEmpty) {
+          return "FAIL: $m";
+        }
+        return "FAIL";
+      } else {
+        if (m.isNotEmpty) {
+          return "OK: $m";
+        }
+        return "OK";
+      }
+    }
+  }
 
   @override
   String toString() {
