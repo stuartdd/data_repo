@@ -151,6 +151,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String _lastSearch = "";
   bool _dataWasUpdated = false;
   bool _isEditDataDisplay = false;
+  bool _isTreeSorted = false;
+
   double _navBarHeight = navBarHeight;
 
   SuccessState _globalSuccessState = SuccessState(true);
@@ -341,6 +343,13 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           setState(() {
             _pathPropertiesList.clearAllGroupSelect();
+          });
+          break;
+        }
+      case ActionType.flipSorted:
+        {
+          setState(() {
+            _isTreeSorted = !_isTreeSorted;
           });
           break;
         }
@@ -1202,6 +1211,7 @@ class _MyHomePageState extends State<MyHomePage> {
         return _handleAction(detailActionData);
       },
       log,
+      sorted: _isTreeSorted,
     );
     _treeViewScrollController = displayData.scrollController;
 
@@ -1510,7 +1520,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             : Container(
                                 height: _navBarHeight,
                                 color: appBackgroundColor,
-                                child: createNodeNavButtonBar(_selectedPath, _configData.getAppThemeData(), _isEditDataDisplay, _loadedData.isEmpty, (detailActionData) {
+                                child: createNodeNavButtonBar(_selectedPath, _configData.getAppThemeData(), _isEditDataDisplay, _loadedData.isEmpty, _isTreeSorted, (detailActionData) {
                                   return _handleAction(detailActionData);
                                 }),
                               ),

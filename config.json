@@ -15,8 +15,8 @@
     "id": "user"
   },
   "file": {
-    "getDataUrl": "http://localhost:3000/file",
-    "postDataUrl": "http://localhost:3000/file",
+    "getDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
+    "postDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
     "datafile": "xxx.data",
     "datafilePath": "../data_repo_server/local"
   }

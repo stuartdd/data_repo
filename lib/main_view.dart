@@ -56,7 +56,8 @@ DisplaySplitView createSplitView(
     final String Function(String, Path) onResolve, // Called when a tree node in selected
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final Path Function(DetailAction) onDataAction,
-    final void Function(String) log) {
+    final void Function(String) log,
+    {bool sorted = false}) {
   // Called when one of the detail buttons is pressed
   /// Left right or Top bottom
   ///
@@ -77,7 +78,7 @@ DisplaySplitView createSplitView(
   final Widget detailContainer;
   final node = data.getNodeFromJson(selectedPath);
   if (node != null) {
-    detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, horizontal, pathPropertiesList, appThemeData, onDataAction, onResolve);
+    detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, sorted, horizontal, pathPropertiesList, appThemeData, onDataAction, onResolve);
   } else {
     log("__DATA:__ Selected Node was not found in the data");
     return DisplaySplitView.error(appThemeData, ("Selected Node was not found in the data"));
@@ -97,6 +98,7 @@ DisplaySplitView createSplitView(
       onExpand(expandNodePath);
     },
     pathPropertiesList,
+    sorted: sorted,
   );
 
   final scroller = SingleChildScrollView(
@@ -142,13 +144,21 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
   return lm;
 }
 
-Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThemeData, bool isEditDataDisplay, bool beforeDataLoaded, final Path Function(DetailAction) dataAction) {
+Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThemeData, bool isEditDataDisplay, bool sorted, bool beforeDataLoaded, final Path Function(DetailAction) dataAction) {
   final pathUp = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "up"));
   final pathDown = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "down"));
   final pathRight = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "right"));
   final pathParent = selectedPath.hasParent ? selectedPath.cloneParentPath() : Path.empty();
   return Row(
     children: [
+      DetailIconButton(
+        onPressed: () {
+          dataAction(DetailAction(ActionType.flipSorted, false, Path.empty()));
+        },
+        tooltip: "Sort",
+        iconData: Icons.sort_by_alpha,
+        appThemeData: appThemeData,
+      ),
       DetailIconButton(
         onPressed: () {
           dataAction(DetailAction(ActionType.select, false, Path.empty()));
@@ -197,16 +207,18 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
   );
 }
 
-Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, final Path Function(DetailAction) dataAction, String Function(String, Path) onResolve) {
+Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool sorted, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, final Path Function(DetailAction) dataAction, String Function(String, Path) onResolve) {
   if (selectedNode is! Map<String, dynamic>) {
     throw JsonException(selectedPath, message: "Selected path should be a map");
   }
   List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath);
-  properties.sort(
-    (a, b) {
-      return a.name.compareTo(b.name);
-    },
-  );
+  if (sorted) {
+    properties.sort(
+      (a, b) {
+        return a.name.compareTo(b.name);
+      },
+    );
+  }
   return ListView(
     shrinkWrap: true,
     children: [

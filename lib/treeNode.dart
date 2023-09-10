@@ -322,11 +322,19 @@ class MyTreeNode {
     }
   }
 
-  void visitEachSubNode(final void Function(MyTreeNode) func) {
+  void visitEachSubNode(final void Function(MyTreeNode) func, {bool sort = false}) {
+    if (sort) {
+      children.sort(
+        (a, b) {
+          return a.label.compareTo(b.label);
+        },
+      );
+    }
+
     for (var element in children) {
       func(element);
       if (element.isNotEmpty) {
-        element.visitEachSubNode(func);
+        element.visitEachSubNode(func, sort: sort);
       }
     }
   }
@@ -394,7 +402,7 @@ Widget? buildNodeDefault(final MyTreeNode node, final AppThemeData appThemeData,
 }
 
 class MyTreeNodeWidgetList extends StatefulWidget {
-  const MyTreeNodeWidgetList(this.rootNode, this.selectedNode, this.selectedNodePath, this.appThemeData, this.rowHeight, this.onSelect, this.onExpand, this.pathListProperties, {super.key, this.buildNode = buildNodeDefault});
+  const MyTreeNodeWidgetList(this.rootNode, this.selectedNode, this.selectedNodePath, this.appThemeData, this.rowHeight, this.onSelect, this.onExpand, this.pathListProperties, {super.key, this.buildNode = buildNodeDefault, this.sorted = false});
   final Widget? Function(MyTreeNode, AppThemeData, double, bool, int, bool, Function(Path), Function(Path)) buildNode;
   final void Function(Path) onSelect;
   final void Function(Path) onExpand;
@@ -404,6 +412,7 @@ class MyTreeNodeWidgetList extends StatefulWidget {
   final MyTreeNode selectedNode;
   final Path selectedNodePath;
   final PathPropertiesList pathListProperties;
+  final bool sorted;
   @override
   State<MyTreeNodeWidgetList> createState() => _MyTreeNodeWidgetListState();
 }
@@ -446,6 +455,7 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
           c++;
         }
       },
+      sort: widget.sorted,
     );
     return ListBody(
       children: children,

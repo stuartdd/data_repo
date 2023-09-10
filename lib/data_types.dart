@@ -13,7 +13,7 @@ enum DisplayType { simpleDisplay, positionalString, markDown }
 
 enum SimpleButtonActions { ok, cancel, validate, copy, move, delete, listRemove, listClear, link }
 
-enum ActionType { none, reload, restart, save, saveAlt, addGroup, addDetail, editItemData, createFile, renameItem, select, querySelect, removeItem, link, clip, groupSelectClearAll, groupSelectAll, groupSelect, groupCopy, groupDelete }
+enum ActionType { none, reload, restart, save, saveAlt, flipSorted, addGroup, addDetail, editItemData, createFile, renameItem, select, querySelect, removeItem, link, clip, groupSelectClearAll, groupSelectAll, groupSelect, groupCopy, groupDelete }
 
 const int maxIntValue = -1 >>> 1;
 
@@ -259,7 +259,12 @@ class DetailAction {
   String toString() {
     final s = "Type:'${value ? "Value" : "Map"}' Path:'$path' V1:'$oldValue' ";
     switch (action) {
+
       case ActionType.none:
+        {
+          return "NONE: $s";
+        }
+      case ActionType.flipSorted:
         {
           return "NONE: $s";
         }
@@ -480,6 +485,7 @@ class SuccessState {
       }
     }
   }
+
   String toStatusString() {
     final m = message.trim().replaceFirst("__", " ").replaceFirst("__", ':');
     if (_exception != null) {
