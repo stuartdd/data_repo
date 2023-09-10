@@ -360,15 +360,16 @@ class MyTreeNode {
   }
 }
 
-Widget? buildNodeDefault(final MyTreeNode node, final AppThemeData appThemeData, final double rowHeight, final bool selected, final int pathLen, final bool hiLight, final Function(Path) onClick, final Function(Path) onExpand) {
+Widget? buildNodeDefault(final MyTreeNode node, final String rootNodeName, final AppThemeData appThemeData, final double rowHeight, final bool selected, final bool hiLight, final Function(Path) onClick, final Function(Path) onExpand) {
   if (node.parentIsExpanded && node.isNotLeaf) {
+    final pl = node.pathLen - 1;
     return Container(
       height: rowHeight,
       color: appThemeData.selectedAndHiLightColour(selected, hiLight),
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          SizedBox(width: 20.0 * (pathLen - 1)), // Indent
+          SizedBox(width: 20.0 * (pl)), // Indent
           IconButton(
               onPressed: () {
                 onExpand(node.path);
@@ -377,7 +378,7 @@ Widget? buildNodeDefault(final MyTreeNode node, final AppThemeData appThemeData,
               icon: appThemeData.treeNodeIcons[node.iconIndex]),
           TextButton(
             child: Text(
-              node.label,
+              (pl == 0 && rootNodeName.isNotEmpty) ? rootNodeName : node.label,
               style: node.canExpand ? appThemeData.tsTreeViewParentLabel : appThemeData.tsTreeViewLabel,
             ),
             onPressed: () {
@@ -402,8 +403,8 @@ Widget? buildNodeDefault(final MyTreeNode node, final AppThemeData appThemeData,
 }
 
 class MyTreeNodeWidgetList extends StatefulWidget {
-  const MyTreeNodeWidgetList(this.rootNode, this.selectedNode, this.selectedNodePath, this.appThemeData, this.rowHeight, this.onSelect, this.onExpand, this.pathListProperties, {super.key, this.buildNode = buildNodeDefault, this.sorted = false});
-  final Widget? Function(MyTreeNode, AppThemeData, double, bool, int, bool, Function(Path), Function(Path)) buildNode;
+  const MyTreeNodeWidgetList(this.rootNode, this.rootNodeName, this.selectedNode, this.selectedNodePath, this.appThemeData, this.rowHeight, this.onSelect, this.onExpand, this.pathListProperties, {super.key, this.buildNode = buildNodeDefault, this.sorted = false});
+  final Widget? Function(MyTreeNode, String, AppThemeData, double, bool, bool, Function(Path), Function(Path)) buildNode;
   final void Function(Path) onSelect;
   final void Function(Path) onExpand;
   final AppThemeData appThemeData;
@@ -413,6 +414,7 @@ class MyTreeNodeWidgetList extends StatefulWidget {
   final Path selectedNodePath;
   final PathPropertiesList pathListProperties;
   final bool sorted;
+  final String rootNodeName;
   @override
   State<MyTreeNodeWidgetList> createState() => _MyTreeNodeWidgetListState();
 }
@@ -430,10 +432,10 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
         final isSelected = widget.selectedNodePath.isEqual(aNodePath);
         final w = widget.buildNode(
           aNode,
+          widget.rootNodeName,
           widget.appThemeData,
           widget.rowHeight,
           isSelected,
-          aNode.pathLen,
           widget.pathListProperties.propertiesForPath(aNodePath).changed,
           (selectPath) {
             widget.onSelect(selectPath);

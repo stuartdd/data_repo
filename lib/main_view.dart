@@ -57,7 +57,7 @@ DisplaySplitView createSplitView(
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final Path Function(DetailAction) onDataAction,
     final void Function(String) log,
-    {bool sorted = false}) {
+    {bool sorted = false, String rootNodeName = ""}) {
   // Called when one of the detail buttons is pressed
   /// Left right or Top bottom
   ///
@@ -87,6 +87,7 @@ DisplaySplitView createSplitView(
   final scrollController = ScrollController();
   final listView = MyTreeNodeWidgetList(
     treeNodeDataRoot,
+    rootNodeName,
     selectedTreeNode,
     selectedPath,
     appThemeData,

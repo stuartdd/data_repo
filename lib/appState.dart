@@ -63,10 +63,11 @@ class ApplicationState {
   late final Timer? countdownTimer;
   List<String> _lastFind; // A new list is created when a fine is added.
   ApplicationScreen screen; // A new Screen is created each time the screen is updated.
+  bool _isDataSorted = false;
   bool _shouldWriteFile = false;
   bool _saveScreenSizeAndPos = true;
 
-  ApplicationState(this.screen, this._lastFind, this._appStateConfigFileName, this.log) {
+  ApplicationState(this.screen, this._isDataSorted, this._lastFind, this._appStateConfigFileName, this.log) {
     countdownTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (_shouldWriteFile) {
         writeAppStateConfigFile();
@@ -124,7 +125,7 @@ class ApplicationState {
         log("__E:__ $e");
       }
       log("__APP STATE:__ Using default  ${isDesktop ? "Desktop" : "Mobile"} State");
-      return ApplicationState(ApplicationScreen.empty(isDesktop), [], appStateConfigFileName, log);
+      return ApplicationState(ApplicationScreen.empty(isDesktop), false, [], appStateConfigFileName, log);
     }
   }
 
@@ -149,7 +150,11 @@ class ApplicationState {
     if (applicationScreen.isDefault) {
       log("__APP STATE:__ Using default ${isDesktop ? "Desktop" : "Mobile"} Screen");
     }
-    return ApplicationState(applicationScreen, lastFindList, fileName, log);
+    dynamic isDataSorted = map['isDataSorted'];
+    if (isDataSorted is! bool) {
+      isDataSorted = false;
+    }
+    return ApplicationState(applicationScreen, isDataSorted, lastFindList, fileName, log);
   }
 
   set saveScreenSizeAndPos(bool save) {
@@ -192,8 +197,18 @@ class ApplicationState {
     return _lastFind;
   }
 
+  bool get flipDataSorted {
+    _isDataSorted = !_isDataSorted;
+    _shouldWriteFile = true;
+    return _isDataSorted;
+  }
+
+  bool get isDataSorted {
+    return _isDataSorted;
+  }
+
   @override
   String toString() {
-    return '{"screen":$screen,"lastFind":${jsonEncode(_lastFind)}}';
+    return '{"screen":$screen,"isDataSorted":$_isDataSorted,"lastFind":${jsonEncode(_lastFind)}}';
   }
 }

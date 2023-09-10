@@ -5,15 +5,16 @@ import 'data_container.dart';
 import 'path.dart';
 import 'config.dart';
 
-enum SettingDetailType { url, dir, file, int, bool, color }
+enum SettingDetailType { url, dir, file, int, bool, color, name }
 
 enum _SettingState { ok, warning, error }
 
 final List<SettingDetail> _settingsData = [
   SettingDetail("get", "Server URL (Download)", "Download address of the host server", getDataUrlPath, SettingDetailType.url, defaultRemoteGetUrl, true),
   SettingDetail("put", "Server URL (Upload)", "Upload address of the host server", postDataUrlPath, SettingDetailType.url, defaultRemotePostUrl, true),
-  SettingDetail("path", "Local Data file path", "The directory for the data file", dataFileLocalDirPath, SettingDetailType.dir, defaultDataFilePath, false),
-  SettingDetail("data", "Data file Name", "The name of the server file", dataFileLocalNamePath, SettingDetailType.file, defaultDataFilePath, true),
+  SettingDetail("path", "Local Data file path", "The directory for the data file", dataFileLocalDirPath, SettingDetailType.dir, defaultDataEmptyString, false),
+  SettingDetail("data", "Data file Name", "The name of the server file", dataFileLocalNamePath, SettingDetailType.file, defaultDataEmptyString, true),
+  SettingDetail("rootNodeName", "Root Node Name", "Replace the root node name with this", rootNodeNamePath, SettingDetailType.name, defaultDataEmptyString, false),
   SettingDetail("timeout", "Server Timeout Milliseconds", "The host server timeout", dataFetchTimeoutMillisPath, SettingDetailType.int, defaultFetchTimeoutMillis.toString(), false),
   SettingDetail("", "Screen Text & Icons", "Icons/Text White or Black. Click below to change", appColoursDarkMode, SettingDetailType.bool, defaultDarkMode, true, trueValue: "Currently White", falseValue: "Currently Black"),
   SettingDetail("", "Primary Colour", "The main colour theme", appColoursPrimaryPath, SettingDetailType.color, defaultPrimaryColour, true),

@@ -1,6 +1,7 @@
 {
   "application": {
     "title": "Data Repository",
+    "rootNodeName": "Home",
     "dataFetchTimeoutMillis": 500,
     "colours": {
       "primary": "lightBlue",

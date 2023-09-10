@@ -15,7 +15,7 @@ const String defaultErrorColour = "red";
 const String defaultDarkMode = "false";
 const String defaultUserName = "User";
 const int defaultFetchTimeoutMillis = 1000;
-const String defaultDataFilePath = "";
+const String defaultDataEmptyString = "";
 const String defaultAppTitle = "Data Repo";
 const String defaultFontFamily = "Roboto";
 const double defaultFontScaleDesktop = 1.0;
@@ -42,6 +42,7 @@ final appStateLocalDirPath = Path.fromList(["user", "appStatePath"]);
 final userNamePath = Path.fromList(["user", "name"]);
 final userIdPath = Path.fromList(["user", "id"]);
 final titlePath = Path.fromList(["application", "title"]);
+final rootNodeNamePath = Path.fromList(["application", "rootNodeName"]);
 final appColoursDarkMode = Path.fromList(["application", "darkMode"]);
 final appColoursPrimaryPath = Path.fromList(["application", "colours", "primary"]);
 final appColoursSecondaryPath = Path.fromList(["application", "colours", "secondary"]);
@@ -217,6 +218,7 @@ class ConfigData {
   late final int _dataFetchTimeoutMillis;
   Function()? _onUpdate;
   AppThemeData? _appThemeData;
+  String _rootNodeName = "";
   String _userName = "";
   String _userId = "";
   String _dataFileName = "";
@@ -289,6 +291,7 @@ class ConfigData {
     _appColoursHiLight = validColour(_data.getStringFromJson(appColoursHiLightPath, fallback: "yellow", create: true), appColoursHiLightPath);
     _appColoursError = validColour(_data.getStringFromJson(appColoursErrorPath, fallback: "red", create: true), appColoursErrorPath);
     _darkMode = _data.getBoolFromJson(appColoursDarkMode, fallback: false);
+    _rootNodeName = _data.getStringFromJson(rootNodeNamePath, fallback: "Home");
     _appThemeData = null;
     if (_onUpdate != null && callOnUpdate) {
       _onUpdate!();
@@ -398,6 +401,10 @@ class ConfigData {
 
   String getDataFileName() {
     return _dataFileName;
+  }
+
+  String getRootNodeName() {
+    return _rootNodeName;
   }
 
   String getDataFileDir() {
