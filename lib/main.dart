@@ -1186,10 +1186,10 @@ class _MyHomePageState extends State<MyHomePage> {
           if (p.isEmpty) {
             return "Path: Is empty";
           }
-          if (p.last.endsWith(positionalStringMarker)) {
+          if (p.last.endsWith(positionalStringExtension)) {
             return "Path:$p: Is positional list";
           }
-          if (p.last.endsWith(markDownMarker)) {
+          if (p.last.endsWith(markDownExtension)) {
             return "Path:$p: Is MarkDown";
           }
           if (p.isEqual(fromPath)) {

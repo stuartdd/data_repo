@@ -9,7 +9,7 @@ import 'path.dart';
 //    Other display types as required
 // This data is structured so
 //
-enum DisplayType { simpleDisplay, positionalString, markDown }
+enum DisplayType { simpleDisplay, positionalString, markDown, referenceString }
 
 enum SimpleButtonActions { ok, cancel, validate, copy, move, delete, listRemove, listClear, link }
 
@@ -25,37 +25,42 @@ class DisplayTypeData {
   const DisplayTypeData({required this.displayType, required this.extension, required this.extensionLength, required this.description});
 }
 
-const positionalStringMarker = ":pl";
-const markDownMarker = ":md";
-const simpleMarker = "";
+const positionalStringExtension = ":pl";
+const markDownExtension = ":md";
+const referenceExtension = ":rf";
+const simpleExtension = "";
 
-const DisplayTypeData simpleDisplayData = DisplayTypeData(displayType: DisplayType.simpleDisplay, extension: simpleMarker, extensionLength: simpleMarker.length, description: 'Simple Value [str,int,bool]');
-const DisplayTypeData positionalStringData = DisplayTypeData(displayType: DisplayType.positionalString, extension: positionalStringMarker, extensionLength: positionalStringMarker.length, description: 'Positional List');
-const DisplayTypeData markDownData = DisplayTypeData(displayType: DisplayType.markDown, extension: markDownMarker, extensionLength: markDownMarker.length, description: 'Markdown Text');
+const DisplayTypeData simpleDisplayData = DisplayTypeData(displayType: DisplayType.simpleDisplay, extension: simpleExtension, extensionLength: simpleExtension.length, description: 'Simple Value [str,int,bool]');
+const DisplayTypeData positionalStringData = DisplayTypeData(displayType: DisplayType.positionalString, extension: positionalStringExtension, extensionLength: positionalStringExtension.length, description: 'Positional List');
+const DisplayTypeData referenceStringData = DisplayTypeData(displayType: DisplayType.referenceString, extension: referenceExtension, extensionLength: referenceExtension.length, description: 'Reference String');
+const DisplayTypeData markDownData = DisplayTypeData(displayType: DisplayType.markDown, extension: markDownExtension, extensionLength: markDownExtension.length, description: 'Markdown Text');
+
+// Don't add simpleDisplayData to this list.
 const Map<String, DisplayTypeData> displayTypeMap = {
-  positionalStringMarker: positionalStringData,
-  markDownMarker: markDownData,
+  positionalStringExtension: positionalStringData,
+  markDownExtension: markDownData,
+  referenceExtension: referenceStringData,
 };
 // End Display type data
 //
 
-const optionsDataTypeEmpty = OptionsTypeData(String, "string", "empty");
+const optionsDataTypeEmpty = OptionsTypeData(String, "string", "empty", simpleExtension);
 
 //
 // When renaming a data element the Options are derived from this class.
 //
 class OptionsTypeData {
-  final Type elementType;
-  final String key;
-  final String description;
-  final String suffix;
+  final Type elementType; // Native 'dart' type
+  final String uniqueKey; // Local type 'Group', 'positional' ,'String',,,
+  final String description; // For the user
+  final String suffix; // Extension for special sub types like positional markdown and reference.
   final int min;
   final int max;
-  const OptionsTypeData(this.elementType, this.key, this.description, {this.suffix = "", this.min = -maxIntValue, this.max = maxIntValue});
+  const OptionsTypeData(this.elementType, this.uniqueKey, this.description, this.suffix, {this.min = -maxIntValue, this.max = maxIntValue});
 
-  static OptionsTypeData locateTypeInOptionsList(String key, List<OptionsTypeData> l, OptionsTypeData fallback) {
+  static OptionsTypeData locateTypeInOptionsList(String uniqueKey, List<OptionsTypeData> l, OptionsTypeData fallback) {
     for (int i = 0; i < l.length; i++) {
-      if (l[i].key == key) {
+      if (l[i].uniqueKey == uniqueKey) {
         return l[i];
       }
     }
@@ -63,11 +68,11 @@ class OptionsTypeData {
   }
 
   bool notEqual(OptionsTypeData other) {
-    return key != other.key;
+    return uniqueKey != other.uniqueKey;
   }
 
   bool equal(OptionsTypeData other) {
-    return key == other.key;
+    return uniqueKey == other.uniqueKey;
   }
 
   bool get isEmpty {
@@ -76,7 +81,7 @@ class OptionsTypeData {
 
   @override
   String toString() {
-    return "OptionsTypeData: Key:$key Suffix: $suffix Desc:$description";
+    return "OptionsTypeData: uniqueKey:$uniqueKey Suffix: $suffix Desc:$description";
   }
 
   String inRangeInt(String pref, int n) {
@@ -98,12 +103,12 @@ class OptionsTypeData {
     final n = name.trim();
     if (n.isNotEmpty) {
       for (var x in _elementTypesSpecial) {
-        if (n.endsWith(x.key)) {
+        if (n.endsWith(x.suffix)) {
           return x;
         }
       }
       for (var x in _elementTypesOther) {
-        if (n == x.key) {
+        if (n == x.uniqueKey) {
           return x;
         }
       }
@@ -126,23 +131,23 @@ class OptionsTypeData {
 }
 
 // Values for Native types
-const OptionsTypeData optionTypeDataString = OptionsTypeData(String, "", "Text");
-const OptionsTypeData optionTypeDataReference = OptionsTypeData(String, "Reference", "Reference to another item");
-const OptionsTypeData optionTypeDataBool = OptionsTypeData(bool, "bool", "Yes or No", min: 2, max: 3);
-const OptionsTypeData optionTypeDataDouble = OptionsTypeData(double, "double", "Decimal number");
-const OptionsTypeData optionTypeDataInt = OptionsTypeData(int, "int", "Integer number");
+const OptionsTypeData optionTypeDataString = OptionsTypeData(String, "", "Text", simpleExtension);
+const OptionsTypeData optionTypeDataBool = OptionsTypeData(bool, "bool", "Yes or No", simpleExtension, min: 2, max: 3);
+const OptionsTypeData optionTypeDataDouble = OptionsTypeData(double, "double", "Decimal number", simpleExtension);
+const OptionsTypeData optionTypeDataInt = OptionsTypeData(int, "int", "Integer number", simpleExtension);
 // Values to identify special case String values as Positional Lists or Markdown
-const OptionsTypeData optionTypeDataSimple = OptionsTypeData(String, simpleMarker, "Simple", suffix: simpleMarker);
-const OptionsTypeData optionTypeDataPositional = OptionsTypeData(String, positionalStringMarker, "Positional List", suffix: positionalStringMarker);
-const OptionsTypeData optionTypeDataMarkDown = OptionsTypeData(String, markDownMarker, "Multi Line Markdown", suffix: markDownMarker);
+const OptionsTypeData optionTypeDataSimple = OptionsTypeData(String, "text", "Simple", simpleExtension);
+const OptionsTypeData optionTypeDataPositional = OptionsTypeData(String, "positional", "Positional List",positionalStringExtension);
+const OptionsTypeData optionTypeDataMarkDown = OptionsTypeData(String, "markdown", "Multi Line Markdown", markDownExtension);
+const OptionsTypeData optionTypeDataReference = OptionsTypeData(String, "reference", "Reference to another item", referenceExtension);
 // Values for adding elements as groups or values
-const OptionsTypeData optionTypeDataGroup = OptionsTypeData(String, "Group", "A Group Name", suffix: "", min: 2, max: 30);
-const OptionsTypeData optionTypeDataValue = OptionsTypeData(String, "Value", "A Value Name", suffix: "", min: 2, max: 30);
+const OptionsTypeData optionTypeDataGroup = OptionsTypeData(String, "Group", "A Group Name", simpleExtension, min: 2, max: 30);
+const OptionsTypeData optionTypeDataValue = OptionsTypeData(String, "Value", "A Value Name", simpleExtension, min: 2, max: 30);
 // Value for function 'forTypeOrName(Type type, String name)' if no match found
-const OptionsTypeData optionTypeDataNotFound = OptionsTypeData(String, "String", "Type Not Found");
+const OptionsTypeData optionTypeDataNotFound = OptionsTypeData(String, "String", "Type Not Found", simpleExtension);
 
-const OptionsTypeData optionTypeDataBoolYes = OptionsTypeData(bool, "true", "Yes", min: 2, max: 3);
-const OptionsTypeData optionTypeDataBoolNo = OptionsTypeData(bool, "false", "No", min: 2, max: 3);
+const OptionsTypeData optionTypeDataBoolYes = OptionsTypeData(bool, "true", "Yes", simpleExtension, min: 2, max: 3);
+const OptionsTypeData optionTypeDataBoolNo = OptionsTypeData(bool, "false", "No", simpleExtension, min: 2, max: 3);
 
 const List<OptionsTypeData> _elementTypesNative = [
   optionTypeDataString,
@@ -154,6 +159,7 @@ const List<OptionsTypeData> _elementTypesNative = [
 const List<OptionsTypeData> _elementTypesSpecial = [
   optionTypeDataPositional,
   optionTypeDataMarkDown,
+  optionTypeDataReference,
 ];
 
 const List<OptionsTypeData> _elementTypesOther = [
@@ -164,6 +170,7 @@ const List<OptionsTypeData> _elementTypesOther = [
 const List<OptionsTypeData> optionsForRenameElement = [
   optionTypeDataPositional,
   optionTypeDataMarkDown,
+  optionTypeDataReference,
   optionTypeDataSimple,
 ];
 
@@ -172,7 +179,6 @@ const List<OptionsTypeData> optionsForUpdateElement = [
   optionTypeDataBool,
   optionTypeDataDouble,
   optionTypeDataInt,
-  optionTypeDataReference,
 ];
 
 const List<OptionsTypeData> optionsForAddElement = [
@@ -261,7 +267,6 @@ class DetailAction {
   String toString() {
     final s = "Type:'${value ? "Value" : "Map"}' Path:'$path' V1:'$oldValue' ";
     switch (action) {
-
       case ActionType.none:
         {
           return "NONE: $s";
