@@ -322,8 +322,8 @@ class MyTreeNode {
     }
   }
 
-  void visitEachSubNode(final void Function(MyTreeNode) func, {bool sort = false}) {
-    if (sort) {
+  void visitEachSubNode(final void Function(MyTreeNode) func, {bool isSorted = false}) {
+    if (isSorted) {
       children.sort(
         (a, b) {
           return a.label.compareTo(b.label);
@@ -334,7 +334,7 @@ class MyTreeNode {
     for (var element in children) {
       func(element);
       if (element.isNotEmpty) {
-        element.visitEachSubNode(func, sort: sort);
+        element.visitEachSubNode(func, isSorted: isSorted);
       }
     }
   }
@@ -403,7 +403,7 @@ Widget? buildNodeDefault(final MyTreeNode node, final String rootNodeName, final
 }
 
 class MyTreeNodeWidgetList extends StatefulWidget {
-  const MyTreeNodeWidgetList(this.rootNode, this.rootNodeName, this.selectedNode, this.selectedNodePath, this.appThemeData, this.rowHeight, this.onSelect, this.onExpand, this.pathListProperties, {super.key, this.buildNode = buildNodeDefault, this.sorted = false});
+  const MyTreeNodeWidgetList(this.rootNode, this.rootNodeName, this.selectedNode, this.selectedNodePath, this.appThemeData, this.rowHeight, this.onSelect, this.onExpand, this.pathListProperties, {super.key, this.buildNode = buildNodeDefault, this.isSorted = false});
   final Widget? Function(MyTreeNode, String, AppThemeData, double, bool, bool, Function(Path), Function(Path)) buildNode;
   final void Function(Path) onSelect;
   final void Function(Path) onExpand;
@@ -413,7 +413,7 @@ class MyTreeNodeWidgetList extends StatefulWidget {
   final MyTreeNode selectedNode;
   final Path selectedNodePath;
   final PathPropertiesList pathListProperties;
-  final bool sorted;
+  final bool isSorted;
   final String rootNodeName;
   @override
   State<MyTreeNodeWidgetList> createState() => _MyTreeNodeWidgetListState();
@@ -457,7 +457,7 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
           c++;
         }
       },
-      sort: widget.sorted,
+      isSorted: widget.isSorted,
     );
     return ListBody(
       children: children,

@@ -127,6 +127,7 @@ class OptionsTypeData {
 
 // Values for Native types
 const OptionsTypeData optionTypeDataString = OptionsTypeData(String, "", "Text");
+const OptionsTypeData optionTypeDataReference = OptionsTypeData(String, "Reference", "Reference to another item");
 const OptionsTypeData optionTypeDataBool = OptionsTypeData(bool, "bool", "Yes or No", min: 2, max: 3);
 const OptionsTypeData optionTypeDataDouble = OptionsTypeData(double, "double", "Decimal number");
 const OptionsTypeData optionTypeDataInt = OptionsTypeData(int, "int", "Integer number");
@@ -171,6 +172,7 @@ const List<OptionsTypeData> optionsForUpdateElement = [
   optionTypeDataBool,
   optionTypeDataDouble,
   optionTypeDataInt,
+  optionTypeDataReference,
 ];
 
 const List<OptionsTypeData> optionsForAddElement = [

@@ -13,8 +13,8 @@ final List<SettingDetail> _settingsData = [
   SettingDetail("get", "Server URL (Download)", "Download address of the host server", getDataUrlPath, SettingDetailType.url, defaultRemoteGetUrl, true),
   SettingDetail("put", "Server URL (Upload)", "Upload address of the host server", postDataUrlPath, SettingDetailType.url, defaultRemotePostUrl, true),
   SettingDetail("path", "Local Data file path", "The directory for the data file", dataFileLocalDirPath, SettingDetailType.dir, defaultDataEmptyString, false),
-  SettingDetail("data", "Data file Name", "The name of the server file", dataFileLocalNamePath, SettingDetailType.file, defaultDataEmptyString, true),
-  SettingDetail("rootNodeName", "Root Node Name", "Replace the root node name with this", rootNodeNamePath, SettingDetailType.name, defaultDataEmptyString, false),
+  // SettingDetail("data", "Data file Name", "The name of the server file", dataFileLocalNamePath, SettingDetailType.file, defaultDataEmptyString, true),
+  SettingDetail("rootNodeName", "Root Node Name", "Replace the root node name with this", rootNodeNamePath, SettingDetailType.name, defaultDataEmptyString, true),
   SettingDetail("timeout", "Server Timeout Milliseconds", "The host server timeout", dataFetchTimeoutMillisPath, SettingDetailType.int, defaultFetchTimeoutMillis.toString(), false),
   SettingDetail("", "Screen Text & Icons", "Icons/Text White or Black. Click below to change", appColoursDarkMode, SettingDetailType.bool, defaultDarkMode, true, trueValue: "Currently White", falseValue: "Currently Black"),
   SettingDetail("", "Primary Colour", "The main colour theme", appColoursPrimaryPath, SettingDetailType.color, defaultPrimaryColour, true),
@@ -153,11 +153,15 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
         return;
       }
       final scData = widget.settingsControlList.getSettingControlForId("data");
+      final String scDataValue;
       if (scData == null) {
         sv = SettingValidation.warning("Setting 'get' setting not found");
+        scDataValue = "NUL";
+      } else {
+        scDataValue = scData.stringValue;
       }
       if (sv.isNotError) {
-        final response = await DataContainer.testHttpGet("${scGet.stringValue}/${scData!.stringValue}", "File: ${scData.stringValue}.");
+        final response = await DataContainer.testHttpGet("${scGet.stringValue}/$scDataValue", "File: $scDataValue.");
         if (response.isNotEmpty) {
           sv = SettingValidation.warning(response);
         }
@@ -346,7 +350,7 @@ class SettingControlList {
             list.add(SettingControl(settingDetail, configData.getNumFromJson(settingDetail.path, fallback: num.parse(settingDetail.fallback)).toString()));
             break;
           default:
-            list.add(SettingControl(settingDetail, configData.getStringFromJson(settingDetail.path, fallback: settingDetail.fallback)));
+            list.add(SettingControl(settingDetail, configData.getStringFromJsonOptional(settingDetail.path)));
         }
       }
     }

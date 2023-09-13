@@ -18,7 +18,7 @@
   "file": {
     "getDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
     "postDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
-    "datafile": "xxx.data",
+    "datafile": "data05.json",
     "datafilePath": "../data_repo_server/local"
   }
 }

@@ -176,10 +176,19 @@ class _DetailWidgetState extends State<DetailWidget> {
         ),
       );
     }
+
+    final r = widget.onResolve(dataValueRow.value, dataValueRow.fullPath);
+    final TextStyle ts;
+    if (r != dataValueRow.value) {
+      ts = appThemeData.tsLargeItalic;
+    } else {
+      ts = appThemeData.tsLarge;
+    }
+
     return Container(
       color: bgColour,
       alignment: Alignment.centerLeft,
-      child: Padding(padding: const EdgeInsets.all(5.0), child: Text(widget.onResolve(dataValueRow.value, dataValueRow.fullPath), style: appThemeData.tsLarge)),
+      child: Padding(padding: const EdgeInsets.all(5.0), child: Text(r, style: ts)),
     );
   }
 

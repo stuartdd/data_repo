@@ -7,7 +7,7 @@ import 'dart:io';
 const String defaultRemoteGetUrl = "http://localhost:8080/file";
 const String defaultRemotePostUrl = "http://localhost:8080/file";
 const String defaultDataFileName = "data.json";
-const String defaultAppStateFileName = "appState.json";
+const String defaultAppStateFileName = "data_repo_appState.json";
 const String defaultPrimaryColour = "blue";
 const String defaultSecondaryColour = "green";
 const String defaultHiLightColour = "yellow";
@@ -113,6 +113,8 @@ class AppThemeData {
   final bool desktop;
   late final TextStyle tsLarge;
   late final TextStyle tsLargeDisabled;
+  late final TextStyle tsLargeItalic;
+
   late final TextStyle tsMedium;
   late final TextStyle tsMediumBold;
   late final TextStyle tsMediumDisabled;
@@ -131,6 +133,7 @@ class AppThemeData {
     tsScale = scale;
     tsLarge = TextStyle(fontSize: (25.0 * scale), color: screenForegroundColour(true));
     tsLargeDisabled = TextStyle(fontSize: (25.0 * scale), color: screenForegroundColour(false));
+    tsLargeItalic = TextStyle(fontSize: (25.0 * scale), fontStyle: FontStyle.italic, color: screenForegroundColour(true));
     tsLargeError = TextStyle(fontSize: (25.0 * scale), color: errC);
     tsMedium = TextStyle(fontSize: (20.0 * scale), color: screenForegroundColour(true));
     tsMediumBold = TextStyle(fontSize: (20.0 * scale), fontWeight: FontWeight.bold, color: screenForegroundColour(true));
@@ -231,11 +234,27 @@ class ConfigData {
   ColorPallet _appColoursError = ColorPallet.fromMaterialColor(Colors.red, 'red');
   bool _darkMode = false;
 
-  String screenModeColourName(final bool enabled) {
-    if (enabled) {
-      return _darkMode ? "white" : "black";
+  List<String> dir(List<String> extensions) {
+    final l = List<String>.empty(growable: true);
+    final dirList = Directory(_dataFileLocalDir).listSync(recursive: false);
+    for (var element in dirList) {
+      if (element is File) {
+        final fileName = File(element.path).uri.pathSegments.last;
+        if (!fileName.startsWith('.')) {
+          if (extensions.isEmpty) {
+            l.add(fileName);
+          } else {
+            final ext = fileName.split('.').last.toLowerCase();
+            if (ext.isNotEmpty) {
+              if (extensions.contains(ext)) {
+                l.add(fileName);
+              }
+            }
+          }
+        }
+      }
     }
-    return "brown";
+    return l;
   }
 
   ConfigData(this._applicationDefaultDir, this._configFileName, this._isDesktop, this.log) {
@@ -286,10 +305,10 @@ class ConfigData {
     } else {
       _dataFileLocalDir = _applicationDefaultDir;
     }
-    _appColoursPrimary = validColour(_data.getStringFromJson(appColoursPrimaryPath, fallback: screenModeColourName(true), create: true), appColoursPrimaryPath);
-    _appColoursSecondary = validColour(_data.getStringFromJson(appColoursSecondaryPath, fallback: "green", create: true), appColoursSecondaryPath);
-    _appColoursHiLight = validColour(_data.getStringFromJson(appColoursHiLightPath, fallback: "yellow", create: true), appColoursHiLightPath);
-    _appColoursError = validColour(_data.getStringFromJson(appColoursErrorPath, fallback: "red", create: true), appColoursErrorPath);
+    _appColoursPrimary = validColour(_data.getStringFromJson(appColoursPrimaryPath, fallback: defaultPrimaryColour, create: true), appColoursPrimaryPath);
+    _appColoursSecondary = validColour(_data.getStringFromJson(appColoursSecondaryPath, fallback: defaultSecondaryColour, create: true), appColoursSecondaryPath);
+    _appColoursHiLight = validColour(_data.getStringFromJson(appColoursHiLightPath, fallback: defaultHiLightColour, create: true), appColoursHiLightPath);
+    _appColoursError = validColour(_data.getStringFromJson(appColoursErrorPath, fallback: defaultErrorColour, create: true), appColoursErrorPath);
     _darkMode = _data.getBoolFromJson(appColoursDarkMode, fallback: false);
     _rootNodeName = _data.getStringFromJson(rootNodeNamePath, fallback: "Home");
     _appThemeData = null;
@@ -318,10 +337,14 @@ class ConfigData {
     return "";
   }
 
-  Map<String,dynamic> getMinimumDataContentMap() {
+  Map<String, dynamic> getMinimumDataContentMap() {
     final dt = DateTime.now();
     final result = '${dt.year}-${dt.month}-${dt.day} ${dt.hour}:${dt.minute}:${dt.second}';
     return DataContainer.convertStringToMap('{"$_userName":{"Info":{"Created":"$result"}}}', "");
+  }
+
+  String getStringFromJsonOptional(Path path) {
+    return _data.getStringFromJsonOptional(path);
   }
 
   String getStringFromJson(Path path, {String fallback = "", bool create = false}) {

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:data_repo/configSettings.dart';
 import 'package:data_repo/data_container.dart';
 import 'package:data_repo/treeNode.dart';
@@ -17,8 +18,8 @@ import 'main_view.dart';
 import 'detail_buttons.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
-const appBarHeight = 50.0;
-const navBarHeight = 50.0;
+const appBarHeight = 45.0;
+const navBarHeight = 45.0;
 const statusBarHeight = 35.0;
 const inputTextTitleStyleHeight = 35.0;
 
@@ -48,7 +49,7 @@ void log(final String text) {
 Size screenSize(BuildContext context) {
   final pt = MediaQuery.of(context).padding.top;
   final bi = MediaQuery.of(context).viewInsets.bottom - MediaQuery.of(context).viewInsets.top;
-  final height = MediaQuery.of(context).size.height - (bi + pt) - 2;
+  final height = MediaQuery.of(context).size.height - (bi + pt) - 4;
   final width = MediaQuery.of(context).size.width;
   return Size(width, height);
 }
@@ -59,7 +60,7 @@ void main() async {
     final applicationDefaultDir = await ApplicationState.getApplicationDefaultDir();
     final isDesktop = ApplicationState.appIsDesktop();
 
-    _configData = ConfigData(applicationDefaultDir, "config.json", isDesktop, log);
+    _configData = ConfigData(applicationDefaultDir, "data_repo_config.json", isDesktop, log);
     _applicationState = ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), log);
     if (isDesktop) {
       setWindowTitle("${_configData.getTitle()}: ${_configData.getDataFileName()}");
@@ -151,9 +152,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _lastSearch = "";
   bool _dataWasUpdated = false;
   bool _isEditDataDisplay = false;
-
   double _navBarHeight = navBarHeight;
-
   SuccessState _globalSuccessState = SuccessState(true);
   ScrollController _treeViewScrollController = ScrollController();
   DataContainer _loadedData = DataContainer.empty();
@@ -1130,6 +1129,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final AppThemeData appThemeData = _configData.getAppThemeData();
+    final screenForeground = appThemeData.screenForegroundColour(true);
+    final appBackgroundColor = appThemeData.screenBackgroundColor;
+    final appBackgroundErrorColor = appThemeData.screenBackgroundErrorColor;
+
     _configData.onUpdate = _onUpdateConfig;
 
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
@@ -1172,12 +1176,12 @@ class _MyHomePageState extends State<MyHomePage> {
       _isEditDataDisplay,
       _configData.isDesktop(),
       _applicationState.screen.divPos,
-      _configData.getAppThemeData(),
+      appThemeData,
       _pathPropertiesList,
       _selectNodeState,
       _expandNodeState,
       (resolve, fromPath) {
-        if (!_isEditDataDisplay && resolve.startsWith("<path>")) {
+        if (!_isEditDataDisplay && resolve.startsWith("[path]")) {
           final p = Path.fromDotPath(resolve.substring(6));
           if (p.isEmpty) {
             return "Path: Is empty";
@@ -1211,7 +1215,7 @@ class _MyHomePageState extends State<MyHomePage> {
         return _handleAction(detailActionData);
       },
       log,
-      sorted: _applicationState.isDataSorted,
+      isSorted: _applicationState.isDataSorted,
       rootNodeName: _configData.getRootNodeName(),
     );
     _treeViewScrollController = displayData.scrollController;
@@ -1219,7 +1223,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final List<Widget> toolBarItems = List.empty(growable: true);
     toolBarItems.add(
       DetailIconButton(
-        iconData: Icons.close_outlined,
+        iconData: Icons.close,
         tooltip: 'Exit application',
         onPressed: () async {
           final close = await _handleShouldExit();
@@ -1227,17 +1231,17 @@ class _MyHomePageState extends State<MyHomePage> {
             closer(0);
           }
         },
-        appThemeData: _configData.getAppThemeData(),
+        appThemeData: appThemeData,
       ),
     );
     if (_loadedData.isEmpty) {
       _navBarHeight = 0;
       toolBarItems.add(Container(
-        color: _configData.getAppThemeData().primary.med,
+        color: appThemeData.primary.med,
         child: SizedBox(
           width: screenSize(context).width / 3,
           child: TextField(
-            style: _configData.getAppThemeData().tsLarge,
+            style: appThemeData.tsLarge,
             decoration: const InputDecoration(
               hintText: 'Password',
             ),
@@ -1254,16 +1258,36 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ));
       toolBarItems.add(DetailIconButton(
-        appThemeData: _configData.getAppThemeData(),
+        appThemeData: appThemeData,
         iconData: Icons.file_open,
         tooltip: 'Load Data',
-        timerMs: 5000,
+        timerMs: 500,
         onPressed: () {
           _initialPassword = passwordEditingController.text;
           passwordEditingController.text = "";
           _loadDataState();
         },
       ));
+      toolBarItems.add(DetailIconButton(
+          appThemeData: appThemeData,
+          iconData: Icons.rule_folder,
+          tooltip: 'Choose File',
+          timerMs: 500,
+          onPressed: () {
+            _showLocalFilesDialog(
+              context,
+              (fileName) {
+                if (fileName != _configData.getDataFileName()) {
+                  _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
+                  _configData.update(callOnUpdate: true);
+                  log("__CONFIG__ File name updated to:'$fileName'");
+                  _configData.save(log);
+                } else {
+                  log("__CONFIG__ File name not updated. No change");
+                }
+              },
+            );
+          }));
     } else {
       //
       // Data is loaded
@@ -1271,7 +1295,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _navBarHeight = navBarHeight;
       toolBarItems.add(DetailIconButton(
         show: _loadedData.isNotEmpty,
-        appThemeData: _configData.getAppThemeData(),
+        appThemeData: appThemeData,
         iconData: _isEditDataDisplay ? Icons.search : Icons.edit,
         tooltip: _isEditDataDisplay ? 'Search Mode' : "Edit Mode",
         onPressed: () {
@@ -1282,7 +1306,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ));
       toolBarItems.add(DetailIconButton(
         show: _dataWasUpdated,
-        appThemeData: _configData.getAppThemeData(),
+        appThemeData: appThemeData,
         iconData: Icons.save,
         tooltip: "Save",
         onPressed: () {
@@ -1291,7 +1315,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ));
       if (_isEditDataDisplay) {
         toolBarItems.add(VerticalDivider(
-          color: _configData.getAppThemeData().screenForegroundColour(true),
+          color: screenForeground,
         ));
         toolBarItems.add(
           DetailIconButton(
@@ -1315,7 +1339,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   return Icons.add;
                 }),
                 MenuOptionDetails("Save %{0}", "Save %{4} %{2}%{0}", ActionType.save, () {
-                  return Icons.save;
+                  return Icons.lock_open;
                 }),
                 MenuOptionDetails("Save %{1}", "Save %{4} %{2}%{1}", ActionType.saveAlt, () {
                   return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;
@@ -1339,13 +1363,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 _handleAction(DetailAction(selectedAction, true, path));
               });
             },
-            appThemeData: _configData.getAppThemeData(),
+            appThemeData: appThemeData,
           ),
         );
       }
       if (_isEditDataDisplay) {
         toolBarItems.add(VerticalDivider(
-          color: _configData.getAppThemeData().screenForegroundColour(true),
+          color: screenForeground,
         ));
         toolBarItems.add(DetailIconButton(
           onPressed: () {
@@ -1353,7 +1377,7 @@ class _MyHomePageState extends State<MyHomePage> {
           },
           tooltip: "Invert Selection",
           iconData: Icons.select_all,
-          appThemeData: _configData.getAppThemeData(),
+          appThemeData: appThemeData,
         ));
         final canPaste = _pathPropertiesList.hasGroupSelects;
         if (canPaste) {
@@ -1363,7 +1387,7 @@ class _MyHomePageState extends State<MyHomePage> {
             },
             tooltip: "Clear ALL Selected",
             iconData: Icons.deselect,
-            appThemeData: _configData.getAppThemeData(),
+            appThemeData: appThemeData,
           ));
           toolBarItems.add(DetailIconButton(
             onPressed: () {
@@ -1371,7 +1395,7 @@ class _MyHomePageState extends State<MyHomePage> {
             },
             tooltip: "Copy to ${_selectedPath.last}",
             iconData: Icons.file_copy,
-            appThemeData: _configData.getAppThemeData(),
+            appThemeData: appThemeData,
           ));
           toolBarItems.add(DetailIconButton(
             onPressed: () {
@@ -1379,17 +1403,17 @@ class _MyHomePageState extends State<MyHomePage> {
             },
             tooltip: "Delete Data",
             iconData: Icons.delete,
-            appThemeData: _configData.getAppThemeData(),
+            appThemeData: appThemeData,
           ));
         }
       } else {
         toolBarItems.add(
           Container(
-            color: _configData.getAppThemeData().primary.med,
+            color: appThemeData.primary.med,
             child: SizedBox(
               width: screenSize(context).width / 3,
               child: TextField(
-                style: _configData.getAppThemeData().tsMedium,
+                style: appThemeData.tsMedium,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   hintText: 'Search',
@@ -1406,7 +1430,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         toolBarItems.add(
           DetailIconButton(
-            appThemeData: _configData.getAppThemeData(),
+            appThemeData: appThemeData,
             iconData: Icons.search,
             tooltip: 'Search',
             onPressed: () {
@@ -1416,7 +1440,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         toolBarItems.add(
           DetailIconButton(
-            appThemeData: _configData.getAppThemeData(),
+            appThemeData: appThemeData,
             iconData: Icons.youtube_searched_for,
             tooltip: 'Previous Searches',
             onPressed: () async {
@@ -1434,7 +1458,7 @@ class _MyHomePageState extends State<MyHomePage> {
         );
         toolBarItems.add(
           DetailIconButton(
-            appThemeData: _configData.getAppThemeData(),
+            appThemeData: appThemeData,
             iconData: Icons.search_off,
             tooltip: 'Clear Search',
             onPressed: () {
@@ -1447,14 +1471,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final settings = Positioned(
         left: screenSize(context).width - appBarHeight,
-        top: 0,
+        top: _navBarHeight,
         child: DetailIconButton(
           iconData: Icons.settings,
           tooltip: 'Settings',
           onPressed: () {
             _showConfigDialog(
               context,
-              _configData.getAppThemeData(),
+              appThemeData,
               _configData.getConfigFileName(),
               _configData.getDataFileDir(),
               (validValue, detail) {
@@ -1478,7 +1502,7 @@ class _MyHomePageState extends State<MyHomePage> {
               },
             );
           },
-          appThemeData: _configData.getAppThemeData(),
+          appThemeData: appThemeData,
         ));
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
@@ -1487,8 +1511,6 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     //
-    final appBackgroundColor = _configData.getAppThemeData().screenBackgroundColor;
-    final appBackgroundErrorColor = _configData.getAppThemeData().screenBackgroundErrorColor;
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: SafeArea(
@@ -1521,7 +1543,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             : Container(
                                 height: _navBarHeight,
                                 color: appBackgroundColor,
-                                child: createNodeNavButtonBar(_selectedPath, _configData.getAppThemeData(), _isEditDataDisplay, _loadedData.isEmpty, _applicationState.isDataSorted, (detailActionData) {
+                                child: createNodeNavButtonBar(_selectedPath, appThemeData, _isEditDataDisplay, _loadedData.isEmpty, _applicationState.isDataSorted, (detailActionData) {
                                   return _handleAction(detailActionData);
                                 }),
                               ),
@@ -1539,12 +1561,17 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: displayData.splitView,
                     ),
                     Container(
+                      color: screenForeground,
+                      height: 1,
+                    ),
+
+                    Container(
                       height: statusBarHeight,
                       color: _globalSuccessState.isSuccess ? appBackgroundColor : appBackgroundErrorColor,
                       child: Row(
                         children: [
                           DetailIconButton(
-                            appThemeData: _configData.getAppThemeData(),
+                            appThemeData: appThemeData,
                             iconData: Icons.view_timeline,
                             tooltip: 'Log',
                             padding: const EdgeInsets.all(1.0),
@@ -1554,7 +1581,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                           Text(
                             _globalSuccessState.toStatusString(),
-                            style: _configData.getAppThemeData().tsMedium,
+                            style: appThemeData.tsMedium,
                           )
                         ],
                       ),
@@ -2008,6 +2035,55 @@ Future<void> _showLogDialog(final BuildContext context, final String log) async 
               ),
             ],
           )
+        ],
+      );
+    },
+  );
+}
+
+Future<void> _showLocalFilesDialog(final BuildContext context, final Function(String) onSelect) async {
+  final files = _configData.dir(["data", "json"]);
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
+        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+        title: Text('Choose File', style: _configData.getAppThemeData().tsMedium),
+        content: SingleChildScrollView(
+          child: ListBody(children: [
+            for (int i = 0; i < files.length; i++) ...[
+              Container(
+                height: 1,
+                color: _configData.getAppThemeData().screenForegroundColour(true),
+              ),
+              Container(color: _configData.getAppThemeData().primary.medDark,
+                child: TextButton(
+                  child: Text(files[i], style: _configData.getAppThemeData().tsMedium),
+                  onPressed: () {
+                    onSelect(files[i]);
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ),
+              Container(
+                height: 1,
+                color: _configData.getAppThemeData().screenForegroundColour(true),
+              ),
+              const SizedBox(height: 10,),
+            ]
+          ]),
+        ),
+        actions: <Widget>[
+          DetailButton(
+            appThemeData: _configData.getAppThemeData(),
+            text: "Cancel",
+            onPressed: () {
+              onSelect("");
+              Navigator.of(context).pop();
+            },
+          ),
         ],
       );
     },

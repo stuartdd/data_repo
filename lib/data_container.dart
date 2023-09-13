@@ -134,6 +134,14 @@ class DataContainer {
     return null;
   }
 
+  String getStringFromJsonOptional(Path path) {
+    final node = getNodeFromJson(path);
+    if (node == null) {
+      return "";
+    }
+    return node.toString();
+  }
+
   String getStringFromJson(Path path, {String fallback = "", bool create = false}) {
     final node = getNodeFromJson(path);
     if (node == null) {

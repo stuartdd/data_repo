@@ -197,10 +197,9 @@ class ApplicationState {
     return _lastFind;
   }
 
-  bool get flipDataSorted {
+  void get flipDataSorted {
     _isDataSorted = !_isDataSorted;
     _shouldWriteFile = true;
-    return _isDataSorted;
   }
 
   bool get isDataSorted {
