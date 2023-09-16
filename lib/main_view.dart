@@ -53,7 +53,7 @@ DisplaySplitView createSplitView(
     final PathPropertiesList pathPropertiesList,
     final Function(Path) onSelect, // Called when a tree node in selected
     final Function(Path) onExpand, // Called when a tree node in selected
-    final String Function(String, Path) onResolve, // Called when a tree node in selected
+    final SuccessState Function(String) onResolve, // Called when a tree node in selected
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final Path Function(DetailAction) onDataAction,
     final void Function(String) log,
@@ -139,7 +139,7 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
     } else if (element.value is List) {
       lm.add(DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as List).length));
     } else {
-      lv.add(DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.forTypeOrName(element.value.runtimeType, element.key), true, path, 0));
+      lv.add(DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.staticFindOptionTypeFromNameAndType(element.value.runtimeType, element.key), true, path, 0));
     }
   }
   lm.addAll(lv);
@@ -209,7 +209,7 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
   );
 }
 
-Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isSorted, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, final Path Function(DetailAction) dataAction, String Function(String, Path) onResolve) {
+Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isSorted, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, final Path Function(DetailAction) dataAction, SuccessState Function(String) onResolve) {
   if (selectedNode is! Map<String, dynamic>) {
     throw JsonException(selectedPath, message: "Selected path should be a map");
   }

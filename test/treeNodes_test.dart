@@ -42,7 +42,7 @@ void main() {
   }
 //  void verifyNodeProperties(final MyTreeNode tn, String dotPath, int pathLen, bool empty, canExpand, hasLeaf, hasMap, isLeaf) {
   test('Test Can Expand', () async {
-    final s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data06.json").fileContent);
+    final s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data06.json").value);
     // Test original and clone are the same.
     final m = MyTreeNode.fromMap(s);
     verifyNodeProperties(m, "A", 1, false, true, false, true, false);
@@ -78,7 +78,7 @@ void main() {
   }
 
   test('Test Filtered and cloned ', () async {
-    final s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data04.json").fileContent);
+    final s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data04.json").value);
     // Test original and clone are the same.
     final m = MyTreeNode.fromMap(s);
     toStrTest(m, expectFull);
@@ -179,7 +179,7 @@ void main() {
   });
 
   test('Test from map + visitEach-*-Node ', () async {
-    final s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data04.json").fileContent);
+    final s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data04.json").value);
     final m = MyTreeNode.fromMap(s);
     toStrTest(m, expectFull);
     final n = m.findByPath(Path.fromDotPath("A.A1.A11.A111"));
@@ -211,7 +211,7 @@ void main() {
   });
 
   test('Test from map + findByPath ', () async {
-    final s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data04.json").fileContent);
+    final s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data04.json").value);
     final m = MyTreeNode.fromMap(s);
 
     final cc = m.findByPath(Path(['C']));
@@ -240,7 +240,7 @@ void main() {
   });
 
   test('Test from map + findByLabel ', () async {
-    final s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data04.json").fileContent);
+    final s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data04.json").value);
     final m = MyTreeNode.fromMap(s);
     expect(logNode(m), "P:[A] L:A O:[]  P:[A.A1] L:A1 O:[A]    P:[A.A1.A11] L:A11 O:[A.A1]      P:[A.A1.A11.A111] L:A111 O:[A.A1.A11]      P:[A.A1.A11.A112] L:A112 O:[A.A1.A11]  P:[A.B] L:B O:[A]    P:[A.B.B1] L:B1 O:[A.B]      P:[A.B.B1.B11] L:B11 O:[A.B.B1]      P:[A.B.B1.B12] L:B12 O:[A.B.B1]    P:[A.B.B2] L:B2 O:[A.B]      P:[A.B.B2.B21] L:B21 O:[A.B.B2]        P:[A.B.B2.B21.B211] L:B211 O:[A.B.B2.B21]        P:[A.B.B2.B21.B212] L:B212 O:[A.B.B2.B21]P:[C] L:C O:[]");
 

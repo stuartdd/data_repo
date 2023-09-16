@@ -266,7 +266,7 @@ class ConfigData {
     var resp = DataContainer.loadFromFile(_fullFileName);
     if (resp.hasException) {
       if (resp.exception is PathNotFoundException) {
-        resp = SuccessState(true, message: "", fileContent: defaultConfig);
+        resp = SuccessState(true, message: "", value: defaultConfig);
         log("__WARN:__ Config '$_configFileName' file not found using defaults");
       } else {
         log("__EXCEPTION:__ ${resp.exception.toString()}");
@@ -275,7 +275,7 @@ class ConfigData {
     } else {
       log("__CONFIG FILE:__ Loaded: $_fullFileName");
     }
-    _data = DataContainer(resp.fileContent, FileDataPrefix.empty(), "", "", "", "");
+    _data = DataContainer(resp.value, FileDataPrefix.empty(), "", "", "", "");
 
     if (_isDesktop) {
       _appStateLocalDir = _data.getStringFromJson(appStateLocalDirPath, fallback: _applicationDefaultDir);

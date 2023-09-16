@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 import 'package:data_repo/configSettings.dart';
 import 'package:data_repo/data_container.dart';
 import 'package:data_repo/treeNode.dart';
@@ -463,8 +462,8 @@ class _MyHomePageState extends State<MyHomePage> {
             context,
             "Change $title '${detailActionData.getLastPathElement()}'",
             detailActionData.getDisplayValue(false),
-            detailActionData.value ? optionsForRenameElement : [],
-            OptionsTypeData.locateTypeInOptionsList(detailActionData.oldValueType.key, optionsForRenameElement, optionTypeDataString),
+            detailActionData.value ? optionGroupRenameElement : [],
+            detailActionData.oldValueType,
             true,
             false,
             (action, text, type) {
@@ -487,7 +486,7 @@ class _MyHomePageState extends State<MyHomePage> {
             context,
             "Update Value '${detailActionData.getLastPathElement()}'",
             detailActionData.oldValue,
-            optionsForUpdateElement,
+            optionGroupUpdateElement,
             detailActionData.oldValueType,
             false,
             false,
@@ -798,8 +797,8 @@ class _MyHomePageState extends State<MyHomePage> {
     //
     final successStateRemote = await DataContainer.fromHttpGet(remotePath, timeoutMillis: _configData.getDataFetchTimeoutMillis());
     if (successStateRemote.isSuccess) {
-      fileDataPrefixRemote = FileDataPrefix.fromString(successStateRemote.fileContent);
-      fileDataContent = successStateRemote.fileContent.substring(fileDataPrefixRemote.startPos);
+      fileDataPrefixRemote = FileDataPrefix.fromString(successStateRemote.value);
+      fileDataContent = successStateRemote.value.substring(fileDataPrefixRemote.startPos);
       fileDataPrefix = fileDataPrefixRemote;
       source = "Remote";
       log("__INFO:__ $source __TS:__ ${fileDataPrefix.timeStamp}");
@@ -813,9 +812,9 @@ class _MyHomePageState extends State<MyHomePage> {
     //
     final successStateLocal = DataContainer.loadFromFile(localPath);
     if (successStateLocal.isSuccess) {
-      final fileDataPrefixLocal = FileDataPrefix.fromString(successStateLocal.fileContent);
+      final fileDataPrefixLocal = FileDataPrefix.fromString(successStateLocal.value);
       if (successStateRemote.isFail || fileDataPrefixLocal.isLaterThan(fileDataPrefixRemote)) {
-        fileDataContent = successStateLocal.fileContent.substring(fileDataPrefixLocal.startPos);
+        fileDataContent = successStateLocal.value.substring(fileDataPrefixLocal.startPos);
         fileDataPrefix = fileDataPrefixLocal;
         source = "Local";
         log("__INFO:__ $source __TS:__ ${fileDataPrefix.timeStamp}");
@@ -1094,6 +1093,24 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  SuccessState handleResolveLink(String value) {
+      final p = Path.fromDotPath(value);
+      if (p.isEmpty) {
+        return SuccessState(false,message: "Invalid Path", value: value);
+      }
+      final n = _loadedData.getNodeFromJson(p);
+      if (n == null) {
+        return SuccessState(false,message: "Not Found", value: value);
+      }
+      if (n is Map) {
+        return SuccessState(false,message: "Not Data Node", value: value);
+      }
+      if (_isEditDataDisplay) {
+        return SuccessState(true, message: "", value: value);
+      }
+      return SuccessState(true, message: "", value: n);
+  }
+
   Future<bool> _handleShouldExit() async {
     if (_inExitProcess) {
       return false;
@@ -1180,31 +1197,8 @@ class _MyHomePageState extends State<MyHomePage> {
       _pathPropertiesList,
       _selectNodeState,
       _expandNodeState,
-      (resolve, fromPath) {
-        if (!_isEditDataDisplay && resolve.startsWith("[path]")) {
-          final p = Path.fromDotPath(resolve.substring(6));
-          if (p.isEmpty) {
-            return "Path: Is empty";
-          }
-          if (p.last.endsWith(positionalStringExtension)) {
-            return "Path:$p: Is positional list";
-          }
-          if (p.last.endsWith(markDownExtension)) {
-            return "Path:$p: Is MarkDown";
-          }
-          if (p.isEqual(fromPath)) {
-            return "Path:$p: Is Self reference";
-          }
-          final n = _loadedData.getNodeFromJson(p);
-          if (n == null) {
-            return "Path:$p: Not Found";
-          }
-          if (n is Map) {
-            return "Path:$p: Not Data Node";
-          }
-          return "$n";
-        }
-        return resolve;
+      (value) {
+        return handleResolveLink(value);
       },
       (divPos) {
         // On divider change
@@ -1564,7 +1558,6 @@ class _MyHomePageState extends State<MyHomePage> {
                       color: screenForeground,
                       height: 1,
                     ),
-
                     Container(
                       height: statusBarHeight,
                       color: _globalSuccessState.isSuccess ? appBackgroundColor : appBackgroundErrorColor,
@@ -1840,12 +1833,6 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, AppThemeData t
     color: Colors.black,
     height: 2,
   ));
-  for (int i = 0; i < summaryList.length; i++) {
-    for (int j = 0; j < summaryList.length; j++) {
-      final ni = summaryList.list[i];
-      final nj = summaryList.list[j];
-    }
-  }
 
   for (int i = 0; i < summaryList.length; i++) {
     final summary = summaryList.list[i];
@@ -2058,7 +2045,8 @@ Future<void> _showLocalFilesDialog(final BuildContext context, final Function(St
                 height: 1,
                 color: _configData.getAppThemeData().screenForegroundColour(true),
               ),
-              Container(color: _configData.getAppThemeData().primary.medDark,
+              Container(
+                color: _configData.getAppThemeData().primary.medDark,
                 child: TextButton(
                   child: Text(files[i], style: _configData.getAppThemeData().tsMedium),
                   onPressed: () {
@@ -2071,7 +2059,9 @@ Future<void> _showLocalFilesDialog(final BuildContext context, final Function(St
                 height: 1,
                 color: _configData.getAppThemeData().screenForegroundColour(true),
               ),
-              const SizedBox(height: 10,),
+              const SizedBox(
+                height: 10,
+              ),
             ]
           ]),
         ),
@@ -2232,7 +2222,7 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
                         return _shouldDisplayMarkdownPreview;
                       },
                       dataAction: (detailAction) {
-                        onAction(SimpleButtonActions.link, detailAction.oldValue, OptionsTypeData.forTypeOrName(String, "link"));
+                        onAction(SimpleButtonActions.link, detailAction.oldValue, optionTypeDataLink);
                         return Path.empty();
                       },
                     )

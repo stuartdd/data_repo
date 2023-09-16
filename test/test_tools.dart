@@ -55,7 +55,7 @@ Future<HttpServer> _startServer() async {
       if (resp.isFail) {
         request.response.statusCode = 404;
       } else {
-        request.response.write(resp.fileContent);
+        request.response.write(resp.value);
       }
     }
     request.response.close();

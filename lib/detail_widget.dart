@@ -15,14 +15,9 @@ class DataValueDisplayRow {
   final Path _path;
   final int _mapSize;
   late final Path _pathWithName;
-  DisplayTypeData _displayTypeData = simpleDisplayData;
 
   DataValueDisplayRow(this._name, this._value, this._type, this._isValue, this._path, this._mapSize) {
     _pathWithName = _path.cloneAppendList([_name]);
-    final t = displayTypeMap[type.key];
-    if (t != null) {
-      _displayTypeData = t;
-    }
   }
 
   String get name => _name;
@@ -31,7 +26,6 @@ class DataValueDisplayRow {
   Path get pathWithName => _pathWithName;
   bool get isValue => _isValue;
   int get mapSize => _mapSize;
-  DisplayTypeData get displayTypeData => _displayTypeData;
 
   Path get fullPath {
     return _path.cloneAppendList([_name]);
@@ -41,7 +35,7 @@ class DataValueDisplayRow {
     if (editMode) {
       return name;
     }
-    return name.substring(0, (_name.length - displayTypeData.extensionLength));
+    return name.substring(0, (_name.length - _type.suffix.length));
   }
 
   String get value {
@@ -81,7 +75,7 @@ class DetailWidget extends StatefulWidget {
   final bool isEditDataDisplay;
   final bool isHorizontal;
   final Path Function(DetailAction) dataAction;
-  final String Function(String, Path) onResolve;
+  final SuccessState Function(String) onResolve;
 
   @override
   State<DetailWidget> createState() => _DetailWidgetState();
@@ -177,18 +171,40 @@ class _DetailWidgetState extends State<DetailWidget> {
       );
     }
 
-    final r = widget.onResolve(dataValueRow.value, dataValueRow.fullPath);
-    final TextStyle ts;
-    if (r != dataValueRow.value) {
-      ts = appThemeData.tsLargeItalic;
-    } else {
-      ts = appThemeData.tsLarge;
+    if (dataValueRow.type.equal(optionTypeDataReference)) {
+      final r = widget.onResolve(dataValueRow.value);
+      if (r.isSuccess) {
+        return Container(
+          color: bgColour,
+          alignment: Alignment.centerLeft,
+          child: Padding(padding: const EdgeInsets.all(5.0), child: Text(r.value, style: appThemeData.tsLargeItalic)),
+        );
+      } else {
+        return Container(
+          color: appThemeData.error.med,
+          alignment: Alignment.centerLeft,
+          child: Column(
+            children: [
+              Container(
+                color: appThemeData.error.med,
+                alignment: Alignment.centerLeft,
+                child: Padding(padding: const EdgeInsets.all(5.0), child: Text(r.message, style: appThemeData.tsLarge)),
+              ),
+              Container(
+                color: bgColour,
+                alignment: Alignment.centerLeft,
+                child: Padding(padding: const EdgeInsets.all(5.0), child: Text(r.value, style: appThemeData.tsLargeItalic)),
+              ),
+             ],
+          ),
+        );
+      }
     }
 
     return Container(
       color: bgColour,
       alignment: Alignment.centerLeft,
-      child: Padding(padding: const EdgeInsets.all(5.0), child: Text(r, style: ts)),
+      child: Padding(padding: const EdgeInsets.all(5.0), child: Text(dataValueRow.value, style: appThemeData.tsLarge)),
     );
   }
 
@@ -204,7 +220,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             color: appThemeData.selectedAndHiLightColour(true, pathProperties.renamed),
             child: Text(widget.dataValueRow.getDisplayName(widget.isEditDataDisplay), style: appThemeData.tsMedium),
           ),
-          subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Is a ${widget.dataValueRow.type}", style: appThemeData.tsSmall) : null,
+          subtitle: horizontal ? Text("Owned By: ${widget.dataValueRow.path}.\nType: ${widget.dataValueRow.type}", style: appThemeData.tsSmall) : null,
         ),
         SizedBox(
           child: Padding(
@@ -233,17 +249,22 @@ class _DetailWidgetState extends State<DetailWidget> {
             ),
             DetailButton(
               appThemeData: widget.appThemeData,
-              show: !widget.isEditDataDisplay && (widget.dataValueRow.displayTypeData.displayType != DisplayType.positionalString),
+              show: !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
               timerMs: 500,
               text: 'Copy',
               onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: widget.onResolve(widget.dataValueRow.value, Path.empty())));
+                if (widget.dataValueRow.type.equal(optionTypeDataReference)) {
+                  final ss = widget.onResolve(widget.dataValueRow.value);
+                  await Clipboard.setData(ClipboardData(text: ss.value));
+                } else {
+                  await Clipboard.setData(ClipboardData(text: widget.dataValueRow.value));
+                }
                 widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
               },
             ),
             DetailButton(
               appThemeData: widget.appThemeData,
-              show: widget.dataValueRow.isLink && !widget.isEditDataDisplay && (widget.dataValueRow.displayTypeData.displayType != DisplayType.positionalString),
+              show: widget.dataValueRow.isLink && !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
               timerMs: 500,
               text: 'Link',
               onPressed: () {
@@ -259,14 +280,17 @@ class _DetailWidgetState extends State<DetailWidget> {
                 widget.dataAction(DetailAction(ActionType.removeItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
               },
             ),
-            widget.isEditDataDisplay ? IconButton(
-              color: appThemeData.screenForegroundColour(true),
-              icon: const Icon(Icons.copy),
-              tooltip: 'Copy Path',
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: widget.dataValueRow.fullPath.toString()));
-              }
-            ) : const SizedBox(width: 0,)
+            widget.isEditDataDisplay
+                ? IconButton(
+                    color: appThemeData.screenForegroundColour(true),
+                    icon: const Icon(Icons.copy),
+                    tooltip: 'Copy Path',
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: widget.dataValueRow.fullPath.toString()));
+                    })
+                : const SizedBox(
+                    width: 0,
+                  )
           ],
         ),
         const SizedBox(

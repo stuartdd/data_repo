@@ -233,7 +233,7 @@ class _OptionListWidgetState extends State<OptionListWidget> {
                   final i = widget._findIndexFroOption(value);
                   if (i >= 0) {
                     _currentSelect = widget.optionList[i];
-                    widget.onSelect(value, widget.optionList[i]);
+                    widget.onSelect(value, _currentSelect);
                   }
                 }
               });
@@ -467,8 +467,8 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
         (currentOption.elementType == bool)
             ? OptionListWidget(
                 appThemeData: widget.appThemeData,
-                optionList: optionsForYesNo,
-                selectedOption: OptionsTypeData.toTrueFalse(current),
+                optionList: optionGroupUYesNo,
+                selectedOption: OptionsTypeData.toTrueFalseOptionsType(current),
                 onSelect: (value, option) {
                   current = option.key;
                   _validate();

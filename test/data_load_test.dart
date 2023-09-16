@@ -17,7 +17,7 @@ void main() {
   //   }
   // });
   test('Visit each node', () async {
-    final data = DataContainer(DataContainer.loadFromFile("test/data/data04.json").fileContent, FileDataPrefix.empty(), "", "", "", "");
+    final data = DataContainer(DataContainer.loadFromFile("test/data/data04.json").value, FileDataPrefix.empty(), "", "", "", "");
     final sb = StringBuffer();
     data.visitEachSubNode((k, p, v) {
       sb.write(p);
@@ -31,7 +31,7 @@ void main() {
     final appAdd1 = Path.fromDotPath("application.added1");
     final appAdd2 = Path.fromDotPath("application.added2.add");
     final appAdd3 = Path.fromDotPath("application.added2.add3");
-    final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").fileContent, FileDataPrefix.empty(), "", "", "", "");
+    final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").value, FileDataPrefix.empty(), "", "", "", "");
 
     expect(data.setValueForJsonPath(Path.empty(), "abc"), "Path is empty");
     expect(data.getStringFromJson(appTitle), "Data Repository");
@@ -73,7 +73,7 @@ void main() {
     if (r.isFail) {
       fail(r.exception.toString());
     }
-    if (!r.fileContent.contains("\"Stuart\": {")) {
+    if (!r.value.contains("\"Stuart\": {")) {
       fail("Response does not contain \"Stuart\": {");
     }
     var f = await DataContainer.fromHttpGet("http://localhost:$serverPort/files/data0.xxx");
@@ -105,13 +105,13 @@ void main() {
 
     state = DataContainer.loadFromFile("test/data_load_test.dart", log: log);
     assertContainsAll(["Data loaded OK"], state.message);
-    assertContainsAll(["void main()"], state.fileContent);
+    assertContainsAll(["void main()"], state.value);
     expect(state.isSuccess, true);
   });
 
   test('Test Find Node in Json', () async {
     try {
-      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").fileContent, FileDataPrefix.empty(), "", "", "", "");
+      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").value, FileDataPrefix.empty(), "", "", "", "");
       assertContainsAll(["height: 1362"], data.getNodeFromJson(Path.fromDotPath("screen")).toString());
       assertContainsAll(["backupfile:"], data.getNodeFromJson(Path.fromDotPath("file")).toString());
       assertContainsAll(["path: test", "pre: mydb-"], data.getNodeFromJson(Path.fromDotPath("file.backupfile")).toString());
@@ -126,7 +126,7 @@ void main() {
 
   test('Test Get JSON String Not Found', () async {
     try {
-      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").fileContent, FileDataPrefix.empty(), "", "", "", "");
+      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").value, FileDataPrefix.empty(), "", "", "", "");
       expect(data.getStringFromJson(Path.fromList(["application", "colours", "xxx"]), fallback: "green"), "green");
       expect(data.getStringFromJson(Path.fromList(["application", "colours", "xxx"])), "green");
       fail("Did not throw any Exception");
@@ -141,7 +141,7 @@ void main() {
 
   test('Test Get JSON bool', () async {
     try {
-      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").fileContent, FileDataPrefix.empty(), "", "", "", "");
+      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").value, FileDataPrefix.empty(), "", "", "", "");
       expect(data.getBoolFromJson(Path.fromList(["log", "active"])), true);
       expect(data.getNumFromJson(Path.fromList(["log", "active"])), 0);
       fail("Did not throw any Exception");
@@ -156,7 +156,7 @@ void main() {
 
   test('Test Get JSON Int', () async {
     try {
-      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").fileContent, FileDataPrefix.empty(), "", "", "", "");
+      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").value, FileDataPrefix.empty(), "", "", "", "");
       expect(data.getNumFromJson(Path.fromList(["screen", "height"])), 1362);
       expect(data.getNumFromJson(Path.fromList(["file", "backupfile", "max"])), 10);
       expect(data.getStringFromJson(Path.fromList(["file", "backupfile", "max"])), 10);
@@ -172,7 +172,7 @@ void main() {
 
   test('Test Get JSON Map', () async {
     try {
-      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").fileContent, FileDataPrefix.empty(), "", "", "", "");
+      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").value, FileDataPrefix.empty(), "", "", "", "");
       assertContainsAll(["max: 10"], data.getMapFromJson(Path.fromList(["file", "backupfile"])).toString());
       expect(data.getStringFromJson(Path.fromList(["file", "backupfile"])), "mydb-");
       fail("Did not throw any Exception");
@@ -187,7 +187,7 @@ void main() {
 
   test('Test Get JSON Config', () async {
     try {
-      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").fileContent, FileDataPrefix.empty(), "", "", "", "");
+      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").value, FileDataPrefix.empty(), "", "", "", "");
       expect(data.getStringFromJson(Path.fromList(["file"])), "?");
       fail("Did not throw any Exception");
     } on JsonException catch (e) {
@@ -198,7 +198,7 @@ void main() {
       fail("Did not throw a JsonException. Got $e ${e.runtimeType.toString()}");
     }
     try {
-      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").fileContent, FileDataPrefix.empty(), "", "", "", "");
+      final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").value, FileDataPrefix.empty(), "", "", "", "");
       expect(data.getStringFromJson(Path.fromList(["file", "backupfile", "pre"])), "mydb-");
       expect(data.getStringFromJson(Path.fromList(["file", "backupfile"])), "?");
       fail("Did not throw any Exception");
@@ -213,7 +213,7 @@ void main() {
 
   test('Test Get JSON simple ', () async {
     try {
-      final data = DataContainer(DataContainer.loadFromFile("test/data/json_test_data_simple.json").fileContent, FileDataPrefix.empty(), "", "", "", "");
+      final data = DataContainer(DataContainer.loadFromFile("test/data/json_test_data_simple.json").value, FileDataPrefix.empty(), "", "", "", "");
       expect(data.getStringFromJson(Path.fromList(["name"])), "Pizza da Mario");
       expect(data.getStringFromJson(Path.fromList(["cuisine"])), "This is valid");
       expect(data.getStringFromJson(Path.fromList(["nome"])), "Pizza da Mario");
@@ -229,7 +229,7 @@ void main() {
 
   test('Test Get JSON From File', () async {
     try {
-      json_tools.jsonDecode(DataContainer.loadFromFile("test/data/json_test_data_empty.json").fileContent);
+      json_tools.jsonDecode(DataContainer.loadFromFile("test/data/json_test_data_empty.json").value);
       fail("Did not throw any Exception");
     } on FormatException catch (e) {
       assertContainsAll(["Unexpected end of input"], e.toString());
@@ -240,7 +240,7 @@ void main() {
     }
 
     try {
-      json_tools.jsonDecode(DataContainer.loadFromFile("test/data/json_test_data_invalid.json").fileContent);
+      json_tools.jsonDecode(DataContainer.loadFromFile("test/data/json_test_data_invalid.json").value);
       fail("Did not throw any Exception");
     } on FormatException catch (e) {
       assertContainsAll(["Unexpected character"], e.toString());
@@ -250,7 +250,7 @@ void main() {
       fail("Did not throw a FormatException. Got $e ${e.runtimeType.toString()}");
     }
 
-    final v = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/json_test_data_simple.json").fileContent);
+    final v = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/json_test_data_simple.json").value);
     expect(v["name"], "Pizza da Mario");
     expect(v.length, 2);
   });

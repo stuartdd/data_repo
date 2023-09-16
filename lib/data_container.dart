@@ -346,14 +346,14 @@ class DataContainer {
       }
 
       if (prefix.isNotEmpty && body.startsWith(prefix)) {
-        return SuccessState(true, path: url, fileContent: body.substring(prefix.length), message: "Remote Data loaded OK", log: log);
+        return SuccessState(true, path: url, value: body.substring(prefix.length), message: "Remote Data loaded OK", log: log);
       }
       final body100 = body.length > 100 ? body.substring(0, 100).toLowerCase() : body;
       if (body100.contains("<html>") || body100.contains("<!DOCTYPE")) {
         return SuccessState(false, path: url, message: "Remote Data Load contains html:", log: log);
       }
       if (body.startsWith('{') || body.startsWith('[') || body.startsWith(timeStampPrefix)) {
-        return SuccessState(true, path: url, fileContent: body, message: "Remote Data loaded OK", log: log);
+        return SuccessState(true, path: url, value: body, message: "Remote Data loaded OK", log: log);
       }
       return SuccessState(false, path: url, message: "Remote Data Load was not JSON:", log: log);
     } catch (e) {
@@ -374,12 +374,12 @@ class DataContainer {
   static SuccessState loadFromFile(String fileName, {void Function(String)? log}) {
     try {
       final contents = File(fileName).readAsStringSync();
-      return SuccessState(true, path: fileName, fileContent: contents, message: "Local Data loaded OK", log: log);
+      return SuccessState(true, path: fileName, value: contents, message: "Local Data loaded OK", log: log);
     } catch (e) {
       if (e is PathNotFoundException) {
-        return SuccessState(false, path: fileName, message: "Local Data file not found", fileContent: "", exception: e, log: log);
+        return SuccessState(false, path: fileName, message: "Local Data file not found", value: "", exception: e, log: log);
       }
-      return SuccessState(false, path: fileName, message: "Exception loading Local Data file", fileContent: "", exception: e as Exception, log: log);
+      return SuccessState(false, path: fileName, message: "Exception loading Local Data file", value: "", exception: e as Exception, log: log);
     }
   }
 }
