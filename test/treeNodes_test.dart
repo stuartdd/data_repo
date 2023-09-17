@@ -73,7 +73,7 @@ void main() {
         sb.write('R');
       }
       sb.write(" ");
-    });
+    }, false);
     expect(sb.toString().trim(), expected);
   }
 

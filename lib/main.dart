@@ -887,7 +887,7 @@ class _MyHomePageState extends State<MyHomePage> {
           node.expanded = refNode.expanded;
         }
       }
-    });
+    }, _applicationState.isDataSorted);
     _treeNodeDataRoot = temp;
   }
 
@@ -1094,21 +1094,21 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   SuccessState handleResolveLink(String value) {
-      final p = Path.fromDotPath(value);
-      if (p.isEmpty) {
-        return SuccessState(false,message: "Invalid Path", value: value);
-      }
-      final n = _loadedData.getNodeFromJson(p);
-      if (n == null) {
-        return SuccessState(false,message: "Not Found", value: value);
-      }
-      if (n is Map) {
-        return SuccessState(false,message: "Not Data Node", value: value);
-      }
-      if (_isEditDataDisplay) {
-        return SuccessState(true, message: "", value: value);
-      }
-      return SuccessState(true, message: "", value: n);
+    final p = Path.fromDotPath(value);
+    if (p.isEmpty) {
+      return SuccessState(false, message: "Invalid Path", value: value);
+    }
+    final n = _loadedData.getNodeFromJson(p);
+    if (n == null) {
+      return SuccessState(false, message: "Not Found", value: value);
+    }
+    if (n is Map) {
+      return SuccessState(false, message: "Not Data Node", value: value);
+    }
+    if (_isEditDataDisplay) {
+      return SuccessState(true, message: "", value: value);
+    }
+    return SuccessState(true, message: "", value: n);
   }
 
   Future<bool> _handleShouldExit() async {
@@ -1209,8 +1209,8 @@ class _MyHomePageState extends State<MyHomePage> {
         return _handleAction(detailActionData);
       },
       log,
-      isSorted: _applicationState.isDataSorted,
-      rootNodeName: _configData.getRootNodeName(),
+      _applicationState.isDataSorted,
+      _configData.getRootNodeName(),
     );
     _treeViewScrollController = displayData.scrollController;
 

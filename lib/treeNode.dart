@@ -86,7 +86,7 @@ class MyTreeNode {
   MyTreeNode clearFilter() {
     visitEachSubNode((node) {
       node._required = true;
-    });
+    }, false);
     return this;
   }
 
@@ -111,7 +111,7 @@ class MyTreeNode {
           pn._required = true;
         });
       }
-    });
+    }, false);
     return clone(requiredOnly: true);
   }
 
@@ -195,7 +195,7 @@ class MyTreeNode {
     if (recursive) {
       visitEachSubNode((sn) {
         sn._required = req;
-      });
+      }, false);
     }
   }
 
@@ -254,7 +254,7 @@ class MyTreeNode {
   void expandAll(final bool exp) {
     visitEachSubNode((node) {
       node.expanded = exp;
-    });
+    }, false);
   }
 
   void expandParent(final bool exp) {
@@ -322,7 +322,7 @@ class MyTreeNode {
     }
   }
 
-  void visitEachSubNode(final void Function(MyTreeNode) func, {bool isSorted = false}) {
+  void visitEachSubNode(final void Function(MyTreeNode) func, bool isSorted) {
     if (isSorted) {
       children.sort(
         (a, b) {
@@ -334,7 +334,7 @@ class MyTreeNode {
     for (var element in children) {
       func(element);
       if (element.isNotEmpty) {
-        element.visitEachSubNode(func, isSorted: isSorted);
+        element.visitEachSubNode(func, isSorted);
       }
     }
   }
@@ -403,7 +403,7 @@ Widget? buildNodeDefault(final MyTreeNode node, final String rootNodeName, final
 }
 
 class MyTreeNodeWidgetList extends StatefulWidget {
-  const MyTreeNodeWidgetList(this.rootNode, this.rootNodeName, this.selectedNode, this.selectedNodePath, this.appThemeData, this.rowHeight, this.onSelect, this.onExpand, this.pathListProperties, {super.key, this.buildNode = buildNodeDefault, this.isSorted = false});
+  const MyTreeNodeWidgetList(this.rootNode, this.rootNodeName, this.selectedNode, this.selectedNodePath, this.appThemeData, this.rowHeight, this.onSelect, this.onExpand, this.pathListProperties, this.isSorted, {super.key, this.buildNode = buildNodeDefault});
   final Widget? Function(MyTreeNode, String, AppThemeData, double, bool, bool, Function(Path), Function(Path)) buildNode;
   final void Function(Path) onSelect;
   final void Function(Path) onExpand;
@@ -426,13 +426,14 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
   Widget build(BuildContext context) {
     final List<Widget> children = List.empty(growable: true);
     int c = 0;
+    String rootNodeName = widget.rootNodeName;
     widget.rootNode.visitEachSubNode(
       (aNode) {
         final aNodePath = aNode.path;
         final isSelected = widget.selectedNodePath.isEqual(aNodePath);
         final w = widget.buildNode(
           aNode,
-          widget.rootNodeName,
+          rootNodeName,
           widget.appThemeData,
           widget.rowHeight,
           isSelected,
@@ -456,8 +457,8 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
           ));
           c++;
         }
-      },
-      isSorted: widget.isSorted,
+        rootNodeName = ""; // Ensure root node nam e is only used once
+      }, widget.isSorted,
     );
     return ListBody(
       children: children,

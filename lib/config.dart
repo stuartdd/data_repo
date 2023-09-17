@@ -310,7 +310,7 @@ class ConfigData {
     _appColoursHiLight = validColour(_data.getStringFromJson(appColoursHiLightPath, fallback: defaultHiLightColour, create: true), appColoursHiLightPath);
     _appColoursError = validColour(_data.getStringFromJson(appColoursErrorPath, fallback: defaultErrorColour, create: true), appColoursErrorPath);
     _darkMode = _data.getBoolFromJson(appColoursDarkMode, fallback: false);
-    _rootNodeName = _data.getStringFromJson(rootNodeNamePath, fallback: "Home");
+    _rootNodeName = _data.getStringFromJson(rootNodeNamePath, fallback: "?");
     _appThemeData = null;
     if (_onUpdate != null && callOnUpdate) {
       _onUpdate!();
@@ -427,6 +427,9 @@ class ConfigData {
   }
 
   String getRootNodeName() {
+    if (_rootNodeName == '?') {
+      return "";
+    }
     return _rootNodeName;
   }
 

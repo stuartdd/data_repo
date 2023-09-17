@@ -57,8 +57,8 @@ DisplaySplitView createSplitView(
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final Path Function(DetailAction) onDataAction,
     final void Function(String) log,
-    {bool isSorted = false,
-    String rootNodeName = ""}) {
+    final bool isSorted,
+    final String rootNodeName) {
   // Called when one of the detail buttons is pressed
   /// Left right or Top bottom
   ///
@@ -100,7 +100,7 @@ DisplaySplitView createSplitView(
       onExpand(expandNodePath);
     },
     pathPropertiesList,
-    isSorted: isSorted,
+    isSorted,
   );
 
   final scroller = SingleChildScrollView(
