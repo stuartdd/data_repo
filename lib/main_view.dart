@@ -92,7 +92,6 @@ DisplaySplitView createSplitView(
     selectedTreeNode,
     selectedPath,
     appThemeData,
-    appThemeData.treeNodeHeight,
     (selectedNodePath) {
       onSelect(selectedNodePath);
     },
@@ -100,6 +99,7 @@ DisplaySplitView createSplitView(
       onExpand(expandNodePath);
     },
     pathPropertiesList,
+    appThemeData.treeNodeHeight,
     isSorted,
   );
 

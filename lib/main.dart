@@ -1304,7 +1304,7 @@ class _MyHomePageState extends State<MyHomePage> {
         iconData: Icons.save,
         tooltip: "Save",
         onPressed: () {
-          _saveDataState(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
+          _handleAction(DetailAction(ActionType.save, false, Path.empty()));
         },
       ));
       if (_isEditDataDisplay) {

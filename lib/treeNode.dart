@@ -19,6 +19,14 @@ class MyTreeNode {
     children = List.empty(growable: true);
   }
 
+  List<MyTreeNode> get childrenSorted {
+    final c = List<MyTreeNode>.from(children);
+    c.sort((a, b) {
+      return a.label.compareTo(b.label);
+    });
+    return c;
+  }
+
   @override
   String toString() {
     return "Label:$label PathKey:$pathKey Leaf:$leaf Children:${children.length} Req:$required Exp:$expanded";
@@ -322,13 +330,19 @@ class MyTreeNode {
     }
   }
 
+  void visitEachSubNodeSorted(final void Function(MyTreeNode) func) {
+    for (var element in childrenSorted) {
+      func(element);
+      if (element.isNotEmpty) {
+        element.visitEachSubNodeSorted(func);
+      }
+    }
+  }
+
   void visitEachSubNode(final void Function(MyTreeNode) func, bool isSorted) {
     if (isSorted) {
-      children.sort(
-        (a, b) {
-          return a.label.compareTo(b.label);
-        },
-      );
+      visitEachSubNodeSorted(func);
+      return;
     }
 
     for (var element in children) {
@@ -403,16 +417,16 @@ Widget? buildNodeDefault(final MyTreeNode node, final String rootNodeName, final
 }
 
 class MyTreeNodeWidgetList extends StatefulWidget {
-  const MyTreeNodeWidgetList(this.rootNode, this.rootNodeName, this.selectedNode, this.selectedNodePath, this.appThemeData, this.rowHeight, this.onSelect, this.onExpand, this.pathListProperties, this.isSorted, {super.key, this.buildNode = buildNodeDefault});
+  const MyTreeNodeWidgetList(this.rootNode, this.rootNodeName, this.selectedNode, this.selectedNodePath, this.appThemeData, this.onSelect, this.onExpand, this.pathListProperties, this.rowHeight, this.isSorted, {super.key, this.buildNode = buildNodeDefault});
   final Widget? Function(MyTreeNode, String, AppThemeData, double, bool, bool, Function(Path), Function(Path)) buildNode;
   final void Function(Path) onSelect;
   final void Function(Path) onExpand;
   final AppThemeData appThemeData;
   final MyTreeNode rootNode;
-  final double rowHeight;
   final MyTreeNode selectedNode;
   final Path selectedNodePath;
   final PathPropertiesList pathListProperties;
+  final double rowHeight;
   final bool isSorted;
   final String rootNodeName;
   @override
@@ -458,7 +472,8 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
           c++;
         }
         rootNodeName = ""; // Ensure root node nam e is only used once
-      }, widget.isSorted,
+      },
+      widget.isSorted,
     );
     return ListBody(
       children: children,
