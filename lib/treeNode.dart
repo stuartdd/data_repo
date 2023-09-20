@@ -440,14 +440,14 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
   Widget build(BuildContext context) {
     final List<Widget> children = List.empty(growable: true);
     int c = 0;
-    String rootNodeName = widget.rootNodeName;
+    final rnn = (widget.rootNode.children.length == 1) ? widget.rootNodeName : "" ;
     widget.rootNode.visitEachSubNode(
       (aNode) {
         final aNodePath = aNode.path;
         final isSelected = widget.selectedNodePath.isEqual(aNodePath);
         final w = widget.buildNode(
           aNode,
-          rootNodeName,
+          rnn,
           widget.appThemeData,
           widget.rowHeight,
           isSelected,
@@ -471,7 +471,6 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
           ));
           c++;
         }
-        rootNodeName = ""; // Ensure root node nam e is only used once
       },
       widget.isSorted,
     );

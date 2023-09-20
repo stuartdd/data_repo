@@ -59,7 +59,7 @@ void main() async {
     final applicationDefaultDir = await ApplicationState.getApplicationDefaultDir();
     final isDesktop = ApplicationState.appIsDesktop();
 
-    _configData = ConfigData(applicationDefaultDir, "data_repo_config.json", isDesktop, log);
+    _configData = ConfigData(applicationDefaultDir, defaultConfigFileNmae, isDesktop, log);
     _applicationState = ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), log);
     if (isDesktop) {
       setWindowTitle("${_configData.getTitle()}: ${_configData.getDataFileName()}");
@@ -327,6 +327,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Path _handleAction(DetailAction detailActionData) {
     switch (detailActionData.action) {
+      case ActionType.clearState:
+        {
+          setState(() {
+            _applicationState.deleteAppStateConfigFile();
+            _applicationState.clear(_configData.isDesktop());
+          });
+          break;
+        }
       case ActionType.groupSelectAll:
         {
           setState(() {
@@ -601,11 +609,17 @@ class _MyHomePageState extends State<MyHomePage> {
                 "Encrypted extension = .data",
               ], (action, fileName, password) {
                 final fn = password.isEmpty ? "$fileName.json" : "$fileName.data";
+                if (fn.toLowerCase() == defaultConfigFileNmae.toLowerCase()) {
+                  return "Cannot use '$fileName'";
+                }
+                if (fn.toLowerCase() == _configData.getAppStateFileName().toLowerCase()) {
+                  return "Cannot use '$fileName'";
+                }
                 if (_configData.localFileExists(fn).isNotEmpty) {
                   return "${password.isNotEmpty ? "Encrypted" : ""} file '$fn' Exists";
                 }
                 if (action == SimpleButtonActions.ok) {
-                  final content = DataContainer.staticDataToStringFormattedWithTs(_configData.getMinimumDataContentMap(), password, addTimeStamp: true);
+                  final content = DataContainer.staticDataToStringFormattedWithTs(_configData.getMinimumDataContentMap(), password, addTimeStamp: true, isNew: true);
                   final success = DataContainer.saveToFile(_configData.getDataFileLocalAlt(fn), content);
                   _globalSuccessState = success;
                   if (success.isFail) {
@@ -625,7 +639,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             if (button == "NEW") {
                               _configData.setValueForJsonPath(dataFileLocalNamePath, fn);
                               _configData.save(log);
-                              _configData.update(callOnUpdate: false);
+                              _configData.update(callOnUpdate: true);
                               _clearData("New Data File");
                             }
                           });
@@ -1280,6 +1294,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   log("__CONFIG__ File name not updated. No change");
                 }
               },
+              (action) {
+                if (action == SimpleButtonActions.ok) {
+                  _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
+                }
+              },
             );
           }));
     } else {
@@ -1346,6 +1365,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 }),
                 MenuOptionDetails("Restart application", "Restart this application", ActionType.restart, () {
                   return Icons.restart_alt;
+                }),
+                MenuOptionDetails("Reset Saved State", "Clears Previous searches etc.", ActionType.clearState, () {
+                  return Icons.cleaning_services;
                 }),
               ], [
                 _loadedData.hasPassword ? 'ENCRYPTED' : 'UN-ENCRYPTED',
@@ -2028,8 +2050,8 @@ Future<void> _showLogDialog(final BuildContext context, final String log) async 
   );
 }
 
-Future<void> _showLocalFilesDialog(final BuildContext context, final Function(String) onSelect) async {
-  final files = _configData.dir(["data", "json"]);
+Future<void> _showLocalFilesDialog(final BuildContext context, final Function(String) onSelect, final void Function(SimpleButtonActions) onAction) async {
+  final files = _configData.dir(["data", "json"], [defaultConfigFileNmae, _configData.getAppStateFileName()]);
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -2062,7 +2084,15 @@ Future<void> _showLocalFilesDialog(final BuildContext context, final Function(St
               const SizedBox(
                 height: 10,
               ),
-            ]
+            ],
+            DetailButton(
+              appThemeData: _configData.getAppThemeData(),
+              text: "Create a file",
+              onPressed: () {
+                onAction(SimpleButtonActions.ok);
+                Navigator.of(context).pop();
+              },
+            ),
           ]),
         ),
         actions: <Widget>[
@@ -2070,7 +2100,6 @@ Future<void> _showLocalFilesDialog(final BuildContext context, final Function(St
             appThemeData: _configData.getAppThemeData(),
             text: "Cancel",
             onPressed: () {
-              onSelect("");
               Navigator.of(context).pop();
             },
           ),

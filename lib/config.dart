@@ -8,6 +8,8 @@ const String defaultRemoteGetUrl = "http://localhost:8080/file";
 const String defaultRemotePostUrl = "http://localhost:8080/file";
 const String defaultDataFileName = "data.json";
 const String defaultAppStateFileName = "data_repo_appState.json";
+const String defaultConfigFileNmae = "data_repo_config.json";
+
 const String defaultPrimaryColour = "blue";
 const String defaultSecondaryColour = "green";
 const String defaultHiLightColour = "yellow";
@@ -39,8 +41,6 @@ final dataFileLocalNamePath = Path.fromList(["file", "datafile"]);
 final dataFileLocalDirPath = Path.fromList(["file", "datafilePath"]);
 final appStateFileNamePath = Path.fromList(["user", "appStateFile"]);
 final appStateLocalDirPath = Path.fromList(["user", "appStatePath"]);
-final userNamePath = Path.fromList(["user", "name"]);
-final userIdPath = Path.fromList(["user", "id"]);
 final titlePath = Path.fromList(["application", "title"]);
 final rootNodeNamePath = Path.fromList(["application", "rootNodeName"]);
 final appColoursDarkMode = Path.fromList(["application", "darkMode"]);
@@ -222,8 +222,6 @@ class ConfigData {
   Function()? _onUpdate;
   AppThemeData? _appThemeData;
   String _rootNodeName = "";
-  String _userName = "";
-  String _userId = "";
   String _dataFileName = "";
   String _getDataFileUrl = "";
   String _postDataFileUrl = "";
@@ -234,13 +232,13 @@ class ConfigData {
   ColorPallet _appColoursError = ColorPallet.fromMaterialColor(Colors.red, 'red');
   bool _darkMode = false;
 
-  List<String> dir(List<String> extensions) {
+  List<String> dir(List<String> extensions, List<String> hidden) {
     final l = List<String>.empty(growable: true);
     final dirList = Directory(_dataFileLocalDir).listSync(recursive: false);
     for (var element in dirList) {
       if (element is File) {
         final fileName = File(element.path).uri.pathSegments.last;
-        if (!fileName.startsWith('.')) {
+        if (!fileName.startsWith('.') && !hidden.contains(fileName)) {
           if (extensions.isEmpty) {
             l.add(fileName);
           } else {
@@ -291,13 +289,10 @@ class ConfigData {
     log("__REMOTE DATA GET:__ ${getGetDataFileUrl()}");
     log("__REMOTE DATA POST:__ ${getPostDataFileUrl()}");
     log("__LOCAL STATE FILE:__ ${getAppStateFileLocal()}");
-    log("__USER:__ ID(${getUserId()}) ${getUserName()}");
   }
 
   void update({bool callOnUpdate = true}) {
-    _userName = _data.getStringFromJson(userNamePath, fallback: defaultUserName, create: true);
-    _userId = _data.getStringFromJson(userIdPath, fallback: defaultUserName.toLowerCase(), create: true);
-    _getDataFileUrl = _data.getStringFromJson(getDataUrlPath, fallback: defaultRemoteGetUrl, create: true);
+     _getDataFileUrl = _data.getStringFromJson(getDataUrlPath, fallback: defaultRemoteGetUrl, create: true);
     _postDataFileUrl = _data.getStringFromJson(postDataUrlPath, fallback: defaultRemotePostUrl, create: true);
     _dataFileName = _data.getStringFromJson(dataFileLocalNamePath, fallback: defaultDataFileName, create: true);
     if (_isDesktop) {
@@ -340,7 +335,7 @@ class ConfigData {
   Map<String, dynamic> getMinimumDataContentMap() {
     final dt = DateTime.now();
     final result = '${dt.year}-${dt.month}-${dt.day} ${dt.hour}:${dt.minute}:${dt.second}';
-    return DataContainer.convertStringToMap('{"$_userName":{"Info":{"Created":"$result"}}}', "");
+    return DataContainer.convertStringToMap('{"Data":{"Info":{"Created":"$result"}}}', "");
   }
 
   String getStringFromJsonOptional(Path path) {
@@ -426,6 +421,10 @@ class ConfigData {
     return _dataFileName;
   }
 
+  String getAppStateFileName() {
+    return _appStateFileName;
+  }
+
   String getRootNodeName() {
     if (_rootNodeName == '?') {
       return "";
@@ -446,14 +445,6 @@ class ConfigData {
       return "DT:$_title";
     }
     return "MO:$_title";
-  }
-
-  String getUserName() {
-    return _userName;
-  }
-
-  String getUserId() {
-    return _userId;
   }
 
   @override

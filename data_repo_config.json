@@ -11,10 +11,6 @@
     },
     "darkMode": false
   },
-  "user": {
-    "name": "User",
-    "id": "user"
-  },
   "file": {
     "getDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
     "postDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",

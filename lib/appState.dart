@@ -75,6 +75,12 @@ class ApplicationState {
     });
   }
 
+  void clear(final bool isDesktop) {
+    _lastFind.clear();
+    _shouldWriteFile = true;
+    screen = ApplicationScreen.empty(isDesktop);
+  }
+
   void writeAppStateConfigFile() {
     _shouldWriteFile = false;
     File(_appStateConfigFileName).writeAsStringSync(toString());

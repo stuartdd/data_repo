@@ -282,10 +282,10 @@ class DataContainer {
     return jsonEncode(map);
   }
 
-  static String staticDataToStringFormattedWithTs(Map<String, dynamic> map, final String pw, {final bool addTimeStamp = true}) {
+  static String staticDataToStringFormattedWithTs(Map<String, dynamic> map, final String pw, {final bool addTimeStamp = true, final bool isNew = false}) {
     String tsString = "";
     if (addTimeStamp) {
-      final ts = DateTime.timestamp().millisecondsSinceEpoch;
+      final ts = isNew ? 0 : DateTime.timestamp().millisecondsSinceEpoch;
       tsString = "${pw.isEmpty ? timeStampPrefixClear : timeStampPrefixEnc}$ts:";
     }
     if (pw.isEmpty) {
