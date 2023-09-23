@@ -12,6 +12,7 @@ import 'package:flutter_window_close/flutter_window_close.dart';
 import 'path.dart';
 import 'data_types.dart';
 import 'config.dart';
+import 'logging.dart';
 import 'appState.dart';
 import 'main_view.dart';
 import 'detail_buttons.dart';
@@ -25,6 +26,8 @@ const inputTextTitleStyleHeight = 35.0;
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
 
+final logger = Logger(50, true);
+
 StringBuffer eventLog = StringBuffer();
 String eventLogLatest = "";
 
@@ -34,15 +37,6 @@ bool _shouldDisplayMarkdownPreview = false;
 
 void closer(final int returnCode) async {
   exit(returnCode);
-}
-
-void log(final String text) {
-  if (text == eventLogLatest) {
-    return;
-  }
-  eventLogLatest = text;
-  eventLog.writeln(text);
-  eventLog.writeln("\n");
 }
 
 Size screenSize(BuildContext context) {
@@ -59,8 +53,8 @@ void main() async {
     final applicationDefaultDir = await ApplicationState.getApplicationDefaultDir();
     final isDesktop = ApplicationState.appIsDesktop();
 
-    _configData = ConfigData(applicationDefaultDir, defaultConfigFileNmae, isDesktop, log);
-    _applicationState = ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), log);
+    _configData = ConfigData(applicationDefaultDir, defaultConfigFileNmae, isDesktop, logger.log);
+    _applicationState = ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), logger.log);
     if (isDesktop) {
       setWindowTitle("${_configData.getTitle()}: ${_configData.getDataFileName()}");
       const WindowOptions(
@@ -150,6 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _search = "";
   String _lastSearch = "";
   bool _dataWasUpdated = false;
+  bool _checkReferences = false;
   bool _isEditDataDisplay = false;
   double _navBarHeight = navBarHeight;
   SuccessState _globalSuccessState = SuccessState(true);
@@ -160,7 +155,7 @@ class _MyHomePageState extends State<MyHomePage> {
   MyTreeNode _selectedTreeNode = MyTreeNode.empty();
   Path _selectedPath = Path.empty();
 
-  final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: log);
+  final PathPropertiesList _pathPropertiesList = PathPropertiesList(log:logger.log);
   final TextEditingController searchEditingController = TextEditingController(text: "");
   final TextEditingController passwordEditingController = TextEditingController(text: "");
 
@@ -198,11 +193,11 @@ class _MyHomePageState extends State<MyHomePage> {
     if (urlCanLaunch) {
       await launchUrlString(href); //launch is from url_launcher package to launch URL
       setState(() {
-        _globalSuccessState = SuccessState(true, message: "Link submitted from $from", log: log);
+        _globalSuccessState = SuccessState(true, message: "Link submitted from $from", log:logger.log);
       });
     } else {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "Link could not be launched", log: log);
+        _globalSuccessState = SuccessState(false, message: "Link could not be launched", log:logger.log);
       });
     }
   }
@@ -212,11 +207,11 @@ class _MyHomePageState extends State<MyHomePage> {
       final n = _treeNodeDataRoot.findByPath(path);
       if (n == null) {
         _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
-        log("__ERROR__ Selected node [$path] was not found");
+        logger.log("__ERROR__ Selected node [$path] was not found");
       } else {
         if (n.isLeaf) {
           _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
-          log("__ERROR__ Selected node [$path] was a data node");
+          logger.log("__ERROR__ Selected node [$path] was a data node");
         } else {
           if (n.isNotRequired) {
             n.setRequired(true, recursive: true);
@@ -252,17 +247,17 @@ class _MyHomePageState extends State<MyHomePage> {
         Future.delayed(
           const Duration(milliseconds: 300),
           () {
-            log("__WARNING__ Data source has changed");
+            logger.log("__WARNING__ Data source has changed");
             _showModalButtonsDialog(context, "Data source has Changed", ["If you CONTINUE:", "Saving and Reloading", "will use OLD config data", "and UNSAVED config", "changes may be lost."], ["RESTART", "CONTINUE"], Path.empty(), (path, button) {
               if (button == "RESTART") {
                 setState(() {
                   _clearData("Config updated - RESTART");
-                  log("__RESTART__ Local file ${_configData.getDataFileLocal()}");
-                  log("__RESTART__ Remote file ${_configData.getGetDataFileUrl()}");
+                  logger.log("__RESTART__ Local file ${_configData.getDataFileLocal()}");
+                  logger.log("__RESTART__ Remote file ${_configData.getGetDataFileUrl()}");
                   setWindowTitle("${_configData.getTitle()}: ${_configData.getDataFileName()}");
                 });
               } else {
-                log("__CONFIG__ CONTINUE option chosen");
+                logger.log("__CONFIG__ CONTINUE option chosen");
               }
             });
           },
@@ -293,7 +288,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     _lastSearch = "[$_search]"; // Need search and _lastSearch to be different so filter is applied
     if (st.isEmpty) {
-      log("__SEARCH__ cleared");
+      logger.log("__SEARCH__ cleared");
       selectNode();
     }
     setState(() {
@@ -392,6 +387,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               if (action == SimpleButtonActions.copy) {
                                 // if not copy then move so we are not done, we need to delete after!
                                 _dataWasUpdated = true;
+                                _checkReferences = true;
                               }
                               _pathPropertiesList.setRenamed(intoPath.cloneAppendList([Path.fromDotPath(k).last]));
                               _pathPropertiesList.setRenamed(intoPath);
@@ -405,6 +401,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             if (resp.isEmpty) {
                               groupMap[k]!.done = true;
                               _dataWasUpdated = true;
+                              _checkReferences = true;
                               _pathPropertiesList.setRenamed(intoPath.cloneParentPath());
                             }
                           }
@@ -623,7 +620,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   final success = DataContainer.saveToFile(_configData.getDataFileLocalAlt(fn), content);
                   _globalSuccessState = success;
                   if (success.isFail) {
-                    log("__CREATE__ Failed. ${success.message}");
+                    logger.log("__CREATE__ Failed. ${success.message}");
                     Timer(const Duration(milliseconds: 1), () {
                       if (mounted) {
                         _showModalButtonsDialog(context, "Create File Failed", ["Reason - ${success.message}", "No changes were made"], ["Acknowledge"], Path.empty(), (path, button) {
@@ -638,7 +635,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           setState(() {
                             if (button == "NEW") {
                               _configData.setValueForJsonPath(dataFileLocalNamePath, fn);
-                              _configData.save(log);
+                              _configData.save(logger.log);
                               _configData.update(callOnUpdate: true);
                               _clearData("New Data File");
                             }
@@ -699,11 +696,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 if (button == SimpleButtonActions.ok) {
                   if (_loadedData.hasPassword) {
                     // Confirm PW (Save un-encrypted)
-                    log("__SAVE__ Data as plain text");
+                    logger.log("__SAVE__ Data as plain text");
                     _loadedData.password = "";
                   } else {
                     // New password (Save encrypted)
-                    log("__SAVE__ Data as ENCRYPTED text");
+                    logger.log("__SAVE__ Data as ENCRYPTED text");
                     _loadedData.password = pw;
                   }
                   _saveDataState(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
@@ -746,7 +743,7 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       lm = "Local Save FAIL";
     }
-    final remoteSaveState = await DataContainer.toHttpPost(_configData.getPostDataFileUrl(), content, log: log);
+    final remoteSaveState = await DataContainer.toHttpPost(_configData.getPostDataFileUrl(), content, log:logger.log);
     if (remoteSaveState.isSuccess) {
       success++;
       rm = "Remote Save OK";
@@ -754,7 +751,7 @@ class _MyHomePageState extends State<MyHomePage> {
       rm = "Remote Save FAIL";
     }
     setState(() {
-      log("__SAVE:__ $lm. $rm");
+      logger.log("__SAVE:__ $lm. $rm");
       if (success > 0) {
         _dataWasUpdated = false;
         _pathPropertiesList.clear();
@@ -780,7 +777,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _dataWasUpdated = false;
     _pathPropertiesList.clear();
     _globalSuccessState = SuccessState(true, message: reason);
-    log("__DATA_CLEARED__ $reason");
+    logger.log("__DATA_CLEARED__ $reason");
   }
 
   void _loadDataState() async {
@@ -815,9 +812,9 @@ class _MyHomePageState extends State<MyHomePage> {
       fileDataContent = successStateRemote.value.substring(fileDataPrefixRemote.startPos);
       fileDataPrefix = fileDataPrefixRemote;
       source = "Remote";
-      log("__INFO:__ $source __TS:__ ${fileDataPrefix.timeStamp}");
+      logger.log("__INFO:__ $source __TS:__ ${fileDataPrefix.timeStamp}");
     } else {
-      log(successStateRemote.toLogString());
+      logger.log(successStateRemote.toLogString());
     }
 
     //
@@ -831,40 +828,40 @@ class _MyHomePageState extends State<MyHomePage> {
         fileDataContent = successStateLocal.value.substring(fileDataPrefixLocal.startPos);
         fileDataPrefix = fileDataPrefixLocal;
         source = "Local";
-        log("__INFO:__ $source __TS:__ ${fileDataPrefix.timeStamp}");
+        logger.log("__INFO:__ $source __TS:__ ${fileDataPrefix.timeStamp}");
       }
     } else {
-      log(successStateLocal.toLogString());
+      logger.log(successStateLocal.toLogString());
     }
     //
     // File is now loaded!
     //
     if (fileDataContent.isEmpty) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Data Available", log: log);
+        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Data Available", log:logger.log);
       });
       return;
     }
 
     if (fileDataPrefix.encrypted && pw.isEmpty) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Password Provided", log: log);
+        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Password Provided", log:logger.log);
       });
       return;
     }
 
     final DataContainer data;
     try {
-      data = DataContainer(fileDataContent, fileDataPrefix, successStateRemote.path, successStateLocal.path, fileName, pw);
+      data = DataContainer(fileDataContent, fileDataPrefix, successStateRemote.path, successStateLocal.path, fileName, pw, log: logger.log);
     } catch (r) {
       setState(() {
         if (r is Exception) {
-          _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file could not be parsed", exception: r, log: log);
+          _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file could not be parsed", exception: r, log:logger.log);
         } else {
           if (pw.isEmpty) {
-            _globalSuccessState = SuccessState(false, message: "__LOAD__ $r", log: log);
+            _globalSuccessState = SuccessState(false, message: "__LOAD__ $r", log:logger.log);
           } else {
-            _globalSuccessState = SuccessState(false, message: "__LOAD__ ${r.runtimeType.toString()}. Please try again!", log: log);
+            _globalSuccessState = SuccessState(false, message: "__LOAD__ ${r.runtimeType.toString()}. Please try again!", log:logger.log);
           }
         }
       });
@@ -873,13 +870,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (data.isEmpty) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file does not contain any data", log: log);
+        _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file does not contain any data", log:logger.log);
       });
       return;
     }
     _loadedData = data;
     setState(() {
       _dataWasUpdated = false;
+      _checkReferences = true;
       _pathPropertiesList.clear();
       _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
       _treeNodeDataRoot.expandAll(true);
@@ -887,7 +885,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _filteredNodeDataRoot = MyTreeNode.empty();
       _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
       _selectedPath = _selectedTreeNode.path;
-      _globalSuccessState = SuccessState(true, message: "${fileDataPrefix.encrypted ? "Encrypted" : ""} [$source] File: ${_loadedData.timeStampString}", log: log);
+      _globalSuccessState = SuccessState(true, message: "${fileDataPrefix.encrypted ? "Encrypted" : ""} [$source] File: ${_loadedData.timeStampString}", log:logger.log);
     });
   }
 
@@ -928,12 +926,13 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           mapNodes.lastNodeAsMap![name] = "undefined";
           _dataWasUpdated = true;
+          _checkReferences = true;
           _pathPropertiesList.setUpdated(path);
           _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
           _reloadAndCopyFlags();
           selectNode(path: path);
-          _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log: log);
+          _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log:logger.log);
         });
         break;
       case optionTypeDataGroup:
@@ -941,12 +940,13 @@ class _MyHomePageState extends State<MyHomePage> {
           final Map<String, dynamic> m = {};
           mapNodes.lastNodeAsMap![name] = m;
           _dataWasUpdated = true;
+          _checkReferences = true;
           _pathPropertiesList.setUpdated(path);
           _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
           _reloadAndCopyFlags();
           selectNode(path: path);
-          _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log: log);
+          _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log:logger.log);
         });
         break;
     }
@@ -1006,6 +1006,7 @@ class _MyHomePageState extends State<MyHomePage> {
         mapNodes.lastNodeParent![newName] = mapNodes.lastNodeAsData;
 
         _dataWasUpdated = true;
+        _checkReferences = true;
 
         var newPath = detailActionData.path.cloneRename(newName);
         var parentPath = newPath.cloneParentPath();
@@ -1013,7 +1014,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _pathPropertiesList.setRenamed(parentPath);
         _reloadAndCopyFlags();
         selectNode(path: parentPath);
-        _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: log);
+        _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log:logger.log);
       });
     }
   }
@@ -1046,6 +1047,7 @@ class _MyHomePageState extends State<MyHomePage> {
           return;
         }
         _dataWasUpdated = true;
+        _checkReferences = true;
         _pathPropertiesList.setUpdated(parentPath);
         _reloadAndCopyFlags();
         selectNode(path: parentPath);
@@ -1073,6 +1075,7 @@ class _MyHomePageState extends State<MyHomePage> {
         final parentNode = mapNodes.lastNodeParent;
         final key = detailActionData.path.last;
         _dataWasUpdated = true;
+        _checkReferences = true;
         final nvTrim = newValue.trim();
         try {
           if (type.elementType == bool) {
@@ -1193,10 +1196,38 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
 
+    if (_checkReferences) {
+      int count = 0;
+      _loadedData.visitEachSubNode((key, path, node) {
+        if (key.endsWith(referenceExtension) && node is String) {
+          final p = Path.fromDotPath(node);
+          final n = _loadedData.getNodeFromJson(p);
+          if (n == null) {
+            count++;
+            logger.log("## __REF_ERROR__ ${path.asMarkdownLink} not found");
+          } else {
+            if (n is! String) {
+              count++;
+              logger.log("## __REF_ERROR__ ${path.asMarkdownLink} to non String");
+            }
+          }
+        }
+      });
+      if (count != 0 && _loadedData.warning.isEmpty) {
+        _loadedData.warning = "__REF_ERROR__";
+      }
+      _checkReferences = false;
+    }
+
     if (_loadedData.warning.isNotEmpty) {
       _loadedData.warning = "";
       Timer(const Duration(milliseconds: 500), () {
-        _showLogDialog(context, eventLog.toString());
+        _showLogDialog(context, eventLog.toString(), (dotPath) {
+          final p = Path.fromDotPath(dotPath);
+          if (p.isNotEmpty) {
+            _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
+          }
+        });
       });
     }
 
@@ -1222,7 +1253,7 @@ class _MyHomePageState extends State<MyHomePage> {
         // On selected detail page action
         return _handleAction(detailActionData);
       },
-      log,
+      logger.log,
       _applicationState.isDataSorted,
       _configData.getRootNodeName(),
     );
@@ -1288,10 +1319,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 if (fileName != _configData.getDataFileName()) {
                   _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
                   _configData.update(callOnUpdate: true);
-                  log("__CONFIG__ File name updated to:'$fileName'");
-                  _configData.save(log);
+                  logger.log("__CONFIG__ File name updated to:'$fileName'");
+                  _configData.save(logger.log);
                 } else {
-                  log("__CONFIG__ File name not updated. No change");
+                  logger.log("__CONFIG__ File name not updated. No change");
                 }
               },
               (action) {
@@ -1503,11 +1534,11 @@ class _MyHomePageState extends State<MyHomePage> {
               },
               (settingsControlList, save) {
                 // Commit
-                settingsControlList.commit(_configData, log: log);
+                settingsControlList.commit(_configData, log:logger.log);
                 setState(() {
                   _configData.update();
                   if (save) {
-                    _globalSuccessState = _configData.save(log);
+                    _globalSuccessState = _configData.save(logger.log);
                   } else {
                     _globalSuccessState = SuccessState(true, message: "Config data NOT saved");
                   }
@@ -1591,7 +1622,12 @@ class _MyHomePageState extends State<MyHomePage> {
                             tooltip: 'Log',
                             padding: const EdgeInsets.all(1.0),
                             onPressed: () {
-                              _showLogDialog(context, eventLog.toString());
+                              _showLogDialog(context, eventLog.toString(), (dotPath) {
+                                final p = Path.fromDotPath(dotPath);
+                                if (p.isNotEmpty) {
+                                  _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
+                                }
+                              });
                             },
                           ),
                           Text(
@@ -1617,7 +1653,7 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
     appThemeData: appThemeData,
     onPressed: () {
       onCommit(settingsControlList, false);
-      log("__CONFIG__ changes APPLIED");
+      logger.log("__CONFIG__ changes APPLIED");
       Navigator.of(context).pop();
     },
   );
@@ -1627,7 +1663,7 @@ Future<void> _showConfigDialog(final BuildContext context, AppThemeData appTheme
     appThemeData: appThemeData,
     onPressed: () {
       onCommit(settingsControlList, true);
-      log("__CONFIG__ changes SAVED");
+      logger.log("__CONFIG__ changes SAVED");
       Navigator.of(context).pop();
     },
   );
@@ -1988,7 +2024,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
   );
 }
 
-Future<void> _showLogDialog(final BuildContext context, final String log) async {
+Future<void> _showLogDialog(final BuildContext context, final String log, final Function(String) onTapLink) async {
   final scrollController = ScrollController();
   Future.delayed(
     const Duration(milliseconds: 400),
@@ -2012,10 +2048,18 @@ Future<void> _showLogDialog(final BuildContext context, final String log) async 
           width: screenSize(context).width,
           child: Markdown(
             controller: scrollController,
-            data: log,
+            data: logger.toString(),
             selectable: true,
             shrinkWrap: true,
             styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
+            onTapLink: (text, href, title) {
+              if (href == null) {
+                onTapLink(text);
+              } else {
+                onTapLink(href);
+              }
+              Navigator.of(context).pop();
+            },
           ),
         )),
         actions: <Widget>[

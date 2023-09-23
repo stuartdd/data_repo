@@ -26,7 +26,7 @@ class DataContainer {
     return DataContainer("", FileDataPrefix.empty(), "", "", "", "");
   }
 
-  DataContainer(final String fileContents, final FileDataPrefix filePrefixData, this.remoteSourcePath, this.localSourcePath, this.fileName, final String pw) {
+  DataContainer(final String fileContents, final FileDataPrefix filePrefixData, this.remoteSourcePath, this.localSourcePath, this.fileName, final String pw, {final Function(String)? log}) {
     password = pw;
     _timeStamp = filePrefixData.timeStamp;
     _dataMap = convertStringToMap(fileContents, pw);
@@ -36,7 +36,9 @@ class DataContainer {
         if (warning.isEmpty) {
           warning = "Check logs for warnings!";
         }
-        log("## __ALERT__ Node:$path has a '.' in the node name");
+        if (log != null) {
+          log("## __ALERT__ Node:$path has a '.' in the node name");
+        }
       }
     });
   }

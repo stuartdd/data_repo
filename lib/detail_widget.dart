@@ -128,7 +128,7 @@ class _DetailWidgetState extends State<DetailWidget> {
         height: height / 2,
         color: bg,
         child: Text(
-          "$i",
+          "${i+1}",
           style: ts,
         ),
       ));

@@ -343,6 +343,10 @@ class Path {
     return PathNodes.from(m, this);
   }
 
+  String get asMarkdownLink {
+    return "[${toString()}](${toString()})";
+  }
+
   bool isNotEqual(final Path other) {
     return !isEqual(other);
   }
