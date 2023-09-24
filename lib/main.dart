@@ -28,9 +28,6 @@ late final ApplicationState _applicationState;
 
 final logger = Logger(50, true);
 
-StringBuffer eventLog = StringBuffer();
-String eventLogLatest = "";
-
 bool _inExitProcess = false;
 bool _shouldDisplayMarkdownHelp = false;
 bool _shouldDisplayMarkdownPreview = false;
@@ -155,7 +152,7 @@ class _MyHomePageState extends State<MyHomePage> {
   MyTreeNode _selectedTreeNode = MyTreeNode.empty();
   Path _selectedPath = Path.empty();
 
-  final PathPropertiesList _pathPropertiesList = PathPropertiesList(log:logger.log);
+  final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: logger.log);
   final TextEditingController searchEditingController = TextEditingController(text: "");
   final TextEditingController passwordEditingController = TextEditingController(text: "");
 
@@ -193,11 +190,11 @@ class _MyHomePageState extends State<MyHomePage> {
     if (urlCanLaunch) {
       await launchUrlString(href); //launch is from url_launcher package to launch URL
       setState(() {
-        _globalSuccessState = SuccessState(true, message: "Link submitted from $from", log:logger.log);
+        _globalSuccessState = SuccessState(true, message: "Link submitted from $from", log: logger.log);
       });
     } else {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "Link could not be launched", log:logger.log);
+        _globalSuccessState = SuccessState(false, message: "Link could not be launched", log: logger.log);
       });
     }
   }
@@ -743,7 +740,7 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       lm = "Local Save FAIL";
     }
-    final remoteSaveState = await DataContainer.toHttpPost(_configData.getPostDataFileUrl(), content, log:logger.log);
+    final remoteSaveState = await DataContainer.toHttpPost(_configData.getPostDataFileUrl(), content, log: logger.log);
     if (remoteSaveState.isSuccess) {
       success++;
       rm = "Remote Save OK";
@@ -838,14 +835,14 @@ class _MyHomePageState extends State<MyHomePage> {
     //
     if (fileDataContent.isEmpty) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Data Available", log:logger.log);
+        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Data Available", log: logger.log);
       });
       return;
     }
 
     if (fileDataPrefix.encrypted && pw.isEmpty) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Password Provided", log:logger.log);
+        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Password Provided", log: logger.log);
       });
       return;
     }
@@ -856,12 +853,12 @@ class _MyHomePageState extends State<MyHomePage> {
     } catch (r) {
       setState(() {
         if (r is Exception) {
-          _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file could not be parsed", exception: r, log:logger.log);
+          _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file could not be parsed", exception: r, log: logger.log);
         } else {
           if (pw.isEmpty) {
-            _globalSuccessState = SuccessState(false, message: "__LOAD__ $r", log:logger.log);
+            _globalSuccessState = SuccessState(false, message: "__LOAD__ $r", log: logger.log);
           } else {
-            _globalSuccessState = SuccessState(false, message: "__LOAD__ ${r.runtimeType.toString()}. Please try again!", log:logger.log);
+            _globalSuccessState = SuccessState(false, message: "__LOAD__ ${r.runtimeType.toString()}. Please try again!", log: logger.log);
           }
         }
       });
@@ -870,7 +867,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (data.isEmpty) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file does not contain any data", log:logger.log);
+        _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file does not contain any data", log: logger.log);
       });
       return;
     }
@@ -885,7 +882,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _filteredNodeDataRoot = MyTreeNode.empty();
       _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
       _selectedPath = _selectedTreeNode.path;
-      _globalSuccessState = SuccessState(true, message: "${fileDataPrefix.encrypted ? "Encrypted" : ""} [$source] File: ${_loadedData.timeStampString}", log:logger.log);
+      _globalSuccessState = SuccessState(true, message: "${fileDataPrefix.encrypted ? "Encrypted" : ""} [$source] File: ${_loadedData.timeStampString}", log: logger.log);
     });
   }
 
@@ -932,7 +929,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
           _reloadAndCopyFlags();
           selectNode(path: path);
-          _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log:logger.log);
+          _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log: logger.log);
         });
         break;
       case optionTypeDataGroup:
@@ -946,7 +943,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
           _reloadAndCopyFlags();
           selectNode(path: path);
-          _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log:logger.log);
+          _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log: logger.log);
         });
         break;
     }
@@ -1014,7 +1011,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _pathPropertiesList.setRenamed(parentPath);
         _reloadAndCopyFlags();
         selectNode(path: parentPath);
-        _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log:logger.log);
+        _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: logger.log);
       });
     }
   }
@@ -1222,11 +1219,13 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_loadedData.warning.isNotEmpty) {
       _loadedData.warning = "";
       Timer(const Duration(milliseconds: 500), () {
-        _showLogDialog(context, eventLog.toString(), (dotPath) {
+        _showLogDialog(context, logger.toString(), (dotPath) {
           final p = Path.fromDotPath(dotPath);
-          if (p.isNotEmpty) {
+          if (p.isRational(_loadedData.dataMap)) {
             _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
+            return true;
           }
+          return false;
         });
       });
     }
@@ -1534,7 +1533,7 @@ class _MyHomePageState extends State<MyHomePage> {
               },
               (settingsControlList, save) {
                 // Commit
-                settingsControlList.commit(_configData, log:logger.log);
+                settingsControlList.commit(_configData, log: logger.log);
                 setState(() {
                   _configData.update();
                   if (save) {
@@ -1622,11 +1621,13 @@ class _MyHomePageState extends State<MyHomePage> {
                             tooltip: 'Log',
                             padding: const EdgeInsets.all(1.0),
                             onPressed: () {
-                              _showLogDialog(context, eventLog.toString(), (dotPath) {
+                              _showLogDialog(context, logger.toString(), (dotPath) {
                                 final p = Path.fromDotPath(dotPath);
-                                if (p.isNotEmpty) {
+                                if (p.isRational(_loadedData.dataMap)) {
                                   _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
+                                  return true;
                                 }
+                                return false;
                               });
                             },
                           ),
@@ -2024,7 +2025,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
   );
 }
 
-Future<void> _showLogDialog(final BuildContext context, final String log, final Function(String) onTapLink) async {
+Future<void> _showLogDialog(final BuildContext context, final String log, final bool Function(String) onTapLink) async {
   final scrollController = ScrollController();
   Future.delayed(
     const Duration(milliseconds: 400),
@@ -2053,12 +2054,15 @@ Future<void> _showLogDialog(final BuildContext context, final String log, final 
             shrinkWrap: true,
             styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
             onTapLink: (text, href, title) {
+              bool ok = true;
               if (href == null) {
-                onTapLink(text);
+                ok = onTapLink(text);
               } else {
-                onTapLink(href);
+                ok = onTapLink(href);
               }
-              Navigator.of(context).pop();
+              if (ok) {
+                Navigator.of(context).pop();
+              }
             },
           ),
         )),

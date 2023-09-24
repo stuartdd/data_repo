@@ -438,6 +438,16 @@ class Path {
     return (_count == 0);
   }
 
+  bool isRational(Map<String, dynamic> map) {
+    if (isEmpty) {
+      return false;
+    }
+    if (map[pathList[0]] == null) {
+      return false;
+    }
+    return true;
+  }
+
   bool get isNotEmpty {
     return (_count > 0);
   }

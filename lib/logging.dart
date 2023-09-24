@@ -19,6 +19,7 @@ class LogEntry {
 class Logger {
   final int maxLength;
   final bool asMarkdown;
+  String previousLog = "";
   LogEntry? first;
   LogEntry? last;
   int length = 0;
@@ -49,6 +50,10 @@ class Logger {
   }
 
   log(String text) {
+    if (text == previousLog) {
+      return;
+    }
+    previousLog = text;
     if (first == null) {
       first = LogEntry(text);
       last = first;

@@ -44,4 +44,25 @@ void main() {
     expect(log.length, 3);
     expect(log.toString(), "THREE\n\nFOUR\n\nFIVE");
   });
+
+  test('Test do not log same line twice', () async {
+    final log = Logger(3, true);
+    expect(log.length, 0);
+    expect(log.toString(), "");
+    log.log("ONE");
+    expect(log.length, 1);
+    expect(log.toString(), "ONE");
+    log.log("TWO");
+    expect(log.length, 2);
+    expect(log.toString(), "ONE\n\nTWO");
+    log.log("TWO");
+    expect(log.length, 2);
+    expect(log.toString(), "ONE\n\nTWO");
+    log.log("TWO");
+    expect(log.length, 2);
+    expect(log.toString(), "ONE\n\nTWO");
+    log.log("TWO");
+    expect(log.length, 2);
+    expect(log.toString(), "ONE\n\nTWO");
+  });
 }
