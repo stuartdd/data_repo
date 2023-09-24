@@ -19,31 +19,39 @@ class MyTreeNode {
     children = List.empty(growable: true);
   }
 
-  List<MyTreeNode> get childrenSorted {
-    final c = List<MyTreeNode>.from(children);
-    c.sort((a, b) {
-      return a.label.compareTo(b.label);
-    });
-    return c;
-  }
-
   @override
   String toString() {
     return "Label:$label PathKey:$pathKey Leaf:$leaf Children:${children.length} Req:$required Exp:$expanded";
   }
 
-  static MyTreeNode fromMap(final Map<String, dynamic> mapNode) {
+  static MyTreeNode fromMap(final Map<String, dynamic> mapNode, {int sorted = 0}) {
     final treeNode = MyTreeNode.empty();
-    _fromMapR(mapNode, treeNode);
+    _fromMapR(mapNode, treeNode, sorted);
     return treeNode;
   }
 
-  static void _fromMapR(final Map<String, dynamic> mapNode, final MyTreeNode treeNode) {
+  static void _insertInOrder(List<MyTreeNode> list, MyTreeNode node , int order) {
+    final nPathKey = node.pathKey.toLowerCase();
+    for (int i=0; i<list.length;i++) {
+      final x = list[i].pathKey.toLowerCase().compareTo(nPathKey);
+      if (x == order) {
+        list.insert(i, node);
+        return;
+      }
+    }
+    list.add(node);
+  }
+
+  static void _fromMapR(final Map<String, dynamic> mapNode, final MyTreeNode treeNode, int order) {
     mapNode.forEach((key, value) {
       final nn = MyTreeNode(key, key, treeNode, value is! Map);
-      treeNode.children.add(nn);
+      if (order == 0) {
+        treeNode.children.add(nn);
+      } else {
+        _insertInOrder(treeNode.children,nn, order); // insertion sort
+      }
       if (value is Map) {
-        _fromMapR(value as Map<String, dynamic>, nn);
+        _fromMapR(value as Map<String, dynamic>, nn, order);
       }
     });
   }
@@ -94,7 +102,7 @@ class MyTreeNode {
   MyTreeNode clearFilter() {
     visitEachSubNode((node) {
       node._required = true;
-    }, false);
+    });
     return this;
   }
 
@@ -119,7 +127,7 @@ class MyTreeNode {
           pn._required = true;
         });
       }
-    }, false);
+    });
     return clone(requiredOnly: true);
   }
 
@@ -203,7 +211,7 @@ class MyTreeNode {
     if (recursive) {
       visitEachSubNode((sn) {
         sn._required = req;
-      }, false);
+      });
     }
   }
 
@@ -262,7 +270,7 @@ class MyTreeNode {
   void expandAll(final bool exp) {
     visitEachSubNode((node) {
       node.expanded = exp;
-    }, false);
+    });
   }
 
   void expandParent(final bool exp) {
@@ -330,25 +338,11 @@ class MyTreeNode {
     }
   }
 
-  void visitEachSubNodeSorted(final void Function(MyTreeNode) func) {
-    for (var element in childrenSorted) {
-      func(element);
-      if (element.isNotEmpty) {
-        element.visitEachSubNodeSorted(func);
-      }
-    }
-  }
-
-  void visitEachSubNode(final void Function(MyTreeNode) func, bool isSorted) {
-    if (isSorted) {
-      visitEachSubNodeSorted(func);
-      return;
-    }
-
+  void visitEachSubNode(final void Function(MyTreeNode) func) {
     for (var element in children) {
       func(element);
       if (element.isNotEmpty) {
-        element.visitEachSubNode(func, isSorted);
+        element.visitEachSubNode(func);
       }
     }
   }
@@ -427,7 +421,7 @@ class MyTreeNodeWidgetList extends StatefulWidget {
   final Path selectedNodePath;
   final PathPropertiesList pathListProperties;
   final double rowHeight;
-  final bool isSorted;
+  final int isSorted;
   final String rootNodeName;
   @override
   State<MyTreeNodeWidgetList> createState() => _MyTreeNodeWidgetListState();
@@ -440,7 +434,7 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
   Widget build(BuildContext context) {
     final List<Widget> children = List.empty(growable: true);
     int c = 0;
-    final rnn = (widget.rootNode.children.length == 1) ? widget.rootNodeName : "" ;
+    final rnn = (widget.rootNode.children.length == 1) ? widget.rootNodeName : "";
     widget.rootNode.visitEachSubNode(
       (aNode) {
         final aNodePath = aNode.path;
@@ -472,7 +466,6 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
           c++;
         }
       },
-      widget.isSorted,
     );
     return ListBody(
       children: children,

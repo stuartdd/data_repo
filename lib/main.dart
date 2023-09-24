@@ -347,6 +347,7 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           setState(() {
             _applicationState.flipDataSorted;
+            _reloadAndCopyFlags();
             selectNode();
           });
           break;
@@ -876,7 +877,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _dataWasUpdated = false;
       _checkReferences = true;
       _pathPropertiesList.clear();
-      _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap);
+      _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap, sorted: _applicationState.isDataSorted);
       _treeNodeDataRoot.expandAll(true);
       _treeNodeDataRoot.clearFilter();
       _filteredNodeDataRoot = MyTreeNode.empty();
@@ -887,7 +888,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _reloadAndCopyFlags() {
-    final temp = MyTreeNode.fromMap(_loadedData.dataMap);
+    final temp = MyTreeNode.fromMap(_loadedData.dataMap, sorted: _applicationState.isDataSorted);
     temp.visitEachSubNode((node) {
       final refNode = _treeNodeDataRoot.findByPath(node.path);
       if (refNode != null) {
@@ -896,7 +897,7 @@ class _MyHomePageState extends State<MyHomePage> {
           node.expanded = refNode.expanded;
         }
       }
-    }, _applicationState.isDataSorted);
+    });
     _treeNodeDataRoot = temp;
   }
 
@@ -1487,8 +1488,8 @@ class _MyHomePageState extends State<MyHomePage> {
         toolBarItems.add(
           DetailIconButton(
             appThemeData: appThemeData,
-            iconData: Icons.youtube_searched_for,
-            tooltip: 'Previous Searches',
+            iconData: Icons.manage_search,
+            tooltip: 'Manage Searches',
             onPressed: () async {
               await _showSearchDialog(
                 context,

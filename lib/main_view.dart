@@ -57,7 +57,7 @@ DisplaySplitView createSplitView(
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final Path Function(DetailAction) onDataAction,
     final void Function(String) log,
-    final bool isSorted,
+    final int isSorted,
     final String rootNodeName) {
   // Called when one of the detail buttons is pressed
   /// Left right or Top bottom
@@ -130,23 +130,45 @@ DisplaySplitView createSplitView(
   return DisplaySplitView(splitView, scrollController);
 }
 
-List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> json, Path path) {
+void _insertDisplayValueListInOrder(List<DataValueDisplayRow> displayValueList, DataValueDisplayRow dvdr, int order) {
+  if (order == 0) {
+    displayValueList.add(dvdr);
+  } else {
+    final name = dvdr.name.toLowerCase();
+    for (int i = 0; i < displayValueList.length; i++) {
+      final x = displayValueList[i].name.toLowerCase().compareTo(name);
+      if (x == order) {
+        displayValueList.insert(i, dvdr);
+        return;
+      }
+    }
+    displayValueList.add(dvdr);
+  }
+}
+
+List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> json, Path path, int sortOrder) {
   List<DataValueDisplayRow> lm = List.empty(growable: true);
   List<DataValueDisplayRow> lv = List.empty(growable: true);
   for (var element in json.entries) {
     if (element.value is Map) {
-      lm.add(DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as Map).length));
+//      lm.add(DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as Map).length));
+      _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as Map).length), sortOrder);
     } else if (element.value is List) {
-      lm.add(DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as List).length));
+      //      lm.add(DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as List).length));
+      _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as List).length), sortOrder);
     } else {
-      lv.add(DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.staticFindOptionTypeFromNameAndType(element.value.runtimeType, element.key), true, path, 0));
+      _insertDisplayValueListInOrder(lv,DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.staticFindOptionTypeFromNameAndType(element.value.runtimeType, element.key), true, path, 0), sortOrder);
+//      lv.add(DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.staticFindOptionTypeFromNameAndType(element.value.runtimeType, element.key), true, path, 0));
     }
   }
   lm.addAll(lv);
   return lm;
 }
 
-Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThemeData, bool isEditDataDisplay, bool beforeDataLoaded, bool sorted, final Path Function(DetailAction) dataAction) {
+const _sortIconName = ["Un-Sort", "Ascending", "Descending"];
+const _sortIcon = [Icons.sort, Icons.sort_by_alpha, Icons.sort];
+
+Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThemeData, bool isEditDataDisplay, bool beforeDataLoaded, int sorted, final Path Function(DetailAction) dataAction) {
   final pathUp = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "up"));
   final pathDown = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "down"));
   final pathRight = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "right"));
@@ -157,8 +179,8 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
         onPressed: () {
           dataAction(DetailAction(ActionType.flipSorted, false, Path.empty()));
         },
-        tooltip: sorted ? "Un-Sort" : "Sort",
-        iconData: sorted ? Icons.sort : Icons.sort_by_alpha,
+        tooltip: _sortIconName[sorted + 1],
+        iconData: _sortIcon[sorted + 1],
         appThemeData: appThemeData,
       ),
       DetailIconButton(
@@ -209,18 +231,18 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
   );
 }
 
-Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, final bool isEditDataDisplay, final bool isSorted, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, final Path Function(DetailAction) dataAction, SuccessState Function(String) onResolve) {
+Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, final bool isEditDataDisplay, final int sortOrder, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, final Path Function(DetailAction) dataAction, SuccessState Function(String) onResolve) {
   if (selectedNode is! Map<String, dynamic>) {
     throw JsonException(selectedPath, message: "Selected path should be a map");
   }
-  List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath);
-  if (isSorted) {
-    properties.sort(
-      (a, b) {
-        return a.name.compareTo(b.name);
-      },
-    );
-  }
+  List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath, sortOrder);
+  // if (isSorted != 0) {
+  //   properties.sort(
+  //     (a, b) {
+  //       return a.name.compareTo(b.name);
+  //     },
+  //   );
+  // }
   return ListView(
     shrinkWrap: true,
     children: [

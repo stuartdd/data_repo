@@ -45,14 +45,14 @@ void main() {
   });
 
   test('Test Write Application State', () async {
-    final sc1 = ApplicationState(const ApplicationScreen(10, 20, 30, 40, 400, false), false, ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
+    final sc1 = ApplicationState(const ApplicationScreen(10, 20, 30, 40, 400, false), 0, ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
     try {
       sc1.deleteAppStateConfigFile();
     } catch (e) {
       // Expecting exception unless test failed previously
     }
     final scStr1 = sc1.toString();
-    expect(scStr1, '{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":400},"isDataSorted":false,"lastFind":["Last1","Last2","Last3"]}');
+    expect(scStr1, '{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":400},"isDataSorted":0,"lastFind":["Last1","Last2","Last3"]}');
     sc1.writeAppStateConfigFile();
 
     final sc2 = ApplicationState.readAppStateConfigFile("test/data/as.tmp", log);
@@ -100,17 +100,17 @@ void main() {
    });
 
   test('Test Application State', () async {
-    final sc1 = ApplicationState(const ApplicationScreen(10, 20, 30, 40, 100, true), false, ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
+    final sc1 = ApplicationState(const ApplicationScreen(10, 20, 30, 40, 100, true), 0, ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
     final scStr1 = sc1.toString();
-    expect(scStr1, '{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"isDataSorted":false,"lastFind":["Last1","Last2","Last3"]}');
+    expect(scStr1, '{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"isDataSorted":0,"lastFind":["Last1","Last2","Last3"]}');
     final map1 = json_tools.jsonDecode(scStr1);
     final sc2 = ApplicationState.fromJson(map1, "test/data/as.tmp", true, log);
     final scStr2 = sc2.toString();
     expect(scStr2, '{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"isDataSorted":false,"lastFind":["Last1","Last2","Last3"]}');
 
-    final sc3 = ApplicationState(const ApplicationScreen(10, 20, 30, 40, 100, true), true, ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
+    final sc3 = ApplicationState(const ApplicationScreen(10, 20, 30, 40, 100, true), -1, ["Last1", "Last2", "Last3"], "test/data/as.tmp", log);
     final scStr3 = sc3.toString();
-    expect(scStr3, '{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"isDataSorted":true,"lastFind":["Last1","Last2","Last3"]}');
+    expect(scStr3, '{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"isDataSorted":-1,"lastFind":["Last1","Last2","Last3"]}');
     final map4 = json_tools.jsonDecode(scStr3);
     final sc4 = ApplicationState.fromJson(map4, "test/data/as.tmp", true, log);
     final scStr4 = sc4.toString();

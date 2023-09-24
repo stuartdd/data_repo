@@ -1,45 +1,40 @@
 import 'package:data_repo/data_container.dart';
 import 'package:data_repo/treeNode.dart';
 import 'package:data_repo/path.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'dart:convert' as json_tools;
 
 void main() {
-  void verifyNodeProperties(final MyTreeNode tn, String dotPath, int pathLen, bool empty, canExpand, hasLeaf, hasMap, isLeaf) {
-    final p = Path.fromDotPath(dotPath);
-    final n = tn.findByPath(p);
-    if (n == null) {
-      fail("Node at dotPath $dotPath returned was null");
-    }
-    expect(n.path.toString(), dotPath);
-    expect(n.label, p.last);
-    expect(n.pathKey, p.last);
-    expect(n.pathLen, pathLen);
-    expect(n.expanded, true);
-    if (n.canExpand) {
-      if (n.expanded) {
-        expect(n.iconIndex, 1);
-        n.expanded = false;
-        expect(n.iconIndex, 2);
-        n.expanded = false;
-      } else {
-        expect(n.iconIndex, 2);
-      }
-    }
-    expect(n.isRoot, false);
-    if (p.length > 1) {
-      expect(n.parent!.pathKey, p.cloneParentPath().last);
-    } else {
-      expect(n.parent!.pathKey, "");
-    }
-    expect(n.isEmpty, empty);
-    expect(n.isNotEmpty, !empty);
-    expect(n.canExpand, canExpand);
-    expect(n.hasLeafNodes, hasLeaf);
-    expect(n.hasMapNodes, hasMap);
-    expect(n.isLeaf, isLeaf);
-    expect(n.isNotLeaf, !isLeaf);
-  }
+
+
+
+  test('Test Sorted', () async {
+    final s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data07.json").value);
+    // Test original and clone are the same.
+    final m = MyTreeNode.fromMap(s, sorted: 0);
+    StringBuffer sb = StringBuffer();
+    m.visitEachSubNode((n) {
+      sb.write(n.pathKey);
+      sb.write(':');
+    });
+    final m1 = MyTreeNode.fromMap(s, sorted: 1);
+    StringBuffer sb1 = StringBuffer();
+    m1.visitEachSubNode((n) {
+      sb1.write(n.pathKey);
+      sb1.write(':');
+    });
+    final m2 = MyTreeNode.fromMap(s, sorted: -1);
+    StringBuffer sb2 = StringBuffer();
+    m2.visitEachSubNode((n) {
+      sb2.write(n.pathKey);
+      sb2.write(':');
+    });
+    expect(sb.toString(),"C:B:BZ:ZZ:ZZ212:ZZ213:ZZ211:BY:BY12:BY11:A:AA:AAA:A112:A113:A111:");
+    expect(sb1.toString(),"A:AA:AAA:A111:A112:A113:B:BY:BY11:BY12:BZ:ZZ:ZZ211:ZZ212:ZZ213:C:");
+    expect(sb2.toString(),"C:B:BZ:ZZ:ZZ213:ZZ212:ZZ211:BY:BY12:BY11:A:AA:AAA:A113:A112:A111:");
+  });
+
 //  void verifyNodeProperties(final MyTreeNode tn, String dotPath, int pathLen, bool empty, canExpand, hasLeaf, hasMap, isLeaf) {
   test('Test Can Expand', () async {
     final s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data06.json").value);
@@ -73,7 +68,7 @@ void main() {
         sb.write('R');
       }
       sb.write(" ");
-    }, false);
+    });
     expect(sb.toString().trim(), expected);
   }
 
@@ -300,4 +295,40 @@ void _logNodeR(MyTreeNode n, StringBuffer sb, int tab) {
     sb.write("${tabs.substring(0, tab * 2)}P:[${x.path.toString()}] L:${x.label} O:[${x.parent == null ? 'null' : x.parent!.path}]");
     _logNodeR(x, sb, tab + 1);
   }
+}
+
+void verifyNodeProperties(final MyTreeNode tn, String dotPath, int pathLen, bool empty, canExpand, hasLeaf, hasMap, isLeaf) {
+  final p = Path.fromDotPath(dotPath);
+  final n = tn.findByPath(p);
+  if (n == null) {
+    fail("Node at dotPath $dotPath returned was null");
+  }
+  expect(n.path.toString(), dotPath);
+  expect(n.label, p.last);
+  expect(n.pathKey, p.last);
+  expect(n.pathLen, pathLen);
+  expect(n.expanded, true);
+  if (n.canExpand) {
+    if (n.expanded) {
+      expect(n.iconIndex, 1);
+      n.expanded = false;
+      expect(n.iconIndex, 2);
+      n.expanded = false;
+    } else {
+      expect(n.iconIndex, 2);
+    }
+  }
+  expect(n.isRoot, false);
+  if (p.length > 1) {
+    expect(n.parent!.pathKey, p.cloneParentPath().last);
+  } else {
+    expect(n.parent!.pathKey, "");
+  }
+  expect(n.isEmpty, empty);
+  expect(n.isNotEmpty, !empty);
+  expect(n.canExpand, canExpand);
+  expect(n.hasLeafNodes, hasLeaf);
+  expect(n.hasMapNodes, hasMap);
+  expect(n.isLeaf, isLeaf);
+  expect(n.isNotLeaf, !isLeaf);
 }

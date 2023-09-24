@@ -63,7 +63,7 @@ class ApplicationState {
   late final Timer? countdownTimer;
   List<String> _lastFind; // A new list is created when a fine is added.
   ApplicationScreen screen; // A new Screen is created each time the screen is updated.
-  bool _isDataSorted = false;
+  int _isDataSorted = 0;
   bool _shouldWriteFile = false;
   bool _saveScreenSizeAndPos = true;
 
@@ -131,7 +131,7 @@ class ApplicationState {
         log("__E:__ $e");
       }
       log("__APP STATE:__ Using default  ${isDesktop ? "Desktop" : "Mobile"} State");
-      return ApplicationState(ApplicationScreen.empty(isDesktop), false, [], appStateConfigFileName, log);
+      return ApplicationState(ApplicationScreen.empty(isDesktop), 0, [], appStateConfigFileName, log);
     }
   }
 
@@ -157,8 +157,8 @@ class ApplicationState {
       log("__APP STATE:__ Using default ${isDesktop ? "Desktop" : "Mobile"} Screen");
     }
     dynamic isDataSorted = map['isDataSorted'];
-    if (isDataSorted is! bool) {
-      isDataSorted = false;
+    if (isDataSorted is! int) {
+      isDataSorted = 0;
     }
     return ApplicationState(applicationScreen, isDataSorted, lastFindList, fileName, log);
   }
@@ -204,11 +204,14 @@ class ApplicationState {
   }
 
   void get flipDataSorted {
-    _isDataSorted = !_isDataSorted;
+    _isDataSorted = isDataSorted + 1;
+    if (_isDataSorted > 1) {
+      _isDataSorted = -1;
+    }
     _shouldWriteFile = true;
   }
 
-  bool get isDataSorted {
+  int get isDataSorted {
     return _isDataSorted;
   }
 
