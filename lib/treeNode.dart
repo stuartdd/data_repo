@@ -227,6 +227,18 @@ class MyTreeNode {
     return hasMapNodes;
   }
 
+  int get countNonLeafNodes {
+    int counter = 0;
+    if (children.isNotEmpty) {
+      for (int i = 0; i < children.length; i++) {
+        if (children[i].isNotLeaf) {
+          counter++;
+        }
+      }
+    }
+    return counter;
+  }
+
   bool get hasLeafNodes {
     if (children.isNotEmpty) {
       for (int i = 0; i < children.length; i++) {
@@ -434,7 +446,7 @@ class _MyTreeNodeWidgetListState extends State<MyTreeNodeWidgetList> {
   Widget build(BuildContext context) {
     final List<Widget> children = List.empty(growable: true);
     int c = 0;
-    final rnn = (widget.rootNode.children.length == 1) ? widget.rootNodeName : "";
+    final rnn = (widget.rootNode.countNonLeafNodes == 1) ? widget.rootNodeName : "";
     widget.rootNode.visitEachSubNode(
       (aNode) {
         final aNodePath = aNode.path;

@@ -236,13 +236,6 @@ Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, fin
     throw JsonException(selectedPath, message: "Selected path should be a map");
   }
   List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath, sortOrder);
-  // if (isSorted != 0) {
-  //   properties.sort(
-  //     (a, b) {
-  //       return a.name.compareTo(b.name);
-  //     },
-  //   );
-  // }
   return ListView(
     shrinkWrap: true,
     children: [
