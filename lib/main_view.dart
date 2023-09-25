@@ -166,7 +166,7 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
 }
 
 const _sortIconName = ["Un-Sort", "Ascending", "Descending"];
-const _sortIcon = [Icons.sort, Icons.sort_by_alpha, Icons.sort];
+const _sortIcon = [Icons.sort, Icons.flight_takeoff, Icons.flight_land];
 
 Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThemeData, bool isEditDataDisplay, bool beforeDataLoaded, int sorted, final Path Function(DetailAction) dataAction) {
   final pathUp = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "up"));
