@@ -11,7 +11,7 @@ import 'path.dart';
 //
 enum DisplayType { simpleDisplay, positionalString, markDown, referenceString }
 
-enum SimpleButtonActions { ok, cancel, validate, copy, move, delete, listRemove, listClear, link }
+enum SimpleButtonActions { ok, select, cancel, validate, copy, move, delete, listRemove, listClear, link }
 
 enum ActionType { none, reload, restart, clearState, save, saveAlt, flipSorted, addGroup, addDetail, editItemData, createFile, renameItem, select, querySelect, removeItem, link, clip, groupSelectClearAll, groupSelectAll, groupSelect, groupCopy, groupDelete }
 
@@ -497,7 +497,7 @@ class SuccessState {
     }
   }
 
-  String toStatusString() {
+  String toStatusString(String prefix) {
     final m = message.trim().replaceFirst("__", " ").replaceFirst("__", ':');
     if (_exception != null) {
       if (m.isEmpty) {
@@ -513,9 +513,9 @@ class SuccessState {
         return "FAIL";
       } else {
         if (m.isNotEmpty) {
-          return "OK: $m";
+          return "${prefix}OK:$m";
         }
-        return "OK";
+        return "${prefix}OK:";
       }
     }
   }

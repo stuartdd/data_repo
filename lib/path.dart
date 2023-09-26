@@ -159,6 +159,17 @@ class PathPropertiesList {
     return false;
   }
 
+
+  int get countGroupSelects {
+    int counter = 0;
+    for (var v in _list.values) {
+      if (v.groupSelect) {
+        counter++;
+      }
+    }
+    return counter;
+  }
+
   void setGroupSelect(final Path p, final bool isValue) {
     final ps = p.toString();
     final pfp = _propertiesForPath(ps);

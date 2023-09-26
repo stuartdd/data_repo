@@ -153,6 +153,8 @@ class _MyHomePageState extends State<MyHomePage> {
   Path _selectedPath = Path.empty();
 
   final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: logger.log);
+  int _currentSelectedGroups = 0;
+  String _currentSelectedGroupsPrefix = "";
   final TextEditingController searchEditingController = TextEditingController(text: "");
   final TextEditingController passwordEditingController = TextEditingController(text: "");
 
@@ -207,8 +209,17 @@ class _MyHomePageState extends State<MyHomePage> {
         logger.log("__ERROR__ Selected node [$path] was not found");
       } else {
         if (n.isLeaf) {
-          _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
-          logger.log("__ERROR__ Selected node [$path] was a data node");
+          final pp = path.cloneParentPath();
+          final n = _treeNodeDataRoot.findByPath(pp);
+          if (n == null) {
+            _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
+            logger.log("__ERROR__ Selected node [$path] was a data node");
+          } else {
+            if (n.isNotRequired) {
+              n.setRequired(true, recursive: true);
+            }
+            _selectedTreeNode = n;
+          }
         } else {
           if (n.isNotRequired) {
             n.setRequired(true, recursive: true);
@@ -426,7 +437,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     _handleAction(detailActionData);
                   },
                   (action, intoPath) {
-                    if (action == SimpleButtonActions.ok) {
+                    if (action == SimpleButtonActions.select) {
                       _selectNodeState(intoPath);
                     }
                   },
@@ -775,6 +786,8 @@ class _MyHomePageState extends State<MyHomePage> {
     _dataWasUpdated = false;
     _pathPropertiesList.clear();
     _globalSuccessState = SuccessState(true, message: reason);
+    _currentSelectedGroupsPrefix = "";
+    _currentSelectedGroups = 0;
     logger.log("__DATA_CLEARED__ $reason");
   }
 
@@ -1558,6 +1571,18 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     //
+    if (_globalSuccessState.isSuccess) {
+      final newCount = _pathPropertiesList.countGroupSelects;
+      if (_currentSelectedGroups != newCount) {
+        _currentSelectedGroups = newCount;
+        if (newCount > 0) {
+          _currentSelectedGroupsPrefix = "SEL[$newCount]: ";
+        } else {
+          _currentSelectedGroupsPrefix = "";
+        }
+      }
+    }
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: SafeArea(
@@ -1633,7 +1658,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             },
                           ),
                           Text(
-                            _globalSuccessState.toStatusString(),
+                            _globalSuccessState.toStatusString(_currentSelectedGroupsPrefix),
                             style: appThemeData.tsMedium,
                           )
                         ],
@@ -1901,7 +1926,7 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, AppThemeData t
       children: [
         IconButton(
             onPressed: () {
-              onAction(SimpleButtonActions.ok, summaryList.list[i].copyFromPath);
+              onAction(SimpleButtonActions.select, summaryList.list[i].copyFromPath);
             },
             tooltip: "Go To",
             icon: const Icon(Icons.select_all)),
@@ -1965,7 +1990,7 @@ Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, fi
         title: top,
         content: SingleChildScrollView(
           child: _copyMoveSummaryList(summaryList, theme, into, head, copyMove, (action, path) {
-            if (action != SimpleButtonActions.ok) {
+            if (action != SimpleButtonActions.select) {
               onActionReturn(action, path);
             } else {
               onActionClose(action, path);
