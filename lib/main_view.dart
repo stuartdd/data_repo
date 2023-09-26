@@ -79,7 +79,7 @@ DisplaySplitView createSplitView(
   final Widget detailContainer;
   final node = data.getNodeFromJson(selectedPath);
   if (node != null) {
-    detailContainer = _createDetailContainer(node, selectedPath, isEditDataDisplay, isSorted, horizontal, pathPropertiesList, appThemeData, onDataAction, onResolve);
+    detailContainer = _createDetailContainer(node, selectedPath, treeNodeDataRoot, isEditDataDisplay, isSorted, horizontal, pathPropertiesList, appThemeData, onDataAction, onResolve);
   } else {
     log("__DATA:__ Selected Node was not found in the data");
     return DisplaySplitView.error(appThemeData, ("Selected Node was not found in the data"));
@@ -146,24 +146,6 @@ void _insertDisplayValueListInOrder(List<DataValueDisplayRow> displayValueList, 
   }
 }
 
-List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> json, Path path, int sortOrder) {
-  List<DataValueDisplayRow> lm = List.empty(growable: true);
-  List<DataValueDisplayRow> lv = List.empty(growable: true);
-  for (var element in json.entries) {
-    if (element.value is Map) {
-//      lm.add(DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as Map).length));
-      _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as Map).length), sortOrder);
-    } else if (element.value is List) {
-      //      lm.add(DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as List).length));
-      _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as List).length), sortOrder);
-    } else {
-      _insertDisplayValueListInOrder(lv,DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.staticFindOptionTypeFromNameAndType(element.value.runtimeType, element.key), true, path, 0), sortOrder);
-//      lv.add(DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.staticFindOptionTypeFromNameAndType(element.value.runtimeType, element.key), true, path, 0));
-    }
-  }
-  lm.addAll(lv);
-  return lm;
-}
 
 const _sortIconName = ["Un-Sort", "Ascending", "Descending"];
 const _sortIcon = [Icons.sort, Icons.flight_takeoff, Icons.flight_land];
@@ -231,11 +213,11 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
   );
 }
 
-Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, final bool isEditDataDisplay, final int sortOrder, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, final Path Function(DetailAction) dataAction, SuccessState Function(String) onResolve) {
+Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, MyTreeNode treeNodeRoot, final bool isEditDataDisplay, final int sortOrder, final bool isHorizontal, PathPropertiesList pathPropertiesList, final AppThemeData appThemeData, final Path Function(DetailAction) dataAction, SuccessState Function(String) onResolve) {
   if (selectedNode is! Map<String, dynamic>) {
     throw JsonException(selectedPath, message: "Selected path should be a map");
   }
-  List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath, sortOrder);
+  List<DataValueDisplayRow> properties = _dataDisplayValueListFromJson(selectedNode, selectedPath, treeNodeRoot, sortOrder);
   return ListView(
     shrinkWrap: true,
     children: [
@@ -251,4 +233,28 @@ Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, fin
         )
     ],
   );
+}
+
+
+List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> json, Path path, MyTreeNode treeNodeRoot, int sortOrder) {
+  List<DataValueDisplayRow> lm = List.empty(growable: true);
+  List<DataValueDisplayRow> lv = List.empty(growable: true);
+  for (var element in json.entries) {
+
+    if (element.value is Map) {
+      final p = treeNodeRoot.findByPath(path.cloneAppendList([element.key]));
+      if (p != null) {
+        _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as Map).length), sortOrder);
+      }
+    } else if (element.value is List) {
+      final p = treeNodeRoot.findByPath(path.cloneAppendList([element.key]));
+      if (p != null) {
+        _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as List).length), sortOrder);
+      }
+    } else {
+      _insertDisplayValueListInOrder(lv,DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.staticFindOptionTypeFromNameAndType(element.value.runtimeType, element.key), true, path, 0), sortOrder);
+    }
+  }
+  lm.addAll(lv);
+  return lm;
 }
