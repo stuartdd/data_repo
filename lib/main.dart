@@ -1292,21 +1292,11 @@ class _MyHomePageState extends State<MyHomePage> {
         color: appThemeData.primary.med,
         child: SizedBox(
           width: screenSize(context).width / 3,
-          child: TextField(
-            style: appThemeData.tsLarge,
-            decoration: const InputDecoration(
-              hintText: 'Password',
-            ),
-            autofocus: true,
-            onSubmitted: (value) {
-              _initialPassword = value;
-              passwordEditingController.text = "";
-              _loadDataState();
-            },
-            obscureText: true,
-            controller: passwordEditingController,
-            cursorColor: const Color(0xff000000),
-          ),
+          child: inputTextField("Password:", appThemeData.tsLarge, _configData.getAppThemeData().textSelectionThemeData, true, passwordEditingController, (v) {
+            // passwordEditingController.text = "";
+            _initialPassword = v;
+            _loadDataState();
+          }, (v) {}),
         ),
       ));
       toolBarItems.add(DetailIconButton(
@@ -1472,19 +1462,9 @@ class _MyHomePageState extends State<MyHomePage> {
             color: appThemeData.primary.med,
             child: SizedBox(
               width: screenSize(context).width / 3,
-              child: TextField(
-                style: appThemeData.tsMedium,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Search',
-                ),
-                autofocus: true,
-                onSubmitted: (value) {
-                  _setSearchExpressionState(value);
-                },
-                controller: searchEditingController,
-                cursorColor: const Color(0xff000000),
-              ),
+              child: inputTextField("Search:", appThemeData.tsMedium, _configData.getAppThemeData().textSelectionThemeData, false, searchEditingController, (v) {
+                _setSearchExpressionState(v);
+              }, (v) {}),
             ),
           ),
         );

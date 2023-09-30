@@ -9,7 +9,7 @@
       "hilight": "yellow",
       "error": "red"
     },
-    "darkMode": false
+    "darkMode": true
   },
   "file": {
     "getDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",

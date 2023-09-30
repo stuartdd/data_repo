@@ -245,6 +245,29 @@ class _OptionListWidgetState extends State<OptionListWidget> {
   }
 }
 
+Widget inputTextField(final String hint, TextStyle ts, TextSelectionThemeData theme, bool isPw, TextEditingController controller, Function(String) setValue, Function(String) onChange) {
+  return Theme(
+    data: ThemeData(
+      textSelectionTheme: theme,
+    ),
+    child: TextField(
+      style: ts,
+      decoration: InputDecoration(
+        hintText: hint,
+      ),
+      autofocus: true,
+      onSubmitted: (value) {
+        setValue(value);
+      },
+      onChanged: (value) {
+        onChange(value);
+      },
+      obscureText: isPw,
+      controller: controller,
+    ),
+  );
+}
+
 class MarkDownInputField extends StatefulWidget {
   final String initialText;
   final double height;
@@ -436,7 +459,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
             ? Row(
                 children: [
                   IconButton(
-                    color: widget.appThemeData.screenForegroundColour(true),
+                      color: widget.appThemeData.screenForegroundColour(true),
                       onPressed: () {
                         setState(() {
                           obscurePw = !obscurePw;
@@ -473,29 +496,16 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                   current = option.key;
                   _validate();
                 })
-            : TextField(
-                controller: widget.controller,
-                obscureText: widget.isPassword && obscurePw,
-                style: widget.appThemeData.tsMedium,
-                cursorColor: widget.appThemeData.cursorColor,
-                onChanged: (value) {
-                  current = value;
-                  _validate();
-                },
-                onSubmitted: (value) {
-                  current = value;
-                  _validate();
-                  if (validateResponse.isEmpty && widget.onSubmit != null) {
-                    widget.onSubmit!(current, currentOption);
-                  }
-                },
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  focusedBorder: const OutlineInputBorder(),
-                  filled: true,
-                  fillColor: widget.appThemeData.primary.light
-                ),
-              ),
+            : inputTextField("", widget.appThemeData.tsMedium, widget.appThemeData.textSelectionThemeData, widget.isPassword && obscurePw, widget.controller, (value) {
+                current = value;
+                _validate();
+                if (validateResponse.isEmpty && widget.onSubmit != null) {
+                  widget.onSubmit!(current, currentOption);
+                }
+              }, (value) {
+                current = value;
+                _validate();
+              }),
       ],
     );
   }

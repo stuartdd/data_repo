@@ -114,7 +114,6 @@ class AppThemeData {
   late final TextStyle tsLarge;
   late final TextStyle tsLargeDisabled;
   late final TextStyle tsLargeItalic;
-
   late final TextStyle tsMedium;
   late final TextStyle tsMediumBold;
   late final TextStyle tsMediumDisabled;
@@ -128,6 +127,7 @@ class AppThemeData {
   late final double tsScale;
   late final double treeNodeHeight;
   late final List<Icon> treeNodeIcons;
+  late final TextSelectionThemeData textSelectionThemeData;
 
   AppThemeData._(this.primary, this.secondary, this.hiLight, this.error, String font, double scale, Color errC, this.darkMode, this.desktop) {
     tsScale = scale;
@@ -153,6 +153,15 @@ class AppThemeData {
         color: screenForegroundColour(true),
       ));
     }
+    textSelectionThemeData = darkMode ? TextSelectionThemeData(
+      cursorColor: Colors.black,
+      selectionColor: Colors.green.shade900,
+      selectionHandleColor: Colors.cyan,
+    ) : const TextSelectionThemeData(
+      cursorColor: Colors.black,
+      selectionColor: Colors.yellow,
+      selectionHandleColor: Colors.blue,
+    );
     debugPrint("AppThemeData: Created!");
   }
 
@@ -292,7 +301,7 @@ class ConfigData {
   }
 
   void update({bool callOnUpdate = true}) {
-     _getDataFileUrl = _data.getStringFromJson(getDataUrlPath, fallback: defaultRemoteGetUrl, create: true);
+    _getDataFileUrl = _data.getStringFromJson(getDataUrlPath, fallback: defaultRemoteGetUrl, create: true);
     _postDataFileUrl = _data.getStringFromJson(postDataUrlPath, fallback: defaultRemotePostUrl, create: true);
     _dataFileName = _data.getStringFromJson(dataFileLocalNamePath, fallback: defaultDataFileName, create: true);
     if (_isDesktop) {
