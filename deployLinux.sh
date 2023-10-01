@@ -13,7 +13,7 @@ then
     echo "Build Path: $localDir"
     if [ ! -d $localDir ]; then
         echo "Build Path not found:$localDir"
-        export localDir=$(dirname "$0")build/linux/x64/release/bundle
+        export localDir=$(dirname "$0")/build/linux/x64/release/bundle
         if [ ! -d $localDir ]; then
             echo "Build Path not found:$localDir"
             exit 1

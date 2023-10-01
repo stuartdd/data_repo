@@ -245,7 +245,14 @@ class _OptionListWidgetState extends State<OptionListWidget> {
   }
 }
 
-Widget inputTextField(final String hint, TextStyle ts, TextSelectionThemeData theme, bool isPw, TextEditingController controller, Function(String) setValue, Function(String) onChange) {
+Widget inputTextField(final String hint, TextStyle ts, TextSelectionThemeData theme, bool isDarkMode, bool isPw, TextEditingController controller, Function(String) setValue, Function(String) onChange) {
+  final Color bc;
+  if (theme.cursorColor == null) {
+    bc = Colors.black;
+  } else {
+    bc = theme.cursorColor!;
+  }
+
   return Theme(
     data: ThemeData(
       textSelectionTheme: theme,
@@ -254,6 +261,8 @@ Widget inputTextField(final String hint, TextStyle ts, TextSelectionThemeData th
       style: ts,
       decoration: InputDecoration(
         hintText: hint,
+        focusedBorder: OutlineInputBorder(borderSide: BorderSide(width: 2, color: isDarkMode ? Colors.white : Colors.black)),
+        border: const OutlineInputBorder(),
       ),
       autofocus: true,
       onSubmitted: (value) {
@@ -496,7 +505,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                   current = option.key;
                   _validate();
                 })
-            : inputTextField("", widget.appThemeData.tsMedium, widget.appThemeData.textSelectionThemeData, widget.isPassword && obscurePw, widget.controller, (value) {
+            : inputTextField("", widget.appThemeData.tsMedium, widget.appThemeData.textSelectionThemeData, widget.appThemeData.darkMode, widget.isPassword && obscurePw, widget.controller, (value) {
                 current = value;
                 _validate();
                 if (validateResponse.isEmpty && widget.onSubmit != null) {

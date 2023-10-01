@@ -1292,7 +1292,7 @@ class _MyHomePageState extends State<MyHomePage> {
         color: appThemeData.primary.med,
         child: SizedBox(
           width: screenSize(context).width / 3,
-          child: inputTextField("Password:", appThemeData.tsLarge, _configData.getAppThemeData().textSelectionThemeData, true, passwordEditingController, (v) {
+          child: inputTextField("Password:", appThemeData.tsLarge, _configData.getAppThemeData().textSelectionThemeData, _configData.getAppThemeData().darkMode, true, passwordEditingController, (v) {
             // passwordEditingController.text = "";
             _initialPassword = v;
             _loadDataState();
@@ -1462,7 +1462,7 @@ class _MyHomePageState extends State<MyHomePage> {
             color: appThemeData.primary.med,
             child: SizedBox(
               width: screenSize(context).width / 3,
-              child: inputTextField("Search:", appThemeData.tsMedium, _configData.getAppThemeData().textSelectionThemeData, false, searchEditingController, (v) {
+              child: inputTextField("Search:", appThemeData.tsMedium, _configData.getAppThemeData().textSelectionThemeData,_configData.getAppThemeData().darkMode, false, searchEditingController, (v) {
                 _setSearchExpressionState(v);
               }, (v) {}),
             ),
