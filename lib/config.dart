@@ -62,6 +62,41 @@ class ColorPallet {
 
   const ColorPallet(this.colorName, this.lightest, this.light, this.medLight, this.med, this.medDark, this.dark, this.darkest);
 
+  bool containsColor(Color c) {
+    for (int i = 0; i < 7; i++) {
+      if (c.value == indexed(i).value) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Color indexed(int i) {
+    switch (i) {
+      case 0:
+        return lightest;
+      case 1:
+        return light;
+      case 2:
+        return medLight;
+      case 3:
+        return med;
+      case 4:
+        return medDark;
+      case 5:
+        return dark;
+      case 6:
+        return darkest;
+      default:
+        return med;
+    }
+  }
+
+  @override
+  String toString() {
+    return colorName;
+  }
+
   factory ColorPallet.fromMaterialColor(MaterialColor mc, String colorName) {
     return ColorPallet(colorName, mc.shade200, mc.shade300, mc.shade400, mc.shade500, mc.shade600, mc.shade800, mc.shade900);
   }
@@ -73,8 +108,8 @@ const defaultTreeNodeIconDataBase = 0;
 const defaultTreeNodeIconDataHasData = 3;
 
 Map<String, ColorPallet> colourNames = <String, ColorPallet>{
-  'black': const ColorPallet("white", Colors.white, Colors.black12, Colors.black26, Colors.black38, Colors.black45, Colors.black54, Colors.black),
-  'white': const ColorPallet("black", Colors.black, Colors.black54, Colors.black45, Colors.black38, Colors.black26, Colors.black12, Colors.white),
+  'black': const ColorPallet("black", Colors.white, Colors.black12, Colors.black26, Colors.black38, Colors.black45, Colors.black54, Colors.black),
+  'white': const ColorPallet("white", Colors.black, Colors.black54, Colors.black45, Colors.black38, Colors.black26, Colors.black12, Colors.white),
   'red': ColorPallet.fromMaterialColor(Colors.red, "red"),
   'pink': ColorPallet.fromMaterialColor(Colors.pink, 'pink'),
   'purple': ColorPallet.fromMaterialColor(Colors.purple, 'purple'),
@@ -153,15 +188,17 @@ class AppThemeData {
         color: screenForegroundColour(true),
       ));
     }
-    textSelectionThemeData = darkMode ? TextSelectionThemeData(
-      cursorColor: Colors.black,
-      selectionColor: Colors.green.shade900,
-      selectionHandleColor: Colors.cyan,
-    ) : const TextSelectionThemeData(
-      cursorColor: Colors.black,
-      selectionColor: Colors.yellow,
-      selectionHandleColor: Colors.blue,
-    );
+    textSelectionThemeData = darkMode
+        ? TextSelectionThemeData(
+            cursorColor: Colors.black,
+            selectionColor: Colors.green.shade900,
+            selectionHandleColor: Colors.cyan,
+          )
+        : const TextSelectionThemeData(
+            cursorColor: Colors.black,
+            selectionColor: Colors.yellow,
+            selectionHandleColor: Colors.blue,
+          );
     debugPrint("AppThemeData: Created!");
   }
 
@@ -214,6 +251,29 @@ class AppThemeData {
       return cp;
     }
     return ColorPallet.fromMaterialColor(Colors.red, "red");
+  }
+
+  ColorPallet getColorPalletWithColourInIt(Color findIt) {
+    for (final pallet in colourNames.values) {
+      if (pallet.containsColor(findIt)) {
+        return pallet;
+      }
+    }
+    return colourNames.values.first;
+  }
+
+  List<Color> getColorsAsList() {
+    final List<Color> l = [];
+    for (final c in colourNames.values) {
+      l.add(c.indexed(0));
+      l.add(c.indexed(1));
+      l.add(c.indexed(2));
+      l.add(c.indexed(3));
+      l.add(c.indexed(4));
+      l.add(c.indexed(5));
+      l.add(c.indexed(6));
+    }
+    return l;
   }
 }
 

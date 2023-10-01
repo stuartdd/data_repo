@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:data_repo/colour_pecker.dart';
 import 'package:data_repo/configSettings.dart';
 import 'package:data_repo/data_container.dart';
 import 'package:data_repo/treeNode.dart';
@@ -1516,6 +1517,7 @@ class _MyHomePageState extends State<MyHomePage> {
           iconData: Icons.settings,
           tooltip: 'Settings',
           onPressed: () {
+            // _showColorPeckerDialog(context, (Color, int) { });
             _showConfigDialog(
               context,
               appThemeData,
@@ -2348,6 +2350,34 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
               ),
               okButton
             ],
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<void> _showColorPeckerDialog(final BuildContext context, final Function(Color, int) onSelect) async {
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
+        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+        title: Text('Select a colour pallet', style: _configData.getAppThemeData().tsMedium),
+        content: ColorPecker(screenSize(context).width,_configData.getAppThemeData().getColorsAsList(), 14, 7, 18, _configData.getAppThemeData().primary.med, (color, index) {
+          final pallete = _configData.getAppThemeData().getColorPalletWithColourInIt(color);
+          debugPrint("$pallete");
+          onSelect(color, index);
+        }),
+        actions: <Widget>[
+          DetailButton(
+            appThemeData: _configData.getAppThemeData(),
+            text: "Cancel",
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
           ),
         ],
       );
