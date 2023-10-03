@@ -262,16 +262,20 @@ class AppThemeData {
     return colourNames.values.first;
   }
 
-  List<Color> getColorsAsList() {
+  List<Color> getColorsAsList(int offset) {
     final List<Color> l = [];
+    int index = 0;
     for (final c in colourNames.values) {
-      l.add(c.indexed(0));
-      l.add(c.indexed(1));
-      l.add(c.indexed(2));
-      l.add(c.indexed(3));
-      l.add(c.indexed(4));
-      l.add(c.indexed(5));
-      l.add(c.indexed(6));
+      if (index >= offset) {
+        l.add(c.indexed(0));
+        l.add(c.indexed(1));
+        l.add(c.indexed(2));
+        l.add(c.indexed(3));
+        l.add(c.indexed(4));
+        l.add(c.indexed(5));
+        l.add(c.indexed(6));
+      }
+      index++;
     }
     return l;
   }

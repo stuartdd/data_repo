@@ -1463,7 +1463,7 @@ class _MyHomePageState extends State<MyHomePage> {
             color: appThemeData.primary.med,
             child: SizedBox(
               width: screenSize(context).width / 3,
-              child: inputTextField("Search:", appThemeData.tsMedium, _configData.getAppThemeData().textSelectionThemeData,_configData.getAppThemeData().darkMode, false, searchEditingController, (v) {
+              child: inputTextField("Search:", appThemeData.tsMedium, _configData.getAppThemeData().textSelectionThemeData, _configData.getAppThemeData().darkMode, false, searchEditingController, (v) {
                 _setSearchExpressionState(v);
               }, (v) {}),
             ),
@@ -1517,32 +1517,32 @@ class _MyHomePageState extends State<MyHomePage> {
           iconData: Icons.settings,
           tooltip: 'Settings',
           onPressed: () {
-            // _showColorPeckerDialog(context, (Color, int) { });
-            _showConfigDialog(
-              context,
-              appThemeData,
-              _configData.getConfigFileName(),
-              _configData.getDataFileDir(),
-              (validValue, detail) {
-                // Validate
-                return SettingValidation.ok();
-              },
-              (settingsControlList, save) {
-                // Commit
-                settingsControlList.commit(_configData, log: logger.log);
-                setState(() {
-                  _configData.update();
-                  if (save) {
-                    _globalSuccessState = _configData.save(logger.log);
-                  } else {
-                    _globalSuccessState = SuccessState(true, message: "Config data NOT saved");
-                  }
-                });
-              },
-              () {
-                return _dataWasUpdated ? "Must Save changes first" : "";
-              },
-            );
+            _showColorPeckerDialog(context, (color, index) {});
+            // _showConfigDialog(
+            //   context,
+            //   appThemeData,
+            //   _configData.getConfigFileName(),
+            //   _configData.getDataFileDir(),
+            //   (validValue, detail) {
+            //     // Validate
+            //     return SettingValidation.ok();
+            //   },
+            //   (settingsControlList, save) {
+            //     // Commit
+            //     settingsControlList.commit(_configData, log: logger.log);
+            //     setState(() {
+            //       _configData.update();
+            //       if (save) {
+            //         _globalSuccessState = _configData.save(logger.log);
+            //       } else {
+            //         _globalSuccessState = SuccessState(true, message: "Config data NOT saved");
+            //       }
+            //     });
+            //   },
+            //   () {
+            //     return _dataWasUpdated ? "Must Save changes first" : "";
+            //   },
+            // );
           },
           appThemeData: appThemeData,
         ));
@@ -2357,7 +2357,18 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
   );
 }
 
-Future<void> _showColorPeckerDialog(final BuildContext context, final Function(Color, int) onSelect) async {
+Future<void> _showColorPeckerDialog(final BuildContext context, final Function(ColorPallet, int) onSelect) async {
+  ColorPallet? palette;
+  int? colorIndex;
+  final okButton = DetailButton(
+    text: "OK",
+    disable: true,
+    appThemeData: _configData.getAppThemeData(),
+    onPressed: () {
+      onSelect(palette!, colorIndex!);
+      Navigator.of(context).pop();
+    },
+  );
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -2366,19 +2377,25 @@ Future<void> _showColorPeckerDialog(final BuildContext context, final Function(C
         backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
         insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         title: Text('Select a colour pallet', style: _configData.getAppThemeData().tsMedium),
-        content: ColorPecker(screenSize(context).width,_configData.getAppThemeData().getColorsAsList(), 14, 7, 18, _configData.getAppThemeData().primary.med, (color, index) {
-          final pallete = _configData.getAppThemeData().getColorPalletWithColourInIt(color);
-          debugPrint("$pallete");
-          onSelect(color, index);
+        content: ColorPecker(screenSize(context).width, _configData.getAppThemeData().getColorsAsList(2), 7, 18, _configData.getAppThemeData().primary.med, (color, index) {
+          palette = _configData.getAppThemeData().getColorPalletWithColourInIt(color);
+          colorIndex = index;
+          debugPrint("$palette");
+          okButton.setDisabled(palette == null);
         }),
         actions: <Widget>[
-          DetailButton(
-            appThemeData: _configData.getAppThemeData(),
-            text: "Cancel",
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
+          Row(
+            children: [
+              DetailButton(
+                appThemeData: _configData.getAppThemeData(),
+                text: "Cancel",
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              okButton
+            ],
+          )
         ],
       );
     },
