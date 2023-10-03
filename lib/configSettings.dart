@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:data_repo/detail_buttons.dart';
 import 'package:flutter/material.dart';
+import 'colour_pecker.dart';
 import 'data_container.dart';
 import 'path.dart';
 import 'config.dart';
@@ -176,6 +177,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
     final settingsWidgetsList = createSettingsWidgets(
       null,
       widget.appThemeData,
+      widget.width,
       widget.settingsControlList,
       widget.hint,
       (newValue, settingDetail) {
@@ -192,7 +194,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
     );
   }
 
-  List<Widget> createSettingsWidgets(Key? key, AppThemeData appThemeData, SettingControlList settingsControlList, String hint, SettingValidation Function(dynamic, SettingDetail) onValidate) {
+  List<Widget> createSettingsWidgets(Key? key, AppThemeData appThemeData, final double width, SettingControlList settingsControlList, String hint, SettingValidation Function(dynamic, SettingDetail) onValidate) {
     final l = List<Widget>.empty(growable: true);
     if (hint.isNotEmpty) {
       l.add(
@@ -212,6 +214,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
               key: key,
               settingsControl: scN,
               appThemeData: appThemeData,
+              width: width,
               onValidation: (newValue, settingControl) {
                 settingControl.stringValue = newValue;
                 settingControl.validationState = _initialValidate(newValue, settingControl.detail, settingsControlList, onValidate);
@@ -227,10 +230,11 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
 }
 
 class ConfigInputSection extends StatefulWidget {
-  const ConfigInputSection({super.key, required this.settingsControl, required this.onValidation, required this.appThemeData});
+  const ConfigInputSection({super.key, required this.settingsControl, required this.onValidation, required this.appThemeData, required this.width});
   final SettingControl settingsControl;
   final void Function(String, SettingControl) onValidation;
   final AppThemeData appThemeData;
+  final double width;
   @override
   State<ConfigInputSection> createState() => _ConfigInputSectionState();
 }
@@ -286,31 +290,16 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
       final p = widget.appThemeData.getColorPalletForName(widget.settingsControl.stringValue);
       return Container(
         color: p.med,
-        alignment: Alignment.centerLeft,
         padding: const EdgeInsets.all(5.0),
         child: DetailButton(
           appThemeData: widget.appThemeData,
-          text: "Select Colour",
+          text: "Select Colour Palette",
           onPressed: () {
-            onChanged(widget.settingsControl.detail.title);
+            _showColorPeckerDialog(context, widget.appThemeData, widget.settingsControl.detail.title, widget.width, colourNames[widget.settingsControl.stringValue], (palette, index) {
+              onChanged(palette.colorName);
+            });
           },
         ),
-        // child: DropdownButton(
-        //   items: _createDropDownColorList(widget.appThemeData),
-        //   isDense: true,
-        //   elevation: 16,
-        //   dropdownColor: widget.appThemeData.dialogBackgroundColor,
-        //   value: widget.settingsControl.stringValue,
-        //   style: widget.appThemeData.tsLarge,
-        //   underline: const SizedBox(
-        //     height: 0,
-        //   ),
-        //   iconSize: widget.appThemeData.tsLarge.fontSize! * 1.5,
-        //   iconEnabledColor: widget.appThemeData.screenForegroundColour(true),
-        //   onChanged: (newValue) {
-        //     onChanged(newValue!);
-        //   },
-        // ),
       );
     }
 
@@ -340,7 +329,6 @@ class SettingDetail {
   final bool desktopOnly; // Only applies to the desktop
   final String trueValue; // The text value if true
   final String falseValue; // The text value if false
-  final Function(SettingDetail) onSet
   const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = ""});
 }
 
@@ -575,4 +563,58 @@ SettingValidation _initialValidate(String value, SettingDetail detail, SettingCo
       }
   }
   return onValidate(value, detail);
+}
+
+Future<void> _showColorPeckerDialog(final BuildContext context, final AppThemeData appThemeData, final String name, final double width, final ColorPallet? currentPalette, final Function(ColorPallet, int) onSelect) async {
+  ColorPallet? newPalette;
+  int? colorIndex;
+  ColorPallet current = currentPalette ?? appThemeData.primary;
+  int currentIndex = 0;
+  final colorList = appThemeData.getColorsAsList(2);
+  for (int i=0; i<colorList.length; i++) {
+    if (colorList[i].value == current.med.value) {
+      currentIndex = i;
+    }
+  }
+
+
+  final okButton = DetailButton(
+    text: "OK",
+    disable: true,
+    appThemeData: appThemeData,
+    onPressed: () {
+      onSelect(newPalette!, colorIndex!);
+      Navigator.of(context).pop();
+    },
+  );
+
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return AlertDialog(
+          backgroundColor: appThemeData.dialogBackgroundColor,
+          insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+          title: Text('Select $name Palette', style: appThemeData.tsMedium),
+          content: ColorPecker(width, colorList, currentIndex, 7, 18, appThemeData.primary.med, appThemeData.hiLight.med, (color, index) {
+            newPalette = appThemeData.getColorPalletWithColourInIt(color);
+            colorIndex = index;
+            okButton.setDisabled(newPalette == null);
+          }, rowSelect: true),
+          actions: <Widget>[
+            Row(
+              children: [
+                DetailButton(
+                  appThemeData: appThemeData,
+                  text: "Cancel",
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                okButton
+              ],
+            )
+          ]);
+    },
+  );
 }

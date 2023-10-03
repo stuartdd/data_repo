@@ -4,7 +4,7 @@
     "rootNodeName": "Home",
     "dataFetchTimeoutMillis": 500,
     "colours": {
-      "primary": "lightBlue",
+      "primary": "indigo",
       "secondary": "green",
       "hilight": "yellow",
       "error": "red"

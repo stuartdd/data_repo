@@ -331,11 +331,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Path _handleAction(DetailAction detailActionData) {
     switch (detailActionData.action) {
-      case ActionType.selectPalette:
-        {
-          _showColorPeckerDialog(context, _configData.getAppThemeData().primary.med, (color, index) {});
-          break;
-        }
       case ActionType.clearState:
         {
           setState(() {
@@ -2361,47 +2356,3 @@ Future<void> _showModalInputDialog(final BuildContext context, final String titl
   );
 }
 
-Future<void> _showColorPeckerDialog(final BuildContext context, final Color current, final Function(ColorPallet, int) onSelect) async {
-  ColorPallet? palette;
-  int? colorIndex;
-
-  final okButton = DetailButton(
-    text: "OK",
-    disable: true,
-    appThemeData: _configData.getAppThemeData(),
-    onPressed: () {
-      onSelect(palette!, colorIndex!);
-      Navigator.of(context).pop();
-    },
-  );
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false, // user must tap button!
-    builder: (BuildContext context) {
-      return AlertDialog(
-          backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
-          insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-          title: Text('Select a colour pallet', style: _configData.getAppThemeData().tsMedium),
-          content: ColorPecker(screenSize(context).width, _configData.getAppThemeData().getColorsAsList(2), current, 7, 18, _configData.getAppThemeData().primary.med, _configData.getAppThemeData().hiLight.med, (color, index) {
-            palette = _configData.getAppThemeData().getColorPalletWithColourInIt(color);
-            colorIndex = index;
-            debugPrint("$palette");
-            okButton.setDisabled(palette == null);
-          }, rowSelect: true),
-          actions: <Widget>[
-            Row(
-              children: [
-                DetailButton(
-                  appThemeData: _configData.getAppThemeData(),
-                  text: "Cancel",
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-                okButton
-              ],
-            )
-          ]);
-    },
-  );
-}

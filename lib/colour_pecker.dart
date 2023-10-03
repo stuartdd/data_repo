@@ -8,10 +8,9 @@ class ColorPecker extends StatefulWidget {
   final bool rowSelect;
   final Color background;
   final Color selectColor;
-
-  final Color current;
+  final int selectedIndex;
   final Function(Color, int) onSelect;
-  const ColorPecker(this.width, this.indexedList, this.current, this.columns, this.rows, this.background, this.selectColor, this.onSelect, {super.key, this.rowSelect = true});
+  const ColorPecker(this.width, this.indexedList, this.selectedIndex, this.columns, this.rows, this.background, this.selectColor, this.onSelect, {super.key, this.rowSelect = true});
 
   @override
   State<ColorPecker> createState() => _ColorPeckerState();
@@ -22,6 +21,33 @@ const _gap = 2.0;
 class _ColorPeckerState extends State<ColorPecker> {
   int selectedRow = -1;
   int selectedCol = -1;
+
+  @override
+  initState() {
+    super.initState();
+    final i = widget.selectedIndex;
+    if (i >= 0 && i < widget.indexedList.length) {
+      selectedRow = i ~/ widget.columns;
+      if (selectedRow == 0) {
+        selectedCol = i;
+      } else {
+        selectedCol = i % selectedRow;
+      }
+    } else {
+      selectedCol = -1;
+      selectedRow = -1;
+    }
+  }
+
+  int setSelected(int row, int col) {
+    if (selectedRow != row || selectedCol != col) {
+      selectedCol = col;
+      selectedRow = row;
+      return (row * widget.columns) + col;
+    }
+    return -1;
+  }
+
   Color _getColor(int row, int col) {
     final i = (row * widget.columns) + col;
     if (i >= widget.indexedList.length) {
@@ -32,9 +58,15 @@ class _ColorPeckerState extends State<ColorPecker> {
 
   Color _getSelectRowColor(int row, int col) {
     if (widget.rowSelect) {
-      return selectedRow == row ? widget.selectColor : widget.background;
+      if (selectedRow == row) {
+        return widget.selectColor;
+      }
+    } else {
+      if (selectedRow == row && selectedCol == col) {
+        return widget.selectColor;
+      }
     }
-    return (selectedRow == row && selectedCol == col) ? widget.selectColor : widget.background;
+    return widget.background;
   }
 
   @override
@@ -56,12 +88,12 @@ class _ColorPeckerState extends State<ColorPecker> {
                       color: _getSelectRowColor(row, col),
                       child: InkWell(
                         onTap: () {
-                          setState(() {
-                            selectedCol = col;
-                            selectedRow = row;
-                            final index = (row * widget.columns) + col;
-                            widget.onSelect(widget.indexedList[index], index);
-                          });
+                          final index = setSelected(row, col);
+                          if (index >= 0) {
+                            setState(() {
+                              widget.onSelect(widget.indexedList[index], index);
+                            });
+                          }
                         }, // Handle your callback
                         child: Container(height: cellWidth, width: cellWidth, color: _getColor(row, col)),
                       ),
