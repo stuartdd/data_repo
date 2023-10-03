@@ -331,6 +331,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Path _handleAction(DetailAction detailActionData) {
     switch (detailActionData.action) {
+      case ActionType.selectPalette:
+        {
+          _showColorPeckerDialog(context, _configData.getAppThemeData().primary.med, (color, index) {});
+          break;
+        }
       case ActionType.clearState:
         {
           setState(() {
@@ -1517,32 +1522,31 @@ class _MyHomePageState extends State<MyHomePage> {
           iconData: Icons.settings,
           tooltip: 'Settings',
           onPressed: () {
-            _showColorPeckerDialog(context, _configData.getAppThemeData().primary.med, (color, index) {});
-            // _showConfigDialog(
-            //   context,
-            //   appThemeData,
-            //   _configData.getConfigFileName(),
-            //   _configData.getDataFileDir(),
-            //   (validValue, detail) {
-            //     // Validate
-            //     return SettingValidation.ok();
-            //   },
-            //   (settingsControlList, save) {
-            //     // Commit
-            //     settingsControlList.commit(_configData, log: logger.log);
-            //     setState(() {
-            //       _configData.update();
-            //       if (save) {
-            //         _globalSuccessState = _configData.save(logger.log);
-            //       } else {
-            //         _globalSuccessState = SuccessState(true, message: "Config data NOT saved");
-            //       }
-            //     });
-            //   },
-            //   () {
-            //     return _dataWasUpdated ? "Must Save changes first" : "";
-            //   },
-            // );
+            _showConfigDialog(
+              context,
+              appThemeData,
+              _configData.getConfigFileName(),
+              _configData.getDataFileDir(),
+              (validValue, detail) {
+                // Validate
+                return SettingValidation.ok();
+              },
+              (settingsControlList, save) {
+                // Commit
+                settingsControlList.commit(_configData, log: logger.log);
+                setState(() {
+                  _configData.update();
+                  if (save) {
+                    _globalSuccessState = _configData.save(logger.log);
+                  } else {
+                    _globalSuccessState = SuccessState(true, message: "Config data NOT saved");
+                  }
+                });
+              },
+              () {
+                return _dataWasUpdated ? "Must Save changes first" : "";
+              },
+            );
           },
           appThemeData: appThemeData,
         ));

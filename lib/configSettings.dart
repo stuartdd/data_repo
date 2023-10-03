@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:data_repo/detail_buttons.dart';
 import 'package:flutter/material.dart';
 import 'data_container.dart';
 import 'path.dart';
@@ -287,22 +288,29 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
         color: p.med,
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.all(5.0),
-        child: DropdownButton(
-          items: _createDropDownColorList(widget.appThemeData),
-          isDense: true,
-          elevation: 16,
-          dropdownColor: widget.appThemeData.dialogBackgroundColor,
-          value: widget.settingsControl.stringValue,
-          style: widget.appThemeData.tsLarge,
-          underline: const SizedBox(
-            height: 0,
-          ),
-          iconSize: widget.appThemeData.tsLarge.fontSize! * 1.5,
-          iconEnabledColor: widget.appThemeData.screenForegroundColour(true),
-          onChanged: (newValue) {
-            onChanged(newValue!);
+        child: DetailButton(
+          appThemeData: widget.appThemeData,
+          text: "Select Colour",
+          onPressed: () {
+            onChanged(widget.settingsControl.detail.title);
           },
         ),
+        // child: DropdownButton(
+        //   items: _createDropDownColorList(widget.appThemeData),
+        //   isDense: true,
+        //   elevation: 16,
+        //   dropdownColor: widget.appThemeData.dialogBackgroundColor,
+        //   value: widget.settingsControl.stringValue,
+        //   style: widget.appThemeData.tsLarge,
+        //   underline: const SizedBox(
+        //     height: 0,
+        //   ),
+        //   iconSize: widget.appThemeData.tsLarge.fontSize! * 1.5,
+        //   iconEnabledColor: widget.appThemeData.screenForegroundColour(true),
+        //   onChanged: (newValue) {
+        //     onChanged(newValue!);
+        //   },
+        // ),
       );
     }
 
@@ -332,6 +340,7 @@ class SettingDetail {
   final bool desktopOnly; // Only applies to the desktop
   final String trueValue; // The text value if true
   final String falseValue; // The text value if false
+  final Function(SettingDetail) onSet
   const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = ""});
 }
 
