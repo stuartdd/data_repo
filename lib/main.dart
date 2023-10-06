@@ -10,6 +10,7 @@ import 'package:window_size/window_size.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 
+import 'dialogs.dart';
 import 'path.dart';
 import 'data_types.dart';
 import 'config.dart';
@@ -22,7 +23,6 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 const appBarHeight = 45.0;
 const navBarHeight = 45.0;
 const statusBarHeight = 35.0;
-const inputTextTitleStyleHeight = 35.0;
 
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
@@ -37,11 +37,11 @@ void closer(final int returnCode) async {
   exit(returnCode);
 }
 
-Size screenSize(BuildContext context) {
+Size screenSize(BuildContext context, {double adjustWidth = 0, double adjustHeight = 0}) {
   final pt = MediaQuery.of(context).padding.top;
   final bi = MediaQuery.of(context).viewInsets.bottom - MediaQuery.of(context).viewInsets.top;
   final height = MediaQuery.of(context).size.height - (bi + pt) - 4;
-  final width = MediaQuery.of(context).size.width;
+  final width = MediaQuery.of(context).size.width - adjustWidth;
   return Size(width, height);
 }
 
@@ -473,8 +473,10 @@ class _MyHomePageState extends State<MyHomePage> {
       case ActionType.renameItem:
         {
           final title = detailActionData.valueName;
-          _showModalInputDialog(
+          showModalInputDialog(
             context,
+            _configData.getAppThemeData(),
+            screenSize(context, adjustHeight: appBarHeight + statusBarHeight),
             "Change $title '${detailActionData.getLastPathElement()}'",
             detailActionData.getDisplayValue(false),
             detailActionData.value ? optionGroupRenameElement : [],
@@ -497,8 +499,10 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       case ActionType.editItemData:
         {
-          _showModalInputDialog(
+          showModalInputDialog(
             context,
+            _configData.getAppThemeData(),
+            screenSize(context, adjustHeight: appBarHeight + statusBarHeight),
             "Update Value '${detailActionData.getLastPathElement()}'",
             detailActionData.oldValue,
             optionGroupUpdateElement,
@@ -566,7 +570,7 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              _showModalInputDialog(context, "New Group Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
+              showModalInputDialog(context, _configData.getAppThemeData(), screenSize(context, adjustHeight: appBarHeight + statusBarHeight), "New Group Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataGroup);
                 }
@@ -587,7 +591,7 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              _showModalInputDialog(context, "New Detail Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
+              showModalInputDialog(context, _configData.getAppThemeData(), screenSize(context, adjustHeight: appBarHeight + statusBarHeight), "New Detail Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataValue);
                 }
@@ -702,7 +706,7 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              _showModalInputDialog(context, _loadedData.hasPassword ? "Confirm Password" : "New Password", "", [], optionsDataTypeEmpty, false, true, (button, pw, type) {
+              showModalInputDialog(context, _configData.getAppThemeData(), screenSize(context, adjustHeight: appBarHeight + statusBarHeight), _loadedData.hasPassword ? "Confirm Password" : "New Password", "", [], optionsDataTypeEmpty, false, true, (button, pw, type) {
                 if (button == SimpleButtonActions.ok) {
                   if (_loadedData.hasPassword) {
                     // Confirm PW (Save un-encrypted)
@@ -2249,110 +2253,3 @@ Future<void> _showModalButtonsDialog(final BuildContext context, final String ti
     },
   );
 }
-
-Future<void> _showModalInputDialog(final BuildContext context, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
-  var updatedText = currentValue;
-  var updatedType = currentOption;
-
-  var okButton = DetailButton(
-    text: "OK",
-    disable: true,
-    appThemeData: _configData.getAppThemeData(),
-    onPressed: () {
-      onAction(SimpleButtonActions.ok, updatedText, updatedType);
-      Navigator.of(context).pop();
-    },
-  );
-
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false, // user must tap button!
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
-        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-        title: Text(title, style: _configData.getAppThemeData().tsMedium),
-        content: SingleChildScrollView(
-          child: ListBody(
-            children: [
-              (currentOption == optionTypeDataMarkDown && !isRename && !isPassword)
-                  ? MarkDownInputField(
-                      appThemeData: _configData.getAppThemeData(),
-                      initialText: currentValue,
-                      onValidate: (ix, vx, it, vt) {
-                        okButton.setDisabled(ix == vx);
-                        updatedText = vx;
-                        updatedType = vt;
-                        return "";
-                      },
-                      height: screenSize(context).height - (appBarHeight + statusBarHeight + inputTextTitleStyleHeight + 100),
-                      width: screenSize(context).width,
-                      shouldDisplayHelp: (flipValue) {
-                        if (flipValue) {
-                          _shouldDisplayMarkdownHelp = !_shouldDisplayMarkdownHelp;
-                          if (_shouldDisplayMarkdownHelp) {
-                            _shouldDisplayMarkdownPreview = false;
-                          }
-                        }
-                        return _shouldDisplayMarkdownHelp;
-                      },
-                      shouldDisplayPreview: (flipValue) {
-                        if (flipValue) {
-                          _shouldDisplayMarkdownPreview = !_shouldDisplayMarkdownPreview;
-                          if (_shouldDisplayMarkdownPreview) {
-                            _shouldDisplayMarkdownHelp = false;
-                          }
-                        }
-                        return _shouldDisplayMarkdownPreview;
-                      },
-                      dataAction: (detailAction) {
-                        onAction(SimpleButtonActions.link, detailAction.oldValue, optionTypeDataLink);
-                        return Path.empty();
-                      },
-                    )
-                  : ValidatedInputField(
-                      options: options,
-                      isPassword: isPassword,
-                      initialOption: currentOption,
-                      initialValue: currentValue,
-                      prompt: "Input: ${isRename ? "New Name" : "[type]"}",
-                      appThemeData: _configData.getAppThemeData(),
-                      onSubmit: (text, type) {
-                        onAction(SimpleButtonActions.ok, text, type);
-                        Navigator.of(context).pop();
-                      },
-                      onValidate: (ix, vx, it, vt) {
-                        final validMsg = externalValidate(ix.trim(), vx.trim(), it, vt);
-                        if (validMsg.isEmpty) {
-                          okButton.setDisabled(false);
-                          updatedText = vx;
-                          updatedType = vt;
-                        } else {
-                          okButton.setDisabled(true);
-                        }
-                        return validMsg;
-                      },
-                    ),
-            ],
-          ),
-        ),
-        actions: [
-          Row(
-            children: [
-              DetailButton(
-                text: "CANCEL",
-                disable: false,
-                appThemeData: _configData.getAppThemeData(),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              okButton
-            ],
-          ),
-        ],
-      );
-    },
-  );
-}
-

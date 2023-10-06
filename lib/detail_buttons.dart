@@ -314,73 +314,84 @@ class _MarkDownInputField extends State<MarkDownInputField> {
 
   @override
   Widget build(BuildContext context) {
+    // step back
     return SizedBox(
       height: widget.height,
       width: widget.width,
-      child: Column(
+      child: ListView(
         children: [
-          widget.shouldDisplayPreview(false)
-              ? Container(
-                  color: widget.appThemeData.hiLight.light,
-                  child: Markdown(
-                    data: controller.text,
-                    selectable: true,
-                    shrinkWrap: true,
-                    styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
-                    onTapLink: doOnTapLink,
-                  ))
-              : const SizedBox(
-                  height: 0,
+          SizedBox(
+            height: 40,
+            child: Row(
+              children: [
+                DetailButton(
+                  appThemeData: widget.appThemeData,
+                  text: widget.shouldDisplayHelp(false) ? 'Hide Help' : "Show Help",
+                  onPressed: () {
+                    setState(() {
+                      widget.shouldDisplayHelp(true);
+                    });
+                  },
                 ),
-          widget.shouldDisplayHelp(false)
-              ? Container(
-                  color: widget.appThemeData.secondary.light,
-                  child: Markdown(
-                    data: helpText,
-                    selectable: true,
-                    shrinkWrap: true,
-                    styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
-                    onTapLink: doOnTapLink,
-                  ))
-              : const SizedBox(
-                  height: 0,
-                ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              keyboardType: TextInputType.multiline,
-              style: widget.appThemeData.tsMedium,
-              cursorColor: widget.appThemeData.cursorColor,
-              maxLines: null,
-              expands: true,
-              onChanged: (value) {
-                setState(() {
-                  widget.onValidate(widget.initialText, controller.text, optionTypeDataString, optionTypeDataString);
-                });
-              },
+                DetailButton(
+                  appThemeData: widget.appThemeData,
+                  text: widget.shouldDisplayPreview(false) ? 'Hide Preview' : "Show Preview",
+                  onPressed: () {
+                    setState(() {
+                      widget.shouldDisplayPreview(true);
+                    });
+                  },
+                )
+              ],
             ),
           ),
-          Row(
-            children: [
-              DetailButton(
-                appThemeData: widget.appThemeData,
-                text: widget.shouldDisplayHelp(false) ? 'Hide Help' : "Show Help",
-                onPressed: () {
-                  setState(() {
-                    widget.shouldDisplayHelp(true);
-                  });
-                },
-              ),
-              DetailButton(
-                appThemeData: widget.appThemeData,
-                text: widget.shouldDisplayPreview(false) ? 'Hide Preview' : "Show Preview",
-                onPressed: () {
-                  setState(() {
-                    widget.shouldDisplayPreview(true);
-                  });
-                },
-              )
-            ],
+          SizedBox(
+            height: widget.height-40,
+            child: Column(
+              children: [
+                widget.shouldDisplayPreview(false)
+                    ? Container(
+                        color: widget.appThemeData.hiLight.light,
+                        child: Markdown(
+                          data: controller.text,
+                          selectable: true,
+                          shrinkWrap: true,
+                          styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
+                          onTapLink: doOnTapLink,
+                        ))
+                    : const SizedBox(
+                        height: 0,
+                      ),
+                widget.shouldDisplayHelp(false)
+                    ? Container(
+                        color: widget.appThemeData.secondary.light,
+                        child: Markdown(
+                          data: helpText,
+                          selectable: true,
+                          shrinkWrap: true,
+                          styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
+                          onTapLink: doOnTapLink,
+                        ))
+                    : const SizedBox(
+                        height: 0,
+                      ),
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.multiline,
+                    style: widget.appThemeData.tsMedium,
+                    cursorColor: widget.appThemeData.cursorColor,
+                    maxLines: null,
+                    expands: true,
+                    onChanged: (value) {
+                      setState(() {
+                        widget.onValidate(widget.initialText, controller.text, optionTypeDataString, optionTypeDataString);
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

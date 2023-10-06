@@ -4,7 +4,7 @@
     "rootNodeName": "Home",
     "dataFetchTimeoutMillis": 500,
     "colours": {
-      "primary": "indigo",
+      "primary": "blue",
       "secondary": "green",
       "hilight": "yellow",
       "error": "red"
@@ -14,7 +14,7 @@
   "file": {
     "getDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
     "postDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
-    "datafile": "my.data",
+    "datafile": "data05.json",
     "datafilePath": "../data_repo_server/local"
   }
 }
