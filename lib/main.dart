@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:data_repo/colour_pecker.dart';
 import 'package:data_repo/configSettings.dart';
 import 'package:data_repo/data_container.dart';
 import 'package:data_repo/treeNode.dart';
@@ -193,7 +192,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (urlCanLaunch) {
       await launchUrlString(href); //launch is from url_launcher package to launch URL
       setState(() {
-        _globalSuccessState = SuccessState(true, message: "Link submitted from $from", log: logger.log);
+        _globalSuccessState = SuccessState(true, message: "Link launched: $from", log: logger.log);
       });
     } else {
       setState(() {
@@ -257,7 +256,7 @@ class _MyHomePageState extends State<MyHomePage> {
           const Duration(milliseconds: 300),
           () {
             logger.log("__WARNING__ Data source has changed");
-            _showModalButtonsDialog(context, "Data source has Changed", ["If you CONTINUE:", "Saving and Reloading", "will use OLD config data", "and UNSAVED config", "changes may be lost."], ["RESTART", "CONTINUE"], Path.empty(), (path, button) {
+            showModalButtonsDialog(context, _configData.getAppThemeData(), "Data source has Changed", ["If you CONTINUE:", "Saving and Reloading", "will use OLD config data", "and UNSAVED config", "changes may be lost."], ["RESTART", "CONTINUE"], Path.empty(), (path, button) {
               if (button == "RESTART") {
                 setState(() {
                   _clearData("Config updated - RESTART");
@@ -378,8 +377,9 @@ class _MyHomePageState extends State<MyHomePage> {
             Timer(const Duration(milliseconds: 500), () {
               if (mounted) {
                 final groupCopy = detailActionData.action == ActionType.groupCopy;
-                _showCopyMoveDialog(
+                showCopyMoveDialog(
                   context,
+                  _configData.getAppThemeData(),
                   _selectedPath,
                   _summariseGroupSelection(_pathPropertiesList, groupCopy),
                   groupCopy,
@@ -450,7 +450,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       case ActionType.removeItem:
         {
-          _showModalButtonsDialog(context, "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState);
+          showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState);
           break;
         }
       case ActionType.clip:
@@ -612,7 +612,7 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              _showFileNamePasswordDialog(context, "New File", [
+              showFileNamePasswordDialog(context, _configData.getAppThemeData(), "New File", [
                 "Password if encryption is required:",
                 "Enter a valid file name:",
                 "File extension is added automatically.",
@@ -637,7 +637,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     logger.log("__CREATE__ Failed. ${success.message}");
                     Timer(const Duration(milliseconds: 1), () {
                       if (mounted) {
-                        _showModalButtonsDialog(context, "Create File Failed", ["Reason - ${success.message}", "No changes were made"], ["Acknowledge"], Path.empty(), (path, button) {
+                        showModalButtonsDialog(context, _configData.getAppThemeData(), "Create File Failed", ["Reason - ${success.message}", "No changes were made"], ["Acknowledge"], Path.empty(), (path, button) {
                           setState(() {});
                         });
                       }
@@ -645,7 +645,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   } else {
                     Timer(const Duration(milliseconds: 1), () {
                       if (mounted) {
-                        _showModalButtonsDialog(context, "Create File:", ["Make this your NEW file", "or", "Continue with EXISTING file"], ["NEW", "EXISTING"], Path.empty(), (path, button) {
+                        showModalButtonsDialog(context, _configData.getAppThemeData(), "Create File:", ["Make this your NEW file", "or", "Continue with EXISTING file"], ["NEW", "EXISTING"], Path.empty(), (path, button) {
                           setState(() {
                             if (button == "NEW") {
                               _configData.setValueForJsonPath(dataFileLocalNamePath, fn);
@@ -669,7 +669,7 @@ class _MyHomePageState extends State<MyHomePage> {
         if (_dataWasUpdated) {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              _showModalButtonsDialog(context, "Restart Alert", ["Restart - Discard changes", "Cancel - Don't Restart"], ["Restart", "Cancel"], Path.empty(), (p, sel) {
+              showModalButtonsDialog(context, _configData.getAppThemeData(), "Restart Alert", ["Restart - Discard changes", "Cancel - Don't Restart"], ["Restart", "Cancel"], Path.empty(), (p, sel) {
                 if (sel == "RESTART") {
                   _clearDataState("Application RESTART");
                 }
@@ -685,7 +685,7 @@ class _MyHomePageState extends State<MyHomePage> {
           if (_dataWasUpdated) {
             Timer(const Duration(milliseconds: 1), () {
               if (mounted) {
-                _showModalButtonsDialog(context, "Reload Alert", ["Reload - Discard changes", "Cancel - Don't Reload"], ["Reload", "Cancel"], Path.empty(), (p, sel) {
+                showModalButtonsDialog(context, _configData.getAppThemeData(), "Reload Alert", ["Reload - Discard changes", "Cancel - Don't Reload"], ["Reload", "Cancel"], Path.empty(), (p, sel) {
                   if (sel == "RELOAD") {
                     _loadDataState();
                   }
@@ -1152,8 +1152,9 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       bool shouldExit = true;
       if (_dataWasUpdated) {
-        await _showModalButtonsDialog(
+        await showModalButtonsDialog(
           context,
+          _configData.getAppThemeData(),
           "Alert",
           ["Data has been updated", "Press SAVE keep changes", "Press CANCEL remain in the App", "Press EXIT to leave without saving"],
           ["SAVE", "CANCEL", "EXIT"],
@@ -1238,7 +1239,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_loadedData.warning.isNotEmpty) {
       _loadedData.warning = "";
       Timer(const Duration(milliseconds: 500), () {
-        _showLogDialog(context, logger.toString(), (dotPath) {
+        showLogDialog(context, _configData.getAppThemeData(), screenSize(context), logger.toString(), (dotPath) {
           final p = Path.fromDotPath(dotPath);
           if (p.isRational(_loadedData.dataMap)) {
             _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
@@ -1321,8 +1322,10 @@ class _MyHomePageState extends State<MyHomePage> {
           tooltip: 'Choose File',
           timerMs: 500,
           onPressed: () {
-            _showLocalFilesDialog(
+            showLocalFilesDialog(
               context,
+              _configData.getAppThemeData(),
+              _configData.dir(["data", "json"], [defaultConfigFileNmae, _configData.getAppStateFileName()]),
               (fileName) {
                 if (fileName != _configData.getDataFileName()) {
                   _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
@@ -1374,7 +1377,7 @@ class _MyHomePageState extends State<MyHomePage> {
             iconData: Icons.menu,
             tooltip: 'Menu',
             onPressed: () {
-              _showOptionsDialog(context, _selectedPath, [
+              showOptionsDialog(context, _configData.getAppThemeData(), _selectedPath, [
                 MenuOptionDetails("Done", "", ActionType.none, () {
                   return Icons.arrow_back;
                 }),
@@ -1489,8 +1492,9 @@ class _MyHomePageState extends State<MyHomePage> {
             iconData: Icons.manage_search,
             tooltip: 'Manage Searches',
             onPressed: () async {
-              await _showSearchDialog(
+              await showSearchDialog(
                 context,
+                _configData.getAppThemeData(),
                 _applicationState.getLastFindList(),
                 (selected) {
                   if (selected.isNotEmpty) {
@@ -1521,10 +1525,10 @@ class _MyHomePageState extends State<MyHomePage> {
           iconData: Icons.settings,
           tooltip: 'Settings',
           onPressed: () {
-            _showConfigDialog(
+            showConfigDialog(
               context,
-              appThemeData,
-              _configData.getConfigFileName(),
+              _configData,
+              screenSize(context),
               _configData.getDataFileDir(),
               (validValue, detail) {
                 // Validate
@@ -1545,6 +1549,7 @@ class _MyHomePageState extends State<MyHomePage> {
               () {
                 return _dataWasUpdated ? "Must Save changes first" : "";
               },
+              logger.log,
             );
           },
           appThemeData: appThemeData,
@@ -1632,7 +1637,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             tooltip: 'Log',
                             padding: const EdgeInsets.all(1.0),
                             onPressed: () {
-                              _showLogDialog(context, logger.toString(), (dotPath) {
+                              showLogDialog(context, _configData.getAppThemeData(), screenSize(context), logger.toString(), (dotPath) {
                                 final p = Path.fromDotPath(dotPath);
                                 if (p.isRational(_loadedData.dataMap)) {
                                   _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
@@ -1655,601 +1660,4 @@ class _MyHomePageState extends State<MyHomePage> {
           ))),
     );
   }
-}
-
-Future<void> _showConfigDialog(final BuildContext context, AppThemeData appThemeData, final String fileName, String dataFileDir, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit, final String Function() canChangeConfig) async {
-  final settingsControlList = SettingControlList(appThemeData.desktop, dataFileDir, _configData);
-  final applyButton = DetailButton(
-    disable: true,
-    text: "Apply",
-    appThemeData: appThemeData,
-    onPressed: () {
-      onCommit(settingsControlList, false);
-      logger.log("__CONFIG__ changes APPLIED");
-      Navigator.of(context).pop();
-    },
-  );
-  final saveButton = DetailButton(
-    disable: true,
-    text: "Save",
-    appThemeData: appThemeData,
-    onPressed: () {
-      onCommit(settingsControlList, true);
-      logger.log("__CONFIG__ changes SAVED");
-      Navigator.of(context).pop();
-    },
-  );
-  return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
-          insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-          title: Row(
-            children: [
-              Text("Settings: ", style: appThemeData.tsLarge),
-              Icon(
-                Icons.circle_rounded,
-                color: appThemeData.primary.lightest,
-              ),
-              Icon(
-                Icons.circle_rounded,
-                color: appThemeData.primary.light,
-              ),
-              Icon(
-                Icons.circle_rounded,
-                color: appThemeData.primary.med,
-              ),
-              Icon(
-                Icons.circle_rounded,
-                color: appThemeData.primary.medLight,
-              ),
-              Icon(
-                Icons.circle_rounded,
-                color: appThemeData.primary.medDark,
-              ),
-              Icon(
-                Icons.circle_rounded,
-                color: appThemeData.primary.dark,
-              ),
-              Icon(
-                Icons.circle_rounded,
-                color: appThemeData.primary.darkest,
-              ),
-            ],
-          ),
-          content: ConfigInputPage(
-            appThemeData: appThemeData,
-            settingsControlList: settingsControlList,
-            onValidate: (dynamicValue, settingDetail) {
-              return validate(dynamicValue, settingDetail);
-            },
-            onUpdateState: (settingsControlList, hint) {
-              final enable = settingsControlList.canSaveOrApply & hint.isEmpty;
-              applyButton.setDisabled(!enable);
-              saveButton.setDisabled(!enable);
-            },
-            hint: canChangeConfig(),
-            width: screenSize(context).width,
-          ),
-          actions: [
-            Row(
-              children: [
-                DetailButton(
-                  text: "Cancel",
-                  appThemeData: appThemeData,
-                  onPressed: () {
-                    settingsControlList.clear();
-                    Navigator.of(context).pop();
-                  },
-                ),
-                saveButton,
-                applyButton,
-              ],
-            )
-          ],
-        );
-      });
-}
-
-Future<void> _showOptionsDialog(final BuildContext context, final Path path, final List<MenuOptionDetails> menuOptionsList, final List<String> sub, final Function(ActionType, Path) onSelect) async {
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false, // user must tap button!
-    builder: (BuildContext context) {
-      return Dialog(
-        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
-        child: ListView(
-          children: [
-            for (int i = 0; i < menuOptionsList.length; i++) ...[
-              menuOptionsList[i].enabled
-                  ? Card(
-                      color: _configData.getAppThemeData().detailBackgroundColor,
-                      child: ListTile(
-                        leading: Icon(menuOptionsList[i].icon, color: _configData.getAppThemeData().screenForegroundColour(true)),
-                        title: Container(
-                          padding: const EdgeInsets.all(5.0),
-                          color: _configData.getAppThemeData().dialogBackgroundColor,
-                          child: Text(menuOptionsList[i].s1(sub), style: _configData.getAppThemeData().tsLarge),
-                        ),
-                        subtitle: menuOptionsList[i].hasSubText ? Text(menuOptionsList[i].s2(sub), style: _configData.getAppThemeData().tsMedium) : null,
-                        onTap: () {
-                          if (menuOptionsList[i].enabled) {
-                            onSelect(menuOptionsList[i].action, path);
-                            Navigator.of(context).pop();
-                          }
-                        },
-                      ),
-                    )
-                  : const SizedBox(height: 0),
-            ]
-          ],
-        ),
-      );
-    },
-  );
-}
-
-List<Widget> _stringsToTextList(final List<String> values, final int startAt, final Widget separator, final AppThemeData theme) {
-  final wl = <Widget>[];
-  for (int i = startAt; i < values.length; i++) {
-    wl.add(Text(values[i], style: theme.tsMedium));
-    wl.add(separator);
-  }
-  return wl;
-}
-
-Future<void> _showFileNamePasswordDialog(final BuildContext context, final String title, final List<String> info, final String Function(SimpleButtonActions, String, String) onAction) async {
-  final theme = _configData.getAppThemeData();
-  const separator = SizedBox(height: 5);
-  final content = _stringsToTextList(info, 1, separator, theme);
-
-  var fileName = "";
-  var password = "";
-
-  final okButton = DetailButton(
-    text: "OK",
-    disable: true,
-    appThemeData: theme,
-    onPressed: () {
-      onAction(SimpleButtonActions.ok, fileName, password);
-      Navigator.of(context).pop();
-    },
-  );
-
-  final fileNameInput = ValidatedInputField(
-    prompt: "File Name",
-    appThemeData: _configData.getAppThemeData(),
-    onValidate: (ix, vx, it, vt) {
-      var message = "";
-      if (vx.length < 2) {
-        message = "Must be longer than 2 characters";
-      } else {
-        if (vx.contains(".")) {
-          message = "Don't add an extension";
-        } else {
-          message = onAction(SimpleButtonActions.validate, vx, password);
-        }
-      }
-      if (message.isEmpty) {
-        fileName = vx;
-      }
-      okButton.setDisabled(message.isNotEmpty);
-      return message;
-    },
-  );
-
-  final passwordInput = ValidatedInputField(
-    isPassword: true,
-    prompt: "Password",
-    appThemeData: _configData.getAppThemeData(),
-    onValidate: (ix, vx, it, vt) {
-      var message = "";
-      if (vx.isNotEmpty && vx.length <= 4) {
-        message = "Must be longer than 4";
-      }
-      if (message.isEmpty) {
-        password = vx;
-      } else {
-        password = "";
-      }
-      fileNameInput.reValidate(id: "xxx");
-      return message;
-    },
-  );
-
-  content.add(fileNameInput);
-  content.add(separator);
-  content.add(Text(info[0], style: theme.tsMedium));
-  content.add(passwordInput);
-
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false, // user must tap button!
-    builder: (BuildContext context) {
-      return AlertDialog(
-        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-        backgroundColor: theme.dialogBackgroundColor,
-        // title: Text("Copy or Move TO:\n'$into'", style: theme.tsMedium),
-        title: Text(title, style: theme.tsMediumBold),
-        content: SingleChildScrollView(
-          child: ListBody(children: content),
-        ),
-        actions: [
-          Row(
-            children: [
-              DetailButton(
-                text: "CANCEL",
-                disable: false,
-                appThemeData: theme,
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              okButton
-            ],
-          ),
-        ],
-      );
-    },
-  );
-}
-
-Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, AppThemeData theme, Path into, final String head, final bool copyMove, final void Function(SimpleButtonActions, Path) onAction) {
-  final wl = <Widget>[];
-  final tab = theme.textSize("Group: ", theme.tsMedium);
-  wl.add(Text("Selected Data:", style: theme.tsMediumBold));
-  wl.add(Container(
-    color: Colors.black,
-    height: 2,
-  ));
-
-  for (int i = 0; i < summaryList.length; i++) {
-    final summary = summaryList.list[i];
-    final tag = summary.isValue ? "Value:" : "Group:";
-    final r1 = Row(
-      children: [
-        IconButton(
-            onPressed: () {
-              onAction(SimpleButtonActions.select, summaryList.list[i].copyFromPath);
-            },
-            tooltip: "Go To",
-            icon: const Icon(Icons.select_all)),
-        IconButton(
-            onPressed: () {
-              onAction(SimpleButtonActions.listRemove, summaryList.list[i].copyFromPath);
-            },
-            tooltip: "Delete from this list",
-            icon: const Icon(Icons.delete)),
-        summary.isError ? Text(summary.error, style: theme.tsMediumError) : Text("OK: Can $head", style: theme.tsMedium),
-      ],
-    );
-    final r2 = Row(
-      children: [
-        SizedBox(width: tab.width, child: Text(tag, style: theme.tsMedium)),
-        Text(summary.name, style: theme.tsMediumBold),
-      ],
-    );
-    final r3 = Row(
-      children: [
-        SizedBox(width: tab.width, child: Text("In:", style: theme.tsMedium)),
-        Text(summary.parent, style: theme.tsMediumBold),
-      ],
-    );
-    wl.add(r1);
-    wl.add(r2);
-    wl.add(r3);
-    if (copyMove) {
-      final r4 = Row(
-        children: [
-          SizedBox(width: tab.width, child: Text("To:", style: theme.tsMedium)),
-          Text(into.toString(), style: theme.tsMediumBold),
-        ],
-      );
-      wl.add(r4);
-    }
-    wl.add(Container(
-      color: Colors.black,
-      height: 2,
-    ));
-  }
-  return ListBody(children: wl);
-}
-
-Future<void> _showCopyMoveDialog(final BuildContext context, final Path into, final GroupCopyMoveSummaryList summaryList, bool copyMove, final void Function(SimpleButtonActions, Path) onActionReturn, final void Function(SimpleButtonActions, Path) onActionClose) async {
-  final head = copyMove ? "Copy or Move" : "Delete";
-  final toFrom = copyMove ? "To" : "";
-  final theme = _configData.getAppThemeData();
-  final top = Column(children: [
-    Text("$head $toFrom", style: theme.tsMedium),
-    copyMove ? Text(into.toString(), style: theme.tsMedium) : const SizedBox(height: 0),
-  ]);
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false, // user must tap button!
-    builder: (BuildContext context) {
-      return AlertDialog(
-        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-        backgroundColor: theme.dialogBackgroundColor,
-        // title: Text("Copy or Move TO:\n'$into'", style: theme.tsMedium),
-        title: top,
-        content: SingleChildScrollView(
-          child: _copyMoveSummaryList(summaryList, theme, into, head, copyMove, (action, path) {
-            if (action != SimpleButtonActions.select) {
-              onActionReturn(action, path);
-            } else {
-              onActionClose(action, path);
-            }
-            Navigator.of(context).pop();
-          }),
-        ),
-        actions: <Widget>[
-          Row(
-            children: [
-              DetailButton(
-                appThemeData: _configData.getAppThemeData(),
-                text: "Cancel",
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              DetailButton(
-                appThemeData: _configData.getAppThemeData(),
-                text: "Copy",
-                show: summaryList.hasNoErrors && copyMove,
-                onPressed: () {
-                  onActionReturn(SimpleButtonActions.copy, into);
-                  Navigator.of(context).pop();
-                },
-              ),
-              DetailButton(
-                appThemeData: _configData.getAppThemeData(),
-                text: "Move",
-                show: summaryList.hasNoErrors && copyMove,
-                onPressed: () {
-                  onActionReturn(SimpleButtonActions.move, into);
-                  Navigator.of(context).pop();
-                },
-              ),
-              DetailButton(
-                appThemeData: _configData.getAppThemeData(),
-                text: "Remove",
-                show: summaryList.hasNoErrors && !copyMove,
-                onPressed: () {
-                  onActionReturn(SimpleButtonActions.delete, Path.empty());
-                  Navigator.of(context).pop();
-                },
-              ),
-              DetailButton(
-                appThemeData: _configData.getAppThemeData(),
-                text: "Clear",
-                onPressed: () {
-                  onActionReturn(SimpleButtonActions.listClear, Path.empty());
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          )
-        ],
-      );
-    },
-  );
-}
-
-Future<void> _showLogDialog(final BuildContext context, final String log, final bool Function(String) onTapLink) async {
-  final scrollController = ScrollController();
-  Future.delayed(
-    const Duration(milliseconds: 400),
-    () {
-      scrollController.animateTo(scrollController.position.maxScrollExtent, duration: const Duration(milliseconds: 400), curve: Curves.ease);
-    },
-  );
-
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false, // user must tap button!
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
-        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-        title: Text('Event Log', style: _configData.getAppThemeData().tsMedium),
-        content: SingleChildScrollView(
-            child: Container(
-          color: _configData.getAppThemeData().primary.light,
-          height: screenSize(context).height,
-          width: screenSize(context).width,
-          child: Markdown(
-            controller: scrollController,
-            data: logger.toString(),
-            selectable: true,
-            shrinkWrap: true,
-            styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
-            onTapLink: (text, href, title) {
-              bool ok = true;
-              if (href == null) {
-                ok = onTapLink(text);
-              } else {
-                ok = onTapLink(href);
-              }
-              if (ok) {
-                Navigator.of(context).pop();
-              }
-            },
-          ),
-        )),
-        actions: <Widget>[
-          Row(
-            children: [
-              DetailButton(
-                appThemeData: _configData.getAppThemeData(),
-                text: "TOP",
-                onPressed: () {
-                  scrollController.animateTo(scrollController.position.minScrollExtent, duration: const Duration(milliseconds: 400), curve: Curves.ease);
-                },
-              ),
-              DetailButton(
-                appThemeData: _configData.getAppThemeData(),
-                text: "BOTTOM",
-                onPressed: () {
-                  scrollController.animateTo(scrollController.position.maxScrollExtent, duration: const Duration(milliseconds: 400), curve: Curves.ease);
-                },
-              ),
-              DetailButton(
-                appThemeData: _configData.getAppThemeData(),
-                text: "DONE",
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          )
-        ],
-      );
-    },
-  );
-}
-
-Future<void> _showLocalFilesDialog(final BuildContext context, final Function(String) onSelect, final void Function(SimpleButtonActions) onAction) async {
-  final files = _configData.dir(["data", "json"], [defaultConfigFileNmae, _configData.getAppStateFileName()]);
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false, // user must tap button!
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
-        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-        title: Text('Choose File', style: _configData.getAppThemeData().tsMedium),
-        content: SingleChildScrollView(
-          child: ListBody(children: [
-            for (int i = 0; i < files.length; i++) ...[
-              Container(
-                height: 1,
-                color: _configData.getAppThemeData().screenForegroundColour(true),
-              ),
-              Container(
-                color: _configData.getAppThemeData().primary.medDark,
-                child: TextButton(
-                  child: Text(files[i], style: _configData.getAppThemeData().tsMedium),
-                  onPressed: () {
-                    onSelect(files[i]);
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ),
-              Container(
-                height: 1,
-                color: _configData.getAppThemeData().screenForegroundColour(true),
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-            ],
-            DetailButton(
-              appThemeData: _configData.getAppThemeData(),
-              text: "Create a file",
-              onPressed: () {
-                onAction(SimpleButtonActions.ok);
-                Navigator.of(context).pop();
-              },
-            ),
-          ]),
-        ),
-        actions: <Widget>[
-          DetailButton(
-            appThemeData: _configData.getAppThemeData(),
-            text: "Cancel",
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
-
-Future<void> _showSearchDialog(final BuildContext context, final List<String> prevList, final Function(String) onSelect) async {
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false, // user must tap button!
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
-        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-        title: Text('Previous Searches', style: _configData.getAppThemeData().tsMedium),
-        content: SingleChildScrollView(
-          child: ListBody(
-            children: [
-              Container(
-                height: 1,
-                color: _configData.getAppThemeData().screenForegroundColour(true),
-              ),
-              for (int i = 0; i < prevList.length; i++) ...[
-                TextButton(
-                  child: Text(prevList[i], style: _configData.getAppThemeData().tsMedium),
-                  onPressed: () {
-                    onSelect(prevList[i]);
-                    Navigator.of(context).pop();
-                  },
-                ),
-                Container(
-                  height: 1,
-                  color: _configData.getAppThemeData().screenForegroundColour(true),
-                ),
-              ]
-            ],
-          ),
-        ),
-        actions: <Widget>[
-          DetailButton(
-            appThemeData: _configData.getAppThemeData(),
-            text: "Cancel",
-            onPressed: () {
-              onSelect("");
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
-
-Future<void> _showModalButtonsDialog(final BuildContext context, final String title, final List<String> texts, final List<String> buttons, final Path path, final void Function(Path, String) onResponse) async {
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false, // user must tap button!
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: _configData.getAppThemeData().dialogBackgroundColor,
-        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-        title: Text(title, style: _configData.getAppThemeData().tsMedium),
-        content: SingleChildScrollView(
-          child: ListBody(
-            children: [
-              for (int i = 0; i < texts.length; i++) ...[
-                (texts[i].startsWith('#')) ? Container(alignment: Alignment.center, color: _configData.getPrimaryColour().dark, child: Text(texts[i].substring(1), style: _configData.getAppThemeData().tsMedium)) : Text(texts[i], style: _configData.getAppThemeData().tsMedium),
-              ]
-            ],
-          ),
-        ),
-        actions: <Widget>[
-          Row(
-            children: [
-              for (int i = 0; i < buttons.length; i++) ...[
-                DetailButton(
-                  appThemeData: _configData.getAppThemeData(),
-                  text: buttons[i],
-                  onPressed: () {
-                    onResponse(path, buttons[i].toUpperCase());
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            ],
-          ),
-        ],
-      );
-    },
-  );
 }

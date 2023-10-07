@@ -1,7 +1,7 @@
+import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:io';
-import 'package:data_repo/detail_buttons.dart';
-import 'package:flutter/material.dart';
+import 'detail_buttons.dart';
 import 'colour_pecker.dart';
 import 'data_container.dart';
 import 'path.dart';
@@ -295,7 +295,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
           appThemeData: widget.appThemeData,
           text: "Select Colour Palette",
           onPressed: () {
-            _showColorPeckerDialog(context, widget.appThemeData, widget.settingsControl.detail.title, widget.width, colourNames[widget.settingsControl.stringValue], (palette, index) {
+            showColorPeckerDialog(context, widget.appThemeData, widget.settingsControl.detail.title, widget.width, colourNames[widget.settingsControl.stringValue], (palette, index) {
               onChanged(palette.colorName);
             });
           },
@@ -565,18 +565,17 @@ SettingValidation _initialValidate(String value, SettingDetail detail, SettingCo
   return onValidate(value, detail);
 }
 
-Future<void> _showColorPeckerDialog(final BuildContext context, final AppThemeData appThemeData, final String name, final double width, final ColorPallet? currentPalette, final Function(ColorPallet, int) onSelect) async {
+Future<void> showColorPeckerDialog(final BuildContext context, final AppThemeData appThemeData, final String name, final double width, final ColorPallet? currentPalette, final Function(ColorPallet, int) onSelect) async {
   ColorPallet? newPalette;
   int? colorIndex;
   ColorPallet current = currentPalette ?? appThemeData.primary;
   int currentIndex = 0;
   final colorList = appThemeData.getColorsAsList(2);
-  for (int i=0; i<colorList.length; i++) {
+  for (int i = 0; i < colorList.length; i++) {
     if (colorList[i].value == current.med.value) {
       currentIndex = i;
     }
   }
-
 
   final okButton = DetailButton(
     text: "OK",
@@ -617,4 +616,99 @@ Future<void> _showColorPeckerDialog(final BuildContext context, final AppThemeDa
           ]);
     },
   );
+}
+
+Future<void> showConfigDialog(final BuildContext context, ConfigData configData, Size size, String dataFileDir, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit, final String Function() canChangeConfig, final Function(String) log) async {
+  final settingsControlList = SettingControlList(configData.getAppThemeData().desktop, dataFileDir, configData);
+  final applyButton = DetailButton(
+    disable: true,
+    text: "Apply",
+    appThemeData: configData.getAppThemeData(),
+    onPressed: () {
+      onCommit(settingsControlList, false);
+      log("__CONFIG__ changes APPLIED");
+      Navigator.of(context).pop();
+    },
+  );
+  final saveButton = DetailButton(
+    disable: true,
+    text: "Save",
+    appThemeData: configData.getAppThemeData(),
+    onPressed: () {
+      onCommit(settingsControlList, true);
+      log("__CONFIG__ changes SAVED");
+      Navigator.of(context).pop();
+    },
+  );
+  return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: configData.getAppThemeData().dialogBackgroundColor,
+          insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+          title: Row(
+            children: [
+              Text("Settings: ", style: configData.getAppThemeData().tsLarge),
+              Icon(
+                Icons.circle_rounded,
+                color: configData.getAppThemeData().primary.lightest,
+              ),
+              Icon(
+                Icons.circle_rounded,
+                color: configData.getAppThemeData().primary.light,
+              ),
+              Icon(
+                Icons.circle_rounded,
+                color: configData.getAppThemeData().primary.med,
+              ),
+              Icon(
+                Icons.circle_rounded,
+                color: configData.getAppThemeData().primary.medLight,
+              ),
+              Icon(
+                Icons.circle_rounded,
+                color: configData.getAppThemeData().primary.medDark,
+              ),
+              Icon(
+                Icons.circle_rounded,
+                color: configData.getAppThemeData().primary.dark,
+              ),
+              Icon(
+                Icons.circle_rounded,
+                color: configData.getAppThemeData().primary.darkest,
+              ),
+            ],
+          ),
+          content: ConfigInputPage(
+            appThemeData: configData.getAppThemeData(),
+            settingsControlList: settingsControlList,
+            onValidate: (dynamicValue, settingDetail) {
+              return validate(dynamicValue, settingDetail);
+            },
+            onUpdateState: (settingsControlList, hint) {
+              final enable = settingsControlList.canSaveOrApply & hint.isEmpty;
+              applyButton.setDisabled(!enable);
+              saveButton.setDisabled(!enable);
+            },
+            hint: canChangeConfig(),
+            width: size.width,
+          ),
+          actions: [
+            Row(
+              children: [
+                DetailButton(
+                  text: "Cancel",
+                  appThemeData: configData.getAppThemeData(),
+                  onPressed: () {
+                    settingsControlList.clear();
+                    Navigator.of(context).pop();
+                  },
+                ),
+                saveButton,
+                applyButton,
+              ],
+            )
+          ],
+        );
+      });
 }
