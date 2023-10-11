@@ -40,6 +40,86 @@ mages ``![alt text](images/image.jpg "Comment")``
 [Link](https://www.markdownguide.org/basic-syntax/#images-1) ``[Link](https://www.markdownguide.org/basic-syntax/#images-1)``
 """;
 
+class IndicatorIcon extends StatefulWidget {
+  final IconData iconData;
+  final double size;
+  final ColorPallet palate;
+  final EdgeInsets? padding;
+  final int period;
+  final bool Function(bool, int) getState;
+  bool disabled;
+  bool visible;
+  bool state = true;
+  bool requiresBuild = true;
+  IndicatorIcon({super.key, required this.iconData, required this.palate, required this.getState, required this.period, this.size = -1, this.padding, this.disabled = false, this.visible = true}) {
+    debugPrint("IndicatorIcon:getState");
+    state = getState(false, 0);
+  }
+
+  void setDisabled(bool dis) {
+    if (dis != disabled) {
+      requiresBuild = true;
+    }
+    disabled = dis;
+  }
+
+  void setVisible(bool vis) {
+    if (vis != visible) {
+      requiresBuild = true;
+    }
+    visible = vis;
+  }
+
+  @override
+  State<IndicatorIcon> createState() => _IndicatorIcon();
+}
+
+class _IndicatorIcon extends State<IndicatorIcon> {
+  int count = 0;
+  late Timer timer;
+
+  @override
+  initState() {
+    super.initState();
+    count = 1;
+    timer = Timer.periodic(Duration(milliseconds: widget.period), (timer) {
+      if (mounted) {
+        if (!widget.disabled) {
+          count++;
+          final s = widget.getState(widget.state, count);
+          if (s != widget.state) {
+            widget.state = s;
+            widget.requiresBuild = true;
+          }
+        }
+        if (widget.requiresBuild) {
+          setState(() {
+            widget.requiresBuild = false;
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+    if (widget.visible) {
+      final Icon icon;
+      if (widget.size < 1) {
+        icon = Icon(widget.iconData, color: widget.state ? widget.palate.light : widget.palate.dark);
+      } else {
+        icon = Icon(widget.iconData, color: widget.state ? widget.palate.light : widget.palate.dark, size: widget.size);
+      }
+      if (widget.padding == null) {
+        return icon;
+      }
+      return Padding(padding: widget.padding!, child: icon);
+    }
+    return const SizedBox(width: 0, height: 0);
+  }
+}
+
 class DetailIconButton extends StatefulWidget {
   final bool show;
   final bool enabled;
@@ -56,12 +136,6 @@ class DetailIconButton extends StatefulWidget {
 
 class _DetailIconButton extends State<DetailIconButton> {
   bool grey = false;
-
-  @override
-  void dispose() {
-    // TODO: implement dispose
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -346,7 +420,7 @@ class _MarkDownInputField extends State<MarkDownInputField> {
             ),
           ),
           SizedBox(
-            height: widget.height-40,
+            height: widget.height - 40,
             child: Column(
               children: [
                 widget.shouldDisplayPreview(false)

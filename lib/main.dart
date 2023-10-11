@@ -17,7 +17,6 @@ import 'logging.dart';
 import 'appState.dart';
 import 'main_view.dart';
 import 'detail_buttons.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 
 const appBarHeight = 45.0;
 const navBarHeight = 45.0;
@@ -29,8 +28,6 @@ late final ApplicationState _applicationState;
 final logger = Logger(50, true);
 
 bool _inExitProcess = false;
-bool _shouldDisplayMarkdownHelp = false;
-bool _shouldDisplayMarkdownPreview = false;
 
 void closer(final int returnCode) async {
   exit(returnCode);
@@ -146,6 +143,7 @@ class _MyHomePageState extends State<MyHomePage> {
   double _navBarHeight = navBarHeight;
   SuccessState _globalSuccessState = SuccessState(true);
   ScrollController _treeViewScrollController = ScrollController();
+  IndicatorIcon? _indicatorIcon;
   DataContainer _loadedData = DataContainer.empty();
   MyTreeNode _treeNodeDataRoot = MyTreeNode.empty();
   MyTreeNode _filteredNodeDataRoot = MyTreeNode.empty();
@@ -1250,6 +1248,29 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
 
+    _indicatorIcon = IndicatorIcon(
+      iconData: Icons.ac_unit,
+      palate: _configData.getAppThemeData().secondary,
+      period: 500,
+      padding: const EdgeInsets.all(5),
+      size: (appBarHeight / 3.5) * 2,
+      getState: (s, c) {
+        return !s;
+      },
+    );
+
+    if (_indicatorIcon != null) {
+      Timer.periodic(const Duration(seconds: 5), (timer) async {
+        final response = await DataContainer.testHttpGet(_configData.getGetDataFileUrl(), "");
+        if (response.isNotEmpty) {
+          _indicatorIcon!.setVisible(true);
+          logger.log("__REMOTE:__ Server file '${_configData.getDataFileName()}' cannot be read!");
+        } else {
+          _indicatorIcon!.setVisible(false);
+        }
+      });
+    }
+
     final DisplaySplitView displayData = createSplitView(
       _loadedData,
       _filteredNodeDataRoot,
@@ -1292,6 +1313,7 @@ class _MyHomePageState extends State<MyHomePage> {
         appThemeData: appThemeData,
       ),
     );
+
     if (_loadedData.isEmpty) {
       _navBarHeight = 0;
       toolBarItems.add(Container(
@@ -1631,6 +1653,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       color: _globalSuccessState.isSuccess ? appBackgroundColor : appBackgroundErrorColor,
                       child: Row(
                         children: [
+                          _indicatorIcon as Widget,
                           DetailIconButton(
                             appThemeData: appThemeData,
                             iconData: Icons.view_timeline,
