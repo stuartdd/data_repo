@@ -41,33 +41,58 @@ mages ``![alt text](images/image.jpg "Comment")``
 """;
 
 class IndicatorIcon extends StatefulWidget {
-  final IconData iconData;
+  late final List<Icon> _iconData;
   final double size;
-  final ColorPallet palate;
+  final Color color;
   final EdgeInsets? padding;
   final int period;
-  final bool Function(bool, int) getState;
+  final Future<int> Function(int) getState;
+  final void Function(int)? onClick;
   bool disabled;
   bool visible;
-  bool state = true;
+  double iSize = 0;
+  int state = 0;
   bool requiresBuild = true;
-  IndicatorIcon({super.key, required this.iconData, required this.palate, required this.getState, required this.period, this.size = -1, this.padding, this.disabled = false, this.visible = true}) {
-    debugPrint("IndicatorIcon:getState");
-    state = getState(false, 0);
+  IndicatorIcon({super.key, final List<IconData>? iconData, required this.color, required this.getState, required this.period, this.size = -1, this.padding, this.disabled = false, this.visible = true, this.onClick}) {
+    List<IconData> id = [];
+    if (iconData != null) {
+      id.addAll(iconData);
+    }
+    if (id.isEmpty) {
+      id.add(Icons.check_box_outline_blank);
+    }
+    if (id.length == 1) {
+      id.add(Icons.indeterminate_check_box_outlined);
+    }
+    _iconData = [];
+    for (var icd in id) {
+      if (size > 2) {
+        _iconData.add(Icon(icd, color: color, size: size));
+      } else {
+        _iconData.add(Icon(icd, color: color));
+      }
+    }
   }
 
   void setDisabled(bool dis) {
     if (dis != disabled) {
       requiresBuild = true;
+      disabled = dis;
     }
-    disabled = dis;
   }
 
   void setVisible(bool vis) {
     if (vis != visible) {
       requiresBuild = true;
+      visible = vis;
     }
-    visible = vis;
+  }
+
+  void setState(int st) {
+    if (st != state) {
+      requiresBuild = true;
+      state = st;
+    }
   }
 
   @override
@@ -82,14 +107,14 @@ class _IndicatorIcon extends State<IndicatorIcon> {
   initState() {
     super.initState();
     count = 1;
-    timer = Timer.periodic(Duration(milliseconds: widget.period), (timer) {
+    timer = Timer.periodic(Duration(milliseconds: widget.period), (timer) async {
       if (mounted) {
         if (!widget.disabled) {
           count++;
-          final s = widget.getState(widget.state, count);
-          if (s != widget.state) {
-            widget.state = s;
+          final st = await widget.getState(widget.state);
+          if (st != widget.state) {
             widget.requiresBuild = true;
+            widget.state = st;
           }
         }
         if (widget.requiresBuild) {
@@ -102,19 +127,30 @@ class _IndicatorIcon extends State<IndicatorIcon> {
   }
 
   @override
+  void dispose() {
+    if (timer.isActive) {
+      timer.cancel();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     if (widget.visible) {
-      final Icon icon;
-      if (widget.size < 1) {
-        icon = Icon(widget.iconData, color: widget.state ? widget.palate.light : widget.palate.dark);
-      } else {
-        icon = Icon(widget.iconData, color: widget.state ? widget.palate.light : widget.palate.dark, size: widget.size);
+      final ind = widget.state % widget._iconData.length;
+      Widget icon = widget._iconData[ind];
+      if (widget.onClick != null) {
+        icon = InkWell(
+          child: icon,
+          onTap: () {
+            widget.onClick!(widget.state);
+          },
+        );
       }
-      if (widget.padding == null) {
-        return icon;
+      if (widget.padding != null) {
+        icon = Padding(padding: widget.padding!, child: icon);
       }
-      return Padding(padding: widget.padding!, child: icon);
+      return icon;
     }
     return const SizedBox(width: 0, height: 0);
   }

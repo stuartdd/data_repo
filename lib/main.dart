@@ -33,12 +33,14 @@ void closer(final int returnCode) async {
   exit(returnCode);
 }
 
-Size screenSize(BuildContext context, {double adjustWidth = 0, double adjustHeight = 0}) {
+ScreenSize screenSize = ScreenSize();
+
+_screenSize(BuildContext context) {
   final pt = MediaQuery.of(context).padding.top;
   final bi = MediaQuery.of(context).viewInsets.bottom - MediaQuery.of(context).viewInsets.top;
   final height = MediaQuery.of(context).size.height - (bi + pt) - 4;
-  final width = MediaQuery.of(context).size.width - adjustWidth;
-  return Size(width, height);
+  final width = MediaQuery.of(context).size.width;
+  screenSize.update(width, height);
 }
 
 void main() async {
@@ -92,6 +94,7 @@ class MyApp extends StatelessWidget with WindowListener {
             final info = await getWindowInfo();
             _applicationState.updateScreenPos(info.frame.left, info.frame.top, info.frame.width, info.frame.height);
           }
+
           break;
         }
       default:
@@ -107,6 +110,7 @@ class MyApp extends StatelessWidget with WindowListener {
     if (_configData.isDesktop()) {
       windowManager.addListener(this);
     }
+
     return MaterialApp(
       title: 'data_repo',
       theme: ThemeData(primarySwatch: Colors.blue),
@@ -328,6 +332,20 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Path _handleAction(DetailAction detailActionData) {
     switch (detailActionData.action) {
+      case ActionType.showLog:
+        {
+          Timer(const Duration(milliseconds: 500), () {
+            showLogDialog(context, _configData.getAppThemeData(), screenSize, logger, (dotPath) {
+              final p = Path.fromDotPath(dotPath);
+              if (p.isRational(_loadedData.dataMap)) {
+                _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
+                return true;
+              }
+              return false;
+            });
+          });
+          break;
+        }
       case ActionType.clearState:
         {
           setState(() {
@@ -474,7 +492,7 @@ class _MyHomePageState extends State<MyHomePage> {
           showModalInputDialog(
             context,
             _configData.getAppThemeData(),
-            screenSize(context, adjustHeight: appBarHeight + statusBarHeight),
+            screenSize,
             "Change $title '${detailActionData.getLastPathElement()}'",
             detailActionData.getDisplayValue(false),
             detailActionData.value ? optionGroupRenameElement : [],
@@ -500,7 +518,7 @@ class _MyHomePageState extends State<MyHomePage> {
           showModalInputDialog(
             context,
             _configData.getAppThemeData(),
-            screenSize(context, adjustHeight: appBarHeight + statusBarHeight),
+            screenSize,
             "Update Value '${detailActionData.getLastPathElement()}'",
             detailActionData.oldValue,
             optionGroupUpdateElement,
@@ -568,7 +586,7 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              showModalInputDialog(context, _configData.getAppThemeData(), screenSize(context, adjustHeight: appBarHeight + statusBarHeight), "New Group Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
+              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "New Group Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataGroup);
                 }
@@ -589,7 +607,7 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              showModalInputDialog(context, _configData.getAppThemeData(), screenSize(context, adjustHeight: appBarHeight + statusBarHeight), "New Detail Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
+              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "New Detail Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataValue);
                 }
@@ -704,7 +722,7 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           Timer(const Duration(milliseconds: 1), () {
             if (mounted) {
-              showModalInputDialog(context, _configData.getAppThemeData(), screenSize(context, adjustHeight: appBarHeight + statusBarHeight), _loadedData.hasPassword ? "Confirm Password" : "New Password", "", [], optionsDataTypeEmpty, false, true, (button, pw, type) {
+              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, _loadedData.hasPassword ? "Confirm Password" : "New Password", "", [], optionsDataTypeEmpty, false, true, (button, pw, type) {
                 if (button == SimpleButtonActions.ok) {
                   if (_loadedData.hasPassword) {
                     // Confirm PW (Save un-encrypted)
@@ -1183,6 +1201,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final appBackgroundColor = appThemeData.screenBackgroundColor;
     final appBackgroundErrorColor = appThemeData.screenBackgroundErrorColor;
 
+    _screenSize(context);
     _configData.onUpdate = _onUpdateConfig;
 
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
@@ -1236,40 +1255,38 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (_loadedData.warning.isNotEmpty) {
       _loadedData.warning = "";
-      Timer(const Duration(milliseconds: 500), () {
-        showLogDialog(context, _configData.getAppThemeData(), screenSize(context), logger.toString(), (dotPath) {
-          final p = Path.fromDotPath(dotPath);
-          if (p.isRational(_loadedData.dataMap)) {
-            _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
-            return true;
-          }
-          return false;
-        });
-      });
+      _handleAction(DetailAction.actionOnly(ActionType.showLog));
     }
 
     _indicatorIcon = IndicatorIcon(
-      iconData: Icons.ac_unit,
-      palate: _configData.getAppThemeData().secondary,
+      iconData: const [Icons.access_time_filled, Icons.access_time],
+      color: _configData.getAppThemeData().secondary.med,
       period: 500,
       padding: const EdgeInsets.all(5),
       size: (appBarHeight / 3.5) * 2,
-      getState: (s, c) {
-        return !s;
+      onClick: (c) {
+        _handleAction(DetailAction.actionOnly(ActionType.showLog));
+      },
+      getState: (c) async {
+        if (c == 2 || (c % 15) == 0) {
+          DataContainer.testHttpGet(
+            _configData.getRemoteTestFileUrl(),
+            "",
+            (response) {
+              if (response.isEmpty) {
+                logger.log("__REMOTE__ Test file loaded OK");
+                _indicatorIcon!.setVisible(false);
+              } else {
+                logger.log("__REMOTE__ $response");
+                _indicatorIcon!.setVisible(true);
+              }
+              _indicatorIcon!.setVisible(response.isNotEmpty);
+            },
+          );
+        }
+        return c + 1;
       },
     );
-
-    if (_indicatorIcon != null) {
-      Timer.periodic(const Duration(seconds: 5), (timer) async {
-        final response = await DataContainer.testHttpGet(_configData.getGetDataFileUrl(), "");
-        if (response.isNotEmpty) {
-          _indicatorIcon!.setVisible(true);
-          logger.log("__REMOTE:__ Server file '${_configData.getDataFileName()}' cannot be read!");
-        } else {
-          _indicatorIcon!.setVisible(false);
-        }
-      });
-    }
 
     final DisplaySplitView displayData = createSplitView(
       _loadedData,
@@ -1319,7 +1336,7 @@ class _MyHomePageState extends State<MyHomePage> {
       toolBarItems.add(Container(
         color: appThemeData.primary.med,
         child: SizedBox(
-          width: screenSize(context).width / 3,
+          width: screenSize.width / 3,
           child: inputTextField("Password:", appThemeData.tsLarge, _configData.getAppThemeData().textSelectionThemeData, _configData.getAppThemeData().darkMode, true, passwordEditingController, (v) {
             // passwordEditingController.text = "";
             _initialPassword = v;
@@ -1491,7 +1508,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Container(
             color: appThemeData.primary.med,
             child: SizedBox(
-              width: screenSize(context).width / 3,
+              width: screenSize.width / 3,
               child: inputTextField("Search:", appThemeData.tsMedium, _configData.getAppThemeData().textSelectionThemeData, _configData.getAppThemeData().darkMode, false, searchEditingController, (v) {
                 _setSearchExpressionState(v);
               }, (v) {}),
@@ -1541,7 +1558,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     final settings = Positioned(
-        left: screenSize(context).width - appBarHeight,
+        left: screenSize.width - appBarHeight,
         top: _navBarHeight,
         child: DetailIconButton(
           iconData: Icons.settings,
@@ -1550,7 +1567,7 @@ class _MyHomePageState extends State<MyHomePage> {
             showConfigDialog(
               context,
               _configData,
-              screenSize(context),
+              screenSize,
               _configData.getDataFileDir(),
               (validValue, detail) {
                 // Validate
@@ -1640,7 +1657,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             height: 1,
                           ),
                     Container(
-                      height: screenSize(context).height - (appBarHeight + statusBarHeight + _navBarHeight),
+                      height: screenSize.height - (appBarHeight + statusBarHeight + _navBarHeight),
                       color: appBackgroundColor,
                       child: displayData.splitView,
                     ),
@@ -1660,14 +1677,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             tooltip: 'Log',
                             padding: const EdgeInsets.all(1.0),
                             onPressed: () {
-                              showLogDialog(context, _configData.getAppThemeData(), screenSize(context), logger.toString(), (dotPath) {
-                                final p = Path.fromDotPath(dotPath);
-                                if (p.isRational(_loadedData.dataMap)) {
-                                  _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
-                                  return true;
-                                }
-                                return false;
-                              });
+                              _handleAction(DetailAction.actionOnly(ActionType.showLog));
                             },
                           ),
                           Text(

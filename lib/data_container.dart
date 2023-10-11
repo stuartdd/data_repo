@@ -311,7 +311,7 @@ class DataContainer {
     }
   }
 
-  static Future<String> testHttpGet(final String url, String pre) async {
+  static Future<void> testHttpGet(final String url, String pre, Function(String) callMe) async {
     try {
       String resp = "";
       final uri = Uri.parse(url);
@@ -322,11 +322,12 @@ class DataContainer {
         },
       );
       if (response.statusCode != StatusCode.OK) {
-        return "${pre}Status:${response.statusCode} ${getStatusMessage(response.statusCode)}";
+        callMe("${pre}Status:${response.statusCode} ${getStatusMessage(response.statusCode)}");
+        return;
       }
-      return resp;
+      callMe(resp);
     } catch (e) {
-      return "$pre$e";
+      callMe("$pre$e");
     }
   }
 

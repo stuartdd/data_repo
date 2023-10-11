@@ -1,3 +1,4 @@
+import 'package:data_repo/data_types.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:io';
@@ -15,7 +16,7 @@ final List<SettingDetail> _settingsData = [
   SettingDetail("get", "Server URL (Download)", "Download address of the host server", getDataUrlPath, SettingDetailType.url, defaultRemoteGetUrl, true),
   SettingDetail("put", "Server URL (Upload)", "Upload address of the host server", postDataUrlPath, SettingDetailType.url, defaultRemotePostUrl, true),
   SettingDetail("path", "Local Data file path", "The directory for the data file", dataFileLocalDirPath, SettingDetailType.dir, defaultDataEmptyString, false),
-  // SettingDetail("data", "Data file Name", "The name of the server file", dataFileLocalNamePath, SettingDetailType.file, defaultDataEmptyString, true),
+  SettingDetail("data", "Data file Name", "Now set from the main screen!", dataFileLocalNamePath, SettingDetailType.file, defaultDataEmptyString, true, hide: true),
   SettingDetail("rootNodeName", "Root Node Name", "Replace the root node name with this", rootNodeNamePath, SettingDetailType.name, defaultDataEmptyString, true),
   SettingDetail("timeout", "Server Timeout Milliseconds", "The host server timeout", dataFetchTimeoutMillisPath, SettingDetailType.int, defaultFetchTimeoutMillis.toString(), false),
   SettingDetail("", "Screen Text & Icons", "Icons/Text White or Black. Click below to change", appColoursDarkMode, SettingDetailType.bool, defaultDarkMode, true, trueValue: "Currently White", falseValue: "Currently Black"),
@@ -135,9 +136,11 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
   }
 
   void updateState() {
-    setState(() {
-      widget.onUpdateState(widget.settingsControlList, widget.hint);
-    });
+    if (mounted) {
+      setState(() {
+        widget.onUpdateState(widget.settingsControlList, widget.hint);
+      });
+    }
   }
 
   @override
@@ -163,10 +166,11 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
         scDataValue = scData.stringValue;
       }
       if (sv.isNotError) {
-        final response = await DataContainer.testHttpGet("${scGet.stringValue}/$scDataValue", "File: $scDataValue.");
-        if (response.isNotEmpty) {
-          sv = SettingValidation.warning(response);
-        }
+        await DataContainer.testHttpGet("${scGet.stringValue}/$scDataValue", "File: $scDataValue.", (resp) {
+          if (resp.isNotEmpty) {
+            sv = SettingValidation.warning(resp);
+          }
+        });
       }
       if (scGet.validationState.isNotEqual(sv)) {
         scGet.validationState = sv;
@@ -206,7 +210,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
       );
     }
     for (var scN in settingsControlList.list) {
-      if (widget.appThemeData.desktop || scN.detail.desktopOnly) {
+      if ((widget.appThemeData.desktop || scN.detail.desktopOnly) && !scN.detail.hide){
         l.add(
           Card(
             margin: EdgeInsetsGeometry.lerp(null, null, 5),
@@ -327,9 +331,10 @@ class SettingDetail {
   final SettingDetailType detailType; // BOOL, INT or other. Used for validation/conversion
   final String fallback; // The value if not defined in the config data.
   final bool desktopOnly; // Only applies to the desktop
+  final bool hide; // Only applies to the desktop
   final String trueValue; // The text value if true
   final String falseValue; // The text value if false
-  const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = ""});
+  const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = "", this.hide = false});
 }
 
 class SettingControlList {
@@ -469,20 +474,6 @@ class SettingControl {
   }
 }
 
-List<DropdownMenuItem<String>> _createDropDownColorList(AppThemeData appThemeData) {
-  final List<DropdownMenuItem<String>> dll = List.empty(growable: true);
-  for (var element in colourNames.keys) {
-    dll.add(DropdownMenuItem<String>(
-      value: element,
-      child: Text(
-        element,
-        style: appThemeData.tsLarge,
-      ),
-    ));
-  }
-  return dll;
-}
-
 bool _stringToBool(String text) {
   final txt = text.trim().toLowerCase();
   if (txt == "true" || txt == "yes") {
@@ -618,7 +609,7 @@ Future<void> showColorPeckerDialog(final BuildContext context, final AppThemeDat
   );
 }
 
-Future<void> showConfigDialog(final BuildContext context, ConfigData configData, Size size, String dataFileDir, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit, final String Function() canChangeConfig, final Function(String) log) async {
+Future<void> showConfigDialog(final BuildContext context, ConfigData configData, ScreenSize size, String dataFileDir, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit, final String Function() canChangeConfig, final Function(String) log) async {
   final settingsControlList = SettingControlList(configData.getAppThemeData().desktop, dataFileDir, configData);
   final applyButton = DetailButton(
     disable: true,

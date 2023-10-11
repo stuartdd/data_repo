@@ -474,8 +474,16 @@ class ConfigData {
     return _pathFromStrings(_applicationDefaultDir, _configFileName);
   }
 
+  String get getRemoteTestFileName {
+    return "test.data";
+  }
+
   String getGetDataFileUrl() {
     return "$_getDataFileUrl/$_dataFileName";
+  }
+
+  String getRemoteTestFileUrl() {
+    return "$_getDataFileUrl/$getRemoteTestFileName";
   }
 
   String getPostDataFileUrl() {

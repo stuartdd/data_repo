@@ -13,7 +13,7 @@ enum DisplayType { simpleDisplay, positionalString, markDown, referenceString }
 
 enum SimpleButtonActions { ok, select, cancel, validate, copy, move, delete, listRemove, listClear, link }
 
-enum ActionType { none, reload, restart, clearState, save, saveAlt, flipSorted, addGroup, addDetail, editItemData, createFile, renameItem, select, querySelect, removeItem, link, clip, groupSelectClearAll, groupSelectAll, groupSelect, groupCopy, groupDelete }
+enum ActionType { none, reload, restart, clearState, save, saveAlt, flipSorted, addGroup, addDetail, editItemData, createFile, renameItem, select, querySelect, removeItem, link, clip, groupSelectClearAll, groupSelectAll, groupSelect, groupCopy, groupDelete, showLog }
 
 const int maxIntValue = -1 >>> 1;
 
@@ -251,6 +251,10 @@ class DetailAction {
   final String additional;
   DetailAction(this.action, this.value, this.path, {this.oldValue = "", this.oldValueType = optionsDataTypeEmpty, this.onCompleteActionNullable, this.additional = ""});
 
+  factory DetailAction.actionOnly( ActionType action) {
+    return DetailAction(action, false, Path.empty());
+  }
+
   String getLastPathElement() {
     return path.last;
   }
@@ -267,6 +271,10 @@ class DetailAction {
   String toString() {
     final s = "Type:'${value ? "Value" : "Map"}' Path:'$path' V1:'$oldValue' ";
     switch (action) {
+      case ActionType.showLog:
+        {
+          return "SHOW_LOG: $s";
+        }
       case ActionType.clearState:
         {
           return "CLEAR_STATE: $s";
@@ -523,5 +531,36 @@ class SuccessState {
   @override
   String toString() {
     return toLogString(bold: false);
+  }
+}
+
+class ScreenSize {
+  double _width = 0;
+  double _height = 0;
+  ScreenSize();
+
+  void update(double w, double h) {
+    debugPrint("SS:$w $h");
+    _width = w;
+    _height = h;
+  }
+
+  double widthA(double adjustW) {
+    return _width + adjustW;
+  }
+
+  double heightA(double adjustH) {
+    return _height + adjustH;
+  }
+
+  double get width {
+    return _width;
+  }
+  double get height {
+    return _height;
+  }
+
+  Size size(double adjustW, double adjustH) {
+    return Size(widthA(adjustW), heightA(adjustH));
   }
 }

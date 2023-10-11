@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-
 import 'config.dart';
 import 'data_types.dart';
 import 'path.dart';
@@ -292,78 +290,6 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
   );
 }
 
-Future<void> showLogDialog(final BuildContext context, final AppThemeData appThemeData, final Size screenSize, final String log, final bool Function(String) onTapLink) async {
-  final scrollController = ScrollController();
-  Future.delayed(
-    const Duration(milliseconds: 400),
-    () {
-      scrollController.animateTo(scrollController.position.maxScrollExtent, duration: const Duration(milliseconds: 400), curve: Curves.ease);
-    },
-  );
-
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false, // user must tap button!
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: appThemeData.dialogBackgroundColor,
-        insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-        title: Text('Event Log', style: appThemeData.tsMedium),
-        content: SingleChildScrollView(
-            child: Container(
-          color: appThemeData.primary.light,
-          height: screenSize.height,
-          width: screenSize.width,
-          child: Markdown(
-            controller: scrollController,
-            data: log,
-            selectable: true,
-            shrinkWrap: true,
-            styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
-            onTapLink: (text, href, title) {
-              bool ok = true;
-              if (href == null) {
-                ok = onTapLink(text);
-              } else {
-                ok = onTapLink(href);
-              }
-              if (ok) {
-                Navigator.of(context).pop();
-              }
-            },
-          ),
-        )),
-        actions: <Widget>[
-          Row(
-            children: [
-              DetailButton(
-                appThemeData: appThemeData,
-                text: "TOP",
-                onPressed: () {
-                  scrollController.animateTo(scrollController.position.minScrollExtent, duration: const Duration(milliseconds: 400), curve: Curves.ease);
-                },
-              ),
-              DetailButton(
-                appThemeData: appThemeData,
-                text: "BOTTOM",
-                onPressed: () {
-                  scrollController.animateTo(scrollController.position.maxScrollExtent, duration: const Duration(milliseconds: 400), curve: Curves.ease);
-                },
-              ),
-              DetailButton(
-                appThemeData: appThemeData,
-                text: "DONE",
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          )
-        ],
-      );
-    },
-  );
-}
 
 Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData appThemeData, List<String> files, final Function(String) onSelect, final void Function(SimpleButtonActions) onAction) async {
   return showDialog<void>(
@@ -509,7 +435,7 @@ Future<void> showModalButtonsDialog(final BuildContext context, final AppThemeDa
   );
 }
 
-Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final Size screenSize, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
+Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
   var updatedText = currentValue;
   var updatedType = currentOption;
   var shouldDisplayMarkdownHelp = false;
