@@ -956,7 +956,7 @@ class _MyHomePageState extends State<MyHomePage> {
     switch (type) {
       case optionTypeDataValue:
         setState(() {
-          mapNodes.lastNodeAsMap![name] = "undefined";
+          mapNodes.lastNodeAsMap![name] = emptyString;
           _dataWasUpdated = true;
           _checkReferences = true;
           _pathPropertiesList.setUpdated(path);

@@ -24,7 +24,7 @@ class DisplayTypeData {
   final String description;
   const DisplayTypeData({required this.displayType, required this.extension, required this.extensionLength, required this.description});
 }
-
+const emptyString = "";
 const positionalStringExtension = ":pl";
 const markDownExtension = ":md";
 const referenceExtension = ":rf";
@@ -540,7 +540,6 @@ class ScreenSize {
   ScreenSize();
 
   void update(double w, double h) {
-    debugPrint("SS:$w $h");
     _width = w;
     _height = h;
   }
