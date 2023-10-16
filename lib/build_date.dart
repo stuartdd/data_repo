@@ -1,2 +1,2 @@
-final DateTime buildDate = DateTime.fromMillisecondsSinceEpoch((1697374371000));
-final String buildPath = '/home/stuart/StudioProjects/data_repo';
+final DateTime buildDate = DateTime.fromMillisecondsSinceEpoch(1697459434000);
+const String buildPath = '/home/stuart/git/flutter/data_repo';

@@ -1,5 +1,6 @@
 # Miscellaneous
 gitpush
+lib/build_date.dart
 .localauthentication.data
 *.data
 *.class
