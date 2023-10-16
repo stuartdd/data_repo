@@ -211,6 +211,7 @@ class _DetailWidgetState extends State<DetailWidget> {
   Widget _detailForValue(final AppThemeData appThemeData, final PathProperties pathProperties, final bool horizontal) {
     final double rm = widget.dataValueRow.type.equal(optionTypeDataMarkDown) ? 15 : 5;
     return Card(
+      key: UniqueKey(),
       color: appThemeData.detailBackgroundColor,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         ListTile(
@@ -233,7 +234,7 @@ class _DetailWidgetState extends State<DetailWidget> {
           children: <Widget>[
             DetailButton(
               appThemeData: widget.appThemeData,
-              show: widget.isEditDataDisplay,
+              showButton: widget.isEditDataDisplay,
               text: 'Edit',
               onPressed: () {
                 widget.dataAction(DetailAction(ActionType.editItemData, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
@@ -241,7 +242,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ),
             DetailButton(
               appThemeData: widget.appThemeData,
-              show: widget.isEditDataDisplay,
+              showButton: widget.isEditDataDisplay,
               text: 'Change',
               onPressed: () {
                 widget.dataAction(DetailAction(ActionType.renameItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
@@ -249,7 +250,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ),
             DetailButton(
               appThemeData: widget.appThemeData,
-              show: !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
+              showButton: !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
               timerMs: 500,
               text: 'Copy',
               onPressed: () async {
@@ -264,7 +265,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ),
             DetailButton(
               appThemeData: widget.appThemeData,
-              show: widget.dataValueRow.isLink && !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
+              showButton: widget.dataValueRow.isLink && !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
               timerMs: 500,
               text: 'Link',
               onPressed: () {
@@ -273,7 +274,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ),
             DetailButton(
               appThemeData: widget.appThemeData,
-              show: widget.isEditDataDisplay,
+              showButton: widget.isEditDataDisplay,
               timerMs: 500,
               text: 'Remove',
               onPressed: () {
@@ -303,6 +304,7 @@ class _DetailWidgetState extends State<DetailWidget> {
   Widget _detailForMap(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
     return SizedBox(
       child: Card(
+        key: UniqueKey(),
           color: appThemeData.detailBackgroundColor,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ListTile(
@@ -322,7 +324,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               children: <Widget>[
                 DetailButton(
                   appThemeData: widget.appThemeData,
-                  show: widget.isEditDataDisplay,
+                  showButton: widget.isEditDataDisplay,
                   text: 'Change',
                   onPressed: () {
                     widget.dataAction(DetailAction(ActionType.renameItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
@@ -330,7 +332,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                 ),
                 DetailButton(
                   appThemeData: widget.appThemeData,
-                  show: widget.isEditDataDisplay,
+                  showButton: widget.isEditDataDisplay,
                   text: 'Remove',
                   onPressed: () {
                     widget.dataAction(DetailAction(ActionType.removeItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));

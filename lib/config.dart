@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'data_container.dart';
 import 'path.dart';
+import 'build_date.dart';
 import 'data_types.dart';
 import 'dart:io';
 
@@ -522,10 +523,11 @@ class ConfigData {
   }
 
   String getTitle() {
+    final bd = "${buildDate.day}-${buildDate.month}-${buildDate.year} ${buildDate.hour}:${buildDate.minute}";
     if (isDesktop()) {
-      return "DT:$_title";
+      return "$bd - DT:$_title";
     }
-    return "MO:$_title";
+    return "$bd - MO:$_title";
   }
 
   @override

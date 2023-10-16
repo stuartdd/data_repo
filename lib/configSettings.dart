@@ -568,9 +568,11 @@ Future<void> showColorPeckerDialog(final BuildContext context, final AppThemeDat
     }
   }
 
+  final okButtonKey = GlobalKey();
   final okButton = DetailButton(
+    key:okButtonKey,
     text: "OK",
-    disable: true,
+    enabled: false,
     appThemeData: appThemeData,
     onPressed: () {
       onSelect(newPalette!, colorIndex!);
@@ -589,7 +591,7 @@ Future<void> showColorPeckerDialog(final BuildContext context, final AppThemeDat
           content: ColorPecker(width, colorList, currentIndex, 7, 18, appThemeData.primary.med, appThemeData.hiLight.med, (color, index) {
             newPalette = appThemeData.getColorPalletWithColourInIt(color);
             colorIndex = index;
-            okButton.setDisabled(newPalette == null);
+            (okButtonKey.currentState as EnableAble).setEnabled(newPalette != null);
           }, rowSelect: true),
           actions: <Widget>[
             Row(
@@ -611,8 +613,11 @@ Future<void> showColorPeckerDialog(final BuildContext context, final AppThemeDat
 
 Future<void> showConfigDialog(final BuildContext context, ConfigData configData, ScreenSize size, String dataFileDir, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit, final String Function() canChangeConfig, final Function(String) log) async {
   final settingsControlList = SettingControlList(configData.getAppThemeData().desktop, dataFileDir, configData);
+
+  final applyButtonKey = GlobalKey();
   final applyButton = DetailButton(
-    disable: true,
+    key: applyButtonKey,
+    enabled: false,
     text: "Apply",
     appThemeData: configData.getAppThemeData(),
     onPressed: () {
@@ -621,8 +626,10 @@ Future<void> showConfigDialog(final BuildContext context, ConfigData configData,
       Navigator.of(context).pop();
     },
   );
+  final saveButtonKey = GlobalKey();
   final saveButton = DetailButton(
-    disable: true,
+    key: saveButtonKey,
+    enabled: false,
     text: "Save",
     appThemeData: configData.getAppThemeData(),
     onPressed: () {
@@ -678,8 +685,8 @@ Future<void> showConfigDialog(final BuildContext context, ConfigData configData,
             },
             onUpdateState: (settingsControlList, hint) {
               final enable = settingsControlList.canSaveOrApply & hint.isEmpty;
-              applyButton.setDisabled(!enable);
-              saveButton.setDisabled(!enable);
+              (applyButtonKey.currentState as EnableAble).setEnabled(enable);
+              (saveButtonKey.currentState as EnableAble).setEnabled(enable);
             },
             hint: canChangeConfig(),
             width: size.width,

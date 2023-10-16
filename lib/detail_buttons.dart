@@ -40,6 +40,14 @@ mages ``![alt text](images/image.jpg "Comment")``
 [Link](https://www.markdownguide.org/basic-syntax/#images-1) ``[Link](https://www.markdownguide.org/basic-syntax/#images-1)``
 """;
 
+abstract class EnableAble {
+  void setEnabled(bool x);
+}
+
+abstract class ShowAble {
+  void setShow(bool x);
+}
+
 class IndicatorIcon extends StatefulWidget {
   late final List<Icon> _iconData;
   final double size;
@@ -156,6 +164,8 @@ class _IndicatorIcon extends State<IndicatorIcon> {
   }
 }
 
+
+
 class DetailIconButton extends StatefulWidget {
   final bool show;
   final bool enabled;
@@ -165,6 +175,7 @@ class DetailIconButton extends StatefulWidget {
   final String tooltip;
   final AppThemeData appThemeData;
   final EdgeInsetsGeometry padding;
+
   const DetailIconButton({super.key, this.show = true, this.enabled = true, required this.onPressed, this.timerMs = 100, required this.iconData, this.tooltip = "", required this.appThemeData, this.padding = const EdgeInsets.fromLTRB(1, 1, 1, 0)});
   @override
   State<DetailIconButton> createState() => _DetailIconButton();
@@ -211,52 +222,57 @@ class _DetailIconButton extends State<DetailIconButton> {
 }
 
 class DetailButton extends StatefulWidget {
-  DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = 100, this.show = true, this.disable = false, required this.appThemeData});
-  final bool show;
-  final bool disable;
+  const DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = 100, this.showButton = true, this.enabled = true, required this.appThemeData});
+  final bool showButton;
+  final bool enabled;
   final AppThemeData appThemeData;
   final Function() onPressed;
   final String text;
   final int timerMs;
-  void Function(bool)? _setDisabled;
-
-  void setDisabled(bool dis) {
-    if (_setDisabled != null) {
-      _setDisabled!(dis);
-    } else {
-      debugPrint("DetailButton _setDisabled is null");
-    }
-  }
 
   @override
   State<DetailButton> createState() => _DetailButtonState();
 }
 
-class _DetailButtonState extends State<DetailButton> {
+class _DetailButtonState extends State<DetailButton> implements EnableAble, ShowAble {
   bool grey = false;
+  bool enableWidget = true;
+  bool showButton = true;
+
+  @override
+  void setEnabled(bool x) {
+    setState(() {
+      enableWidget = x;
+      grey = !x;
+    });
+  }
+
+  @override
+  void setShow(bool x) {
+    setState(() {
+      showButton = x;
+    });
+  }
 
   @override
   initState() {
     super.initState();
-    widget._setDisabled = (dis) {
-      setState(() {
-        grey = dis;
-      });
-    };
-    grey = widget.disable;
+    grey = !widget.enabled;
+    enableWidget = widget.enabled;
+    showButton = widget.showButton;
   }
 
   @override
   Widget build(BuildContext context) {
-    final style = BorderSide(color: widget.appThemeData.screenForegroundColour(!grey), width: 2);
-    if (widget.show) {
+    if (showButton) {
+      final style = BorderSide(color: widget.appThemeData.screenForegroundColour(!grey), width: 2);
       return Row(
         children: [
           SizedBox(
             height: 40,
             child: OutlinedButton(
               onPressed: () {
-                if (grey) {
+                if (grey || !enableWidget) {
                   return;
                 }
                 widget.onPressed();

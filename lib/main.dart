@@ -148,6 +148,7 @@ class _MyHomePageState extends State<MyHomePage> {
   SuccessState _globalSuccessState = SuccessState(true);
   ScrollController _treeViewScrollController = ScrollController();
   IndicatorIcon? _indicatorIcon;
+  Key? _indicatorIconKey;
   DataContainer _loadedData = DataContainer.empty();
   MyTreeNode _treeNodeDataRoot = MyTreeNode.empty();
   MyTreeNode _filteredNodeDataRoot = MyTreeNode.empty();
@@ -1257,8 +1258,9 @@ class _MyHomePageState extends State<MyHomePage> {
       _loadedData.warning = "";
       _handleAction(DetailAction.actionOnly(ActionType.showLog));
     }
-
+    _indicatorIconKey = GlobalKey();
     _indicatorIcon = IndicatorIcon(
+      key: _indicatorIconKey,
       iconData: const [Icons.access_time_filled, Icons.access_time],
       color: _configData.getAppThemeData().secondary.med,
       period: 500,
@@ -1420,17 +1422,17 @@ class _MyHomePageState extends State<MyHomePage> {
                 MenuOptionDetails("Done", "", ActionType.none, () {
                   return Icons.arrow_back;
                 }),
-                MenuOptionDetails("Invert Select '%{3}'", "Invert ALL selected in '%{3}'", ActionType.groupSelectAll, () {
-                  return Icons.select_all;
-                }),
-                MenuOptionDetails("Clear Select", "Clear ALL selected", ActionType.groupSelectClearAll, () {
-                  return Icons.deselect;
-                }),
+                // MenuOptionDetails("Invert Select '%{3}'", "Invert ALL selected in '%{3}'", ActionType.groupSelectAll, () {
+                //   return Icons.select_all;
+                // }),
                 MenuOptionDetails("Add NEW Group", "Add a new group to '%{3}'", ActionType.addGroup, () {
                   return Icons.add_box_outlined;
                 }),
                 MenuOptionDetails("Add NEW Detail", "Add a new detail to group '%{3}'", ActionType.addDetail, () {
                   return Icons.add;
+                }),
+                MenuOptionDetails("Clear Select", "Clear ALL selected", ActionType.groupSelectClearAll, () {
+                  return Icons.deselect;
                 }),
                 MenuOptionDetails("Save %{0}", "Save %{4} %{2}%{0}", ActionType.save, () {
                   return Icons.lock_open;

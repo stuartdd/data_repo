@@ -1,6 +1,14 @@
 #!/bin/bash
 
+export xxx="final DateTime buildDate = DateTime.fromMillisecondsSinceEpoch(($(date "+%s000")));"
+echo "$xxx" > lib/build_date.dart
+export yyy="final String buildPath = '$(pwd)';"
+echo "$yyy" >> lib/build_date.dart
 
+echo "Build date created:"
+cat lib/build_date.dart
+
+echo "Build: Linux Release"
 
 flutter build linux --release
 status=$?
