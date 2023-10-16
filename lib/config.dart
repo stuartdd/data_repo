@@ -9,7 +9,7 @@ const String defaultRemoteGetUrl = "http://localhost:8080/file";
 const String defaultRemotePostUrl = "http://localhost:8080/file";
 const String defaultDataFileName = "data.json";
 const String defaultAppStateFileName = "data_repo_appState.json";
-const String defaultConfigFileNmae = "data_repo_config.json";
+const String defaultConfigFileName = "data_repo_config.json";
 
 const String defaultPrimaryColour = "blue";
 const String defaultSecondaryColour = "green";
@@ -23,7 +23,12 @@ const String defaultAppTitle = "Data Repo";
 const String defaultFontFamily = "Roboto";
 const double defaultFontScaleDesktop = 1.0;
 const double defaultFontScaleMobile = 0.8;
-const double defaultTreeNodeHeight = 35.0;
+const double defaultTreeNodeHeight = 30.0;
+
+const defaultAppBarHeight = 45.0;
+const defaultNavBarHeight = 45.0;
+const defaultStatusBarHeight = 35.0;
+const defaultIconSize = 30;
 
 const defaultConfig = """  {
         "application" : {
@@ -43,8 +48,9 @@ final dataFileLocalDirPath = Path.fromList(["file", "datafilePath"]);
 final appStateFileNamePath = Path.fromList(["user", "appStateFile"]);
 final appStateLocalDirPath = Path.fromList(["user", "appStatePath"]);
 final titlePath = Path.fromList(["application", "title"]);
-final rootNodeNamePath = Path.fromList(["application", "rootNodeName"]);
-final appColoursDarkMode = Path.fromList(["application", "darkMode"]);
+final appRootNodeNamePath = Path.fromList(["application", "rootNodeName"]);
+final appTextScalePath = Path.fromList(["application", "textScale"]);
+final appColoursDarkModePath = Path.fromList(["application", "darkMode"]);
 final appColoursPrimaryPath = Path.fromList(["application", "colours", "primary"]);
 final appColoursSecondaryPath = Path.fromList(["application", "colours", "secondary"]);
 final appColoursHiLightPath = Path.fromList(["application", "colours", "hilight"]);
@@ -147,6 +153,7 @@ class AppThemeData {
   final ColorPallet error;
   final bool darkMode;
   final bool desktop;
+  late final double iconSize;
   late final TextStyle tsLarge;
   late final TextStyle tsLargeDisabled;
   late final TextStyle tsLargeItalic;
@@ -178,14 +185,15 @@ class AppThemeData {
     tsSmall = TextStyle(fontSize: (15.0 * scale), color: screenForegroundColour(true));
     tsSmallDisabled = TextStyle(fontSize: (15.0 * scale), color: screenForegroundColour(false));
     tsSmallError = TextStyle(fontSize: (15.0 * scale), color: errC);
-    tsTreeViewLabel = TextStyle(fontSize: (20.0 * scale), color: screenForegroundColour(true));
-    tsTreeViewParentLabel = TextStyle(fontSize: (25.0 * scale), fontWeight: FontWeight.w600, color: screenForegroundColour(true));
-    treeNodeHeight = defaultTreeNodeHeight;
+    tsTreeViewLabel = TextStyle(fontSize: (25.0 * scale), color: screenForegroundColour(true));
+    tsTreeViewParentLabel = TextStyle(fontSize: (30.0 * scale), fontWeight: FontWeight.w600, color: screenForegroundColour(true));
+    treeNodeHeight = defaultTreeNodeHeight * (scale * 1.5);
     treeNodeIcons = List.empty(growable: true);
+    iconSize = defaultIconSize * scale;
     for (int i = 0; i < defaultTreeNodeIconData.length; i++) {
       treeNodeIcons.add(Icon(
         defaultTreeNodeIconData[i],
-        size: treeNodeHeight - 11,
+        size: iconSize,
         color: screenForegroundColour(true),
       ));
     }
@@ -200,7 +208,6 @@ class AppThemeData {
             selectionColor: Colors.yellow,
             selectionHandleColor: Colors.blue,
           );
-    debugPrint("AppThemeData: Created!");
   }
 
   Size textSize(String text, TextStyle style) {
@@ -295,6 +302,7 @@ class ConfigData {
   late final int _dataFetchTimeoutMillis;
   Function()? _onUpdate;
   AppThemeData? _appThemeData;
+  double _textScale = 0;
   String _rootNodeName = "";
   String _dataFileName = "";
   String _getDataFileUrl = "";
@@ -378,8 +386,9 @@ class ConfigData {
     _appColoursSecondary = validColour(_data.getStringFromJson(appColoursSecondaryPath, fallback: defaultSecondaryColour, create: true), appColoursSecondaryPath);
     _appColoursHiLight = validColour(_data.getStringFromJson(appColoursHiLightPath, fallback: defaultHiLightColour, create: true), appColoursHiLightPath);
     _appColoursError = validColour(_data.getStringFromJson(appColoursErrorPath, fallback: defaultErrorColour, create: true), appColoursErrorPath);
-    _darkMode = _data.getBoolFromJson(appColoursDarkMode, fallback: false);
-    _rootNodeName = _data.getStringFromJson(rootNodeNamePath, fallback: "?");
+    _darkMode = _data.getBoolFromJson(appColoursDarkModePath, fallback: false);
+    _textScale = _data.getNumFromJson(appTextScalePath, fallback: (_isDesktop ? defaultFontScaleDesktop : defaultFontScaleMobile)).toDouble();
+    _rootNodeName = _data.getStringFromJson(appRootNodeNamePath, fallback: "?");
     _appThemeData = null;
     if (_onUpdate != null && callOnUpdate) {
       _onUpdate!();
@@ -387,7 +396,7 @@ class ConfigData {
   }
 
   AppThemeData getAppThemeData() {
-    _appThemeData ??= AppThemeData._(_appColoursPrimary, _appColoursSecondary, _appColoursHiLight, _appColoursError, defaultFontFamily, _isDesktop ? defaultFontScaleDesktop : defaultFontScaleMobile, Colors.red.shade500, _darkMode, _isDesktop);
+    _appThemeData ??= AppThemeData._(_appColoursPrimary, _appColoursSecondary, _appColoursHiLight, _appColoursError, defaultFontFamily, _textScale, Colors.red.shade500, _darkMode, _isDesktop);
     return _appThemeData!;
   }
 
@@ -410,6 +419,22 @@ class ConfigData {
     final dt = DateTime.now();
     final result = '${dt.year}-${dt.month}-${dt.day} ${dt.hour}:${dt.minute}:${dt.second}';
     return DataContainer.convertStringToMap('{"Data":{"Info":{"Created":"$result"}}}', "");
+  }
+
+  double get iconSize {
+    return (defaultIconSize * _textScale);
+  }
+
+  double get appBarHeight {
+    return defaultAppBarHeight * _textScale;
+  }
+
+  double get navBarHeight {
+    return defaultNavBarHeight * _textScale;
+  }
+
+  double get statusBarHeight {
+    return defaultStatusBarHeight * _textScale;
   }
 
   String getStringFromJsonOptional(Path path) {

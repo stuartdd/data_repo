@@ -164,8 +164,6 @@ class _IndicatorIcon extends State<IndicatorIcon> {
   }
 }
 
-
-
 class DetailIconButton extends StatefulWidget {
   final bool show;
   final bool enabled;
@@ -176,7 +174,7 @@ class DetailIconButton extends StatefulWidget {
   final AppThemeData appThemeData;
   final EdgeInsetsGeometry padding;
 
-  const DetailIconButton({super.key, this.show = true, this.enabled = true, required this.onPressed, this.timerMs = 100, required this.iconData, this.tooltip = "", required this.appThemeData, this.padding = const EdgeInsets.fromLTRB(1, 1, 1, 0)});
+  const DetailIconButton({super.key, this.show = true, this.enabled = true, required this.onPressed, this.timerMs = 100, required this.iconData, this.tooltip = "", required this.appThemeData, this.padding = const EdgeInsets.fromLTRB(0, 2, 0, 0)});
   @override
   State<DetailIconButton> createState() => _DetailIconButton();
 }
@@ -187,11 +185,9 @@ class _DetailIconButton extends State<DetailIconButton> {
   @override
   Widget build(BuildContext context) {
     if (widget.show) {
-      return IconButton(
-        padding: widget.padding,
-        icon: Icon(widget.iconData, color: widget.appThemeData.screenForegroundColour(widget.enabled && !grey)),
-        tooltip: widget.tooltip,
-        onPressed: () {
+      return InkWell(
+        child: Icon(widget.iconData, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(widget.enabled && !grey)),
+        onTap: () {
           if (!widget.enabled) {
             return;
           }
@@ -389,6 +385,7 @@ Widget inputTextField(final String hint, TextStyle ts, TextSelectionThemeData th
         hintText: hint,
         focusedBorder: OutlineInputBorder(borderSide: BorderSide(width: 2, color: isDarkMode ? Colors.white : Colors.black)),
         border: const OutlineInputBorder(),
+        contentPadding: const EdgeInsets.fromLTRB(5, 5, 0, 0),
       ),
       autofocus: true,
       onSubmitted: (value) {
@@ -611,7 +608,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                           obscurePw = !obscurePw;
                         });
                       },
-                      icon: Icon(obscurePw ? Icons.visibility : Icons.visibility_outlined)),
+                      icon: Icon(obscurePw ? Icons.visibility : Icons.visibility_outlined, size: widget.appThemeData.iconSize)),
                   Text(obscurePw ? "Show password" : "Hide password", style: widget.appThemeData.tsMedium)
                 ],
               )

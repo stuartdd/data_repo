@@ -390,12 +390,11 @@ Widget? buildNodeDefault(final MyTreeNode node, final String rootNodeName, final
         scrollDirection: Axis.horizontal,
         children: [
           SizedBox(width: 20.0 * (pl)), // Indent
-          IconButton(
-              onPressed: () {
+          InkWell(
+              onTap: () {
                 onExpand(node.path);
               },
-              tooltip: defaultTreeNodeToolTip[node.iconIndex],
-              icon: appThemeData.treeNodeIcons[node.iconIndex]),
+              child: appThemeData.treeNodeIcons[node.iconIndex]),
           TextButton(
             child: Text(
               (pl == 0 && rootNodeName.isNotEmpty) ? rootNodeName : node.label,
@@ -406,12 +405,11 @@ Widget? buildNodeDefault(final MyTreeNode node, final String rootNodeName, final
             },
           ),
           node.hasLeafNodes
-              ? IconButton(
-                  onPressed: () {
+              ? InkWell(
+              onTap: () {
                     onClick(node.path);
                   },
-                  tooltip: defaultTreeNodeToolTip[defaultTreeNodeIconDataHasData],
-                  icon: appThemeData.treeNodeIcons[defaultTreeNodeIconDataHasData])
+                  child: appThemeData.treeNodeIcons[defaultTreeNodeIconDataHasData])
               : const SizedBox(
                   width: 0,
                 ),

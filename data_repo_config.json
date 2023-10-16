@@ -2,14 +2,15 @@
   "application": {
     "title": "Data Repository",
     "rootNodeName": "Home",
-    "dataFetchTimeoutMillis": 500,
+    "dataFetchTimeoutMillis": 2000,
     "colours": {
       "primary": "blue",
       "secondary": "green",
       "hilight": "yellow",
       "error": "red"
     },
-    "darkMode": false
+    "darkMode": false,
+    "textScale": 1
   },
   "file": {
     "getDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",

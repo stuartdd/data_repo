@@ -8,7 +8,7 @@ import 'data_container.dart';
 import 'path.dart';
 import 'config.dart';
 
-enum SettingDetailType { url, dir, file, int, bool, color, name }
+enum SettingDetailType { url, dir, file, int, double, bool, color, name }
 
 enum _SettingState { ok, warning, error }
 
@@ -17,9 +17,10 @@ final List<SettingDetail> _settingsData = [
   SettingDetail("put", "Server URL (Upload)", "Upload address of the host server", postDataUrlPath, SettingDetailType.url, defaultRemotePostUrl, true),
   SettingDetail("path", "Local Data file path", "The directory for the data file", dataFileLocalDirPath, SettingDetailType.dir, defaultDataEmptyString, false),
   SettingDetail("data", "Data file Name", "Now set from the main screen!", dataFileLocalNamePath, SettingDetailType.file, defaultDataEmptyString, true, hide: true),
-  SettingDetail("rootNodeName", "Root Node Name", "Replace the root node name with this", rootNodeNamePath, SettingDetailType.name, defaultDataEmptyString, true),
-  SettingDetail("timeout", "Server Timeout Milliseconds", "The host server timeout", dataFetchTimeoutMillisPath, SettingDetailType.int, defaultFetchTimeoutMillis.toString(), false),
-  SettingDetail("", "Screen Text & Icons", "Icons/Text White or Black. Click below to change", appColoursDarkMode, SettingDetailType.bool, defaultDarkMode, true, trueValue: "Currently White", falseValue: "Currently Black"),
+  SettingDetail("rootNodeName", "Root Node Name", "Replace the root node name with this", appRootNodeNamePath, SettingDetailType.name, defaultDataEmptyString, true),
+  SettingDetail("timeout", "Server Timeout Milliseconds", "The host server timeout 100..5000", dataFetchTimeoutMillisPath, SettingDetailType.int, defaultFetchTimeoutMillis.toString(), false, minValue: 100, maxValue: 5000),
+  SettingDetail("", "Screen Text & Icons", "Icons/Text White or Black. Click below to change", appColoursDarkModePath, SettingDetailType.bool, defaultDarkMode, true, trueValue: "Currently White", falseValue: "Currently Black"),
+  SettingDetail("", "Screen Text Scale", "Text Scale. 0.5..2.0", appTextScalePath, SettingDetailType.double, "1.0", true, minValue: 0.5, maxValue: 2.0),
   SettingDetail("", "Primary Colour", "The main colour theme", appColoursPrimaryPath, SettingDetailType.color, defaultPrimaryColour, true),
   SettingDetail("", "Preview Colour", "The Markdown 'Preview' colour", appColoursSecondaryPath, SettingDetailType.color, defaultSecondaryColour, true),
   SettingDetail("", "Help Colour", "The Markdown 'Help' colour", appColoursHiLightPath, SettingDetailType.color, defaultHiLightColour, true),
@@ -252,7 +253,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
         Container(
           color: widget.appThemeData.primary.light,
           child: ListTile(
-            leading: (widget.settingsControl.changed) ? Icon(Icons.star, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.radio_button_unchecked, color: widget.appThemeData.screenForegroundColour(false)),
+            leading: (widget.settingsControl.changed) ? Icon(Icons.star, size:widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.radio_button_unchecked, size:widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(false)),
             title: Text(widget.settingsControl.detail.title, style: widget.appThemeData.tsLarge),
             subtitle: widget.settingsControl.validationState.hintText(widget.settingsControl.detail.hint, widget.appThemeData),
           ),
@@ -271,7 +272,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
   Widget _configInputField(SettingDetailType type, void Function(String) onChanged) {
     if (type == SettingDetailType.bool) {
       final set = _stringToBool(widget.settingsControl.stringValue);
-      final iconData = set ? Icon(Icons.circle_outlined, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.circle_rounded, color: widget.appThemeData.screenForegroundColour(true));
+      final iconData = set ? Icon(Icons.circle_outlined, size:widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.circle_rounded, size:widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true));
       return Container(
         color: widget.appThemeData.primary.med,
         padding: const EdgeInsets.all(5.0),
@@ -334,7 +335,35 @@ class SettingDetail {
   final bool hide; // Only applies to the desktop
   final String trueValue; // The text value if true
   final String falseValue; // The text value if false
-  const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = "", this.hide = false});
+  final double minValue; // The text value if true
+  final double maxValue; // The text value if false
+  const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = "",this.minValue = double.maxFinite, this.maxValue = double.maxFinite, this.hide = false});
+
+  String range(String valueString) {
+    final name = detailType == SettingDetailType.double ? 'Decimal' : 'Integer';
+    final vs = valueString.trim();
+    if (vs.isEmpty) {
+      return "Requires $name number";
+    }
+    final double value;
+    try {
+      value = num.parse(vs).toDouble();
+    } catch (e) {
+      return "Invalid $name number";
+    }
+    if (minValue != double.maxFinite) {
+      if (value < minValue) {
+        return "$name number too low";
+      }
+    }
+    if (maxValue != double.maxFinite) {
+      if (value > maxValue) {
+        return "$name number too high";
+      }
+    }
+    return "";
+  }
+
 }
 
 class SettingControlList {
@@ -348,6 +377,7 @@ class SettingControlList {
           case SettingDetailType.bool:
             list.add(SettingControl(settingDetail, configData.getBoolFromJson(settingDetail.path, fallback: _stringToBool(settingDetail.fallback)).toString()));
             break;
+          case SettingDetailType.double:
           case SettingDetailType.int:
             list.add(SettingControl(settingDetail, configData.getNumFromJson(settingDetail.path, fallback: num.parse(settingDetail.fallback)).toString()));
             break;
@@ -445,6 +475,9 @@ class SettingControl {
     if (detail.detailType == SettingDetailType.int) {
       return (num.parse(stringValue));
     }
+    if (detail.detailType == SettingDetailType.double) {
+      return (num.parse(stringValue));
+    }
     return stringValue;
   }
 
@@ -482,18 +515,17 @@ bool _stringToBool(String text) {
   return false;
 }
 
+
+
 SettingValidation _initialValidate(String value, SettingDetail detail, SettingControlList controlList, SettingValidation Function(String, SettingDetail) onValidate) {
   final vt = value.trim();
   switch (detail.detailType) {
     case SettingDetailType.int:
+    case SettingDetailType.double:
       {
-        try {
-          final v = num.parse(value);
-          if (v is! int) {
-            return SettingValidation.error("Should be an integer");
-          }
-        } catch (e) {
-          return SettingValidation.error("Invalid number");
+        final msg = detail.range(value);
+        if (msg.isNotEmpty) {
+          return SettingValidation.error(msg);
         }
         break;
       }
@@ -613,13 +645,13 @@ Future<void> showColorPeckerDialog(final BuildContext context, final AppThemeDat
 
 Future<void> showConfigDialog(final BuildContext context, ConfigData configData, ScreenSize size, String dataFileDir, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit, final String Function() canChangeConfig, final Function(String) log) async {
   final settingsControlList = SettingControlList(configData.getAppThemeData().desktop, dataFileDir, configData);
-
+  final appThemeData = configData.getAppThemeData();
   final applyButtonKey = GlobalKey();
   final applyButton = DetailButton(
     key: applyButtonKey,
     enabled: false,
     text: "Apply",
-    appThemeData: configData.getAppThemeData(),
+    appThemeData: appThemeData,
     onPressed: () {
       onCommit(settingsControlList, false);
       log("__CONFIG__ changes APPLIED");
@@ -631,7 +663,7 @@ Future<void> showConfigDialog(final BuildContext context, ConfigData configData,
     key: saveButtonKey,
     enabled: false,
     text: "Save",
-    appThemeData: configData.getAppThemeData(),
+    appThemeData: appThemeData,
     onPressed: () {
       onCommit(settingsControlList, true);
       log("__CONFIG__ changes SAVED");
@@ -642,43 +674,50 @@ Future<void> showConfigDialog(final BuildContext context, ConfigData configData,
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: configData.getAppThemeData().dialogBackgroundColor,
+          backgroundColor: appThemeData.dialogBackgroundColor,
           insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
           title: Row(
             children: [
-              Text("Settings: ", style: configData.getAppThemeData().tsLarge),
+              Text("Settings: ", style: appThemeData.tsLarge),
               Icon(
                 Icons.circle_rounded,
-                color: configData.getAppThemeData().primary.lightest,
+                size: appThemeData.iconSize,
+                color: appThemeData.primary.lightest,
               ),
               Icon(
                 Icons.circle_rounded,
-                color: configData.getAppThemeData().primary.light,
+                size: appThemeData.iconSize,
+                color: appThemeData.primary.light,
               ),
               Icon(
                 Icons.circle_rounded,
-                color: configData.getAppThemeData().primary.med,
+                size: appThemeData.iconSize,
+                color: appThemeData.primary.med,
               ),
               Icon(
                 Icons.circle_rounded,
-                color: configData.getAppThemeData().primary.medLight,
+                size: appThemeData.iconSize,
+                color: appThemeData.primary.medLight,
               ),
               Icon(
                 Icons.circle_rounded,
-                color: configData.getAppThemeData().primary.medDark,
+                size: appThemeData.iconSize,
+                color: appThemeData.primary.medDark,
               ),
               Icon(
                 Icons.circle_rounded,
-                color: configData.getAppThemeData().primary.dark,
+                size: appThemeData.iconSize,
+                color: appThemeData.primary.dark,
               ),
               Icon(
                 Icons.circle_rounded,
-                color: configData.getAppThemeData().primary.darkest,
+                size: appThemeData.iconSize,
+                color: appThemeData.primary.darkest,
               ),
             ],
           ),
           content: ConfigInputPage(
-            appThemeData: configData.getAppThemeData(),
+            appThemeData: appThemeData,
             settingsControlList: settingsControlList,
             onValidate: (dynamicValue, settingDetail) {
               return validate(dynamicValue, settingDetail);
@@ -696,7 +735,7 @@ Future<void> showConfigDialog(final BuildContext context, ConfigData configData,
               children: [
                 DetailButton(
                   text: "Cancel",
-                  appThemeData: configData.getAppThemeData(),
+                  appThemeData: appThemeData,
                   onPressed: () {
                     settingsControlList.clear();
                     Navigator.of(context).pop();

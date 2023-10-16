@@ -18,10 +18,6 @@ import 'appState.dart';
 import 'main_view.dart';
 import 'detail_buttons.dart';
 
-const appBarHeight = 45.0;
-const navBarHeight = 45.0;
-const statusBarHeight = 35.0;
-
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
 
@@ -38,7 +34,7 @@ ScreenSize screenSize = ScreenSize();
 _screenSize(BuildContext context) {
   final pt = MediaQuery.of(context).padding.top;
   final bi = MediaQuery.of(context).viewInsets.bottom - MediaQuery.of(context).viewInsets.top;
-  final height = MediaQuery.of(context).size.height - (bi + pt) - 4;
+  final height = MediaQuery.of(context).size.height - (bi + pt) - 2;
   final width = MediaQuery.of(context).size.width;
   screenSize.update(width, height);
 }
@@ -49,7 +45,7 @@ void main() async {
     final applicationDefaultDir = await ApplicationState.getApplicationDefaultDir();
     final isDesktop = ApplicationState.appIsDesktop();
 
-    _configData = ConfigData(applicationDefaultDir, defaultConfigFileNmae, isDesktop, logger.log);
+    _configData = ConfigData(applicationDefaultDir, defaultConfigFileName, isDesktop, logger.log);
     _applicationState = ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), logger.log);
     if (isDesktop) {
       setWindowTitle("${_configData.getTitle()}: ${_configData.getDataFileName()}");
@@ -144,11 +140,10 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _dataWasUpdated = false;
   bool _checkReferences = false;
   bool _isEditDataDisplay = false;
-  double _navBarHeight = navBarHeight;
+  double _navBarHeight = _configData.navBarHeight;
   SuccessState _globalSuccessState = SuccessState(true);
   ScrollController _treeViewScrollController = ScrollController();
   IndicatorIcon? _indicatorIcon;
-  Key? _indicatorIconKey;
   DataContainer _loadedData = DataContainer.empty();
   MyTreeNode _treeNodeDataRoot = MyTreeNode.empty();
   MyTreeNode _filteredNodeDataRoot = MyTreeNode.empty();
@@ -637,7 +632,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 "Encrypted extension = .data",
               ], (action, fileName, password) {
                 final fn = password.isEmpty ? "$fileName.json" : "$fileName.data";
-                if (fn.toLowerCase() == defaultConfigFileNmae.toLowerCase()) {
+                if (fn.toLowerCase() == defaultConfigFileName.toLowerCase()) {
                   return "Cannot use '$fileName'";
                 }
                 if (fn.toLowerCase() == _configData.getAppStateFileName().toLowerCase()) {
@@ -1258,14 +1253,13 @@ class _MyHomePageState extends State<MyHomePage> {
       _loadedData.warning = "";
       _handleAction(DetailAction.actionOnly(ActionType.showLog));
     }
-    _indicatorIconKey = GlobalKey();
+
     _indicatorIcon = IndicatorIcon(
-      key: _indicatorIconKey,
       iconData: const [Icons.access_time_filled, Icons.access_time],
       color: _configData.getAppThemeData().secondary.med,
       period: 500,
       padding: const EdgeInsets.all(5),
-      size: (appBarHeight / 3.5) * 2,
+      size: (_configData.appBarHeight / 3.5) * 2,
       onClick: (c) {
         _handleAction(DetailAction.actionOnly(ActionType.showLog));
       },
@@ -1337,14 +1331,11 @@ class _MyHomePageState extends State<MyHomePage> {
       _navBarHeight = 0;
       toolBarItems.add(Container(
         color: appThemeData.primary.med,
-        child: SizedBox(
-          width: screenSize.width / 3,
-          child: inputTextField("Password:", appThemeData.tsLarge, _configData.getAppThemeData().textSelectionThemeData, _configData.getAppThemeData().darkMode, true, passwordEditingController, (v) {
-            // passwordEditingController.text = "";
-            _initialPassword = v;
-            _loadDataState();
-          }, (v) {}),
-        ),
+        width: screenSize.width / 3,
+        child: inputTextField("Password:", appThemeData.tsLarge, _configData.getAppThemeData().textSelectionThemeData, _configData.getAppThemeData().darkMode, true, passwordEditingController, (v) {
+          _initialPassword = v;
+          _loadDataState();
+        }, (v) {}),
       ));
       toolBarItems.add(DetailIconButton(
         appThemeData: appThemeData,
@@ -1366,7 +1357,7 @@ class _MyHomePageState extends State<MyHomePage> {
             showLocalFilesDialog(
               context,
               _configData.getAppThemeData(),
-              _configData.dir(["data", "json"], [defaultConfigFileNmae, _configData.getAppStateFileName()]),
+              _configData.dir(["data", "json"], [defaultConfigFileName, _configData.getAppStateFileName()]),
               (fileName) {
                 if (fileName != _configData.getDataFileName()) {
                   _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
@@ -1388,7 +1379,7 @@ class _MyHomePageState extends State<MyHomePage> {
       //
       // Data is loaded
       //
-      _navBarHeight = navBarHeight;
+      _navBarHeight = _configData.navBarHeight;
       toolBarItems.add(DetailIconButton(
         show: _loadedData.isNotEmpty,
         appThemeData: appThemeData,
@@ -1560,8 +1551,8 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     final settings = Positioned(
-        left: screenSize.width - appBarHeight,
-        top: _navBarHeight,
+        left: (screenSize.width - (_configData.iconSize*2)),
+        top: _navBarHeight - (_configData.iconSize/2),
         child: DetailIconButton(
           iconData: Icons.settings,
           tooltip: 'Settings',
@@ -1627,7 +1618,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   // in the middle of the parent.
                   children: [
                     Container(
-                      height: appBarHeight,
+                      height: _configData.appBarHeight,
                       color: appBackgroundColor,
                       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: toolBarItems),
                     ),
@@ -1659,7 +1650,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             height: 1,
                           ),
                     Container(
-                      height: screenSize.height - (appBarHeight + statusBarHeight + _navBarHeight),
+                      height: screenSize.height - (_configData.appBarHeight + _configData.statusBarHeight + _navBarHeight),
                       color: appBackgroundColor,
                       child: displayData.splitView,
                     ),
@@ -1668,7 +1659,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       height: 1,
                     ),
                     Container(
-                      height: statusBarHeight,
+                      height: _configData.statusBarHeight,
                       color: _globalSuccessState.isSuccess ? appBackgroundColor : appBackgroundErrorColor,
                       child: Row(
                         children: [
@@ -1677,7 +1668,6 @@ class _MyHomePageState extends State<MyHomePage> {
                             appThemeData: appThemeData,
                             iconData: Icons.view_timeline,
                             tooltip: 'Log',
-                            padding: const EdgeInsets.all(1.0),
                             onPressed: () {
                               _handleAction(DetailAction.actionOnly(ActionType.showLog));
                             },

@@ -128,7 +128,7 @@ class _DetailWidgetState extends State<DetailWidget> {
         height: height / 2,
         color: bg,
         child: Text(
-          "${i+1}",
+          "${i + 1}",
           style: ts,
         ),
       ));
@@ -195,7 +195,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                 alignment: Alignment.centerLeft,
                 child: Padding(padding: const EdgeInsets.all(5.0), child: Text(r.value, style: appThemeData.tsLargeItalic)),
               ),
-             ],
+            ],
           ),
         );
       }
@@ -284,7 +284,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             widget.isEditDataDisplay
                 ? IconButton(
                     color: appThemeData.screenForegroundColour(true),
-                    icon: const Icon(Icons.copy),
+                    icon: Icon(Icons.copy, size: widget.appThemeData.iconSize),
                     tooltip: 'Copy Path',
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: widget.dataValueRow.fullPath.toString()));
@@ -304,7 +304,7 @@ class _DetailWidgetState extends State<DetailWidget> {
   Widget _detailForMap(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
     return SizedBox(
       child: Card(
-        key: UniqueKey(),
+          key: UniqueKey(),
           color: appThemeData.detailBackgroundColor,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ListTile(
@@ -348,7 +348,7 @@ class _DetailWidgetState extends State<DetailWidget> {
 Widget groupButton(PathProperties plp, bool value, Path path, AppThemeData appThemeData, final Path Function(DetailAction) dataAction) {
   return IconButton(
     color: appThemeData.screenForegroundColour(true),
-    icon: plp.groupSelect ? const Icon(Icons.radio_button_checked) : const Icon(Icons.radio_button_unchecked),
+    icon: plp.groupSelect ? Icon(Icons.radio_button_checked, size: appThemeData.iconSize) : Icon(Icons.radio_button_unchecked, size: appThemeData.iconSize),
     tooltip: plp.groupSelect ? 'Remove from select' : 'Add to select',
     onPressed: () {
       dataAction(DetailAction(ActionType.groupSelect, value, path));
