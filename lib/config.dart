@@ -26,9 +26,10 @@ const double defaultFontScaleMobile = 0.8;
 const double defaultTreeNodeHeight = 30.0;
 
 const defaultAppBarHeight = 45.0;
-const defaultNavBarHeight = 45.0;
-const defaultStatusBarHeight = 35.0;
+const defaultButtonHeight = 45.0;
+const defaultButtonGap = 15;
 const defaultIconSize = 30;
+const defaultIconGap = 15;
 
 const defaultConfig = """  {
         "application" : {
@@ -154,6 +155,10 @@ class AppThemeData {
   final bool darkMode;
   final bool desktop;
   late final double iconSize;
+  late final double iconGap;
+  late final double buttonHeight;
+  late final double buttonGap;
+
   late final TextStyle tsLarge;
   late final TextStyle tsLargeDisabled;
   late final TextStyle tsLargeItalic;
@@ -190,6 +195,10 @@ class AppThemeData {
     treeNodeHeight = defaultTreeNodeHeight * (scale * 1.5);
     treeNodeIcons = List.empty(growable: true);
     iconSize = defaultIconSize * scale;
+    iconGap = defaultIconGap * scale;
+    buttonHeight = defaultButtonHeight * scale;
+    buttonGap = defaultButtonGap * scale;
+
     for (int i = 0; i < defaultTreeNodeIconData.length; i++) {
       treeNodeIcons.add(Icon(
         defaultTreeNodeIconData[i],
@@ -425,16 +434,20 @@ class ConfigData {
     return (defaultIconSize * _textScale);
   }
 
+  double get scale {
+    return _textScale;
+  }
+
+  double get iconGap {
+    return (defaultIconGap * _textScale);
+  }
+
   double get appBarHeight {
     return defaultAppBarHeight * _textScale;
   }
 
-  double get navBarHeight {
-    return defaultNavBarHeight * _textScale;
-  }
-
-  double get statusBarHeight {
-    return defaultStatusBarHeight * _textScale;
+  double get appButtonHeight {
+    return defaultButtonHeight * _textScale;
   }
 
   String getStringFromJsonOptional(Path path) {

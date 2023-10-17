@@ -104,7 +104,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     return _detailForMap(widget.appThemeData, hiLight, widget.isHorizontal);
   }
 
-  List<Widget> _tableRowForString(final String value, final bool updated, final TextStyle ts, final Color bg, final Color fg, final int height) {
+  List<Widget> _tableRowForString(final String value, final bool updated, final TextStyle ts, final Color bg, final Color fg, final double height) {
     List<Widget> l = [];
     for (int i = 0; i < value.length; i++) {
       l.add(Container(
@@ -120,7 +120,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     return l;
   }
 
-  List<Widget> _tableRowForIndex(final int last, final bool updated, final TextStyle ts, final Color bg, final Color fg, final int height) {
+  List<Widget> _tableRowForIndex(final int last, final bool updated, final TextStyle ts, final Color bg, final Color fg, final double height) {
     List<Widget> l = [];
     for (int i = 0; i < last; i++) {
       l.add(Container(
@@ -136,7 +136,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     return l;
   }
 
-  Widget _tableForString(final String value, final bool updated, final TextStyle ts1, final TextStyle ts2, final Color bg, final Color fg, final int height) {
+  Widget _tableForString(final String value, final bool updated, final TextStyle ts1, final TextStyle ts2, final Color bg, final Color fg, final double height) {
     return Table(
       defaultVerticalAlignment: TableCellVerticalAlignment.top,
       border: TableBorder.all(color: fg),
@@ -154,9 +154,10 @@ class _DetailWidgetState extends State<DetailWidget> {
     if (dataValueRow.type.equal(optionTypeDataPositional)) {
       return Container(
         alignment: Alignment.center,
-        child: _tableForString(dataValueRow.value, plp.updated, appThemeData.tsSmall, appThemeData.tsMediumBold, bgColour, fgColour, 70),
+        child: _tableForString(dataValueRow.value, plp.updated, appThemeData.tsMedium, appThemeData.tsMediumBold, bgColour, fgColour, appThemeData.buttonHeight * 2),
       );
     }
+
     if (dataValueRow.type.equal(optionTypeDataMarkDown)) {
       return Container(
         color: bgColour,
@@ -208,25 +209,33 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _detailForValue(final AppThemeData appThemeData, final PathProperties pathProperties, final bool horizontal) {
+  Widget _detailForValue(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
     final double rm = widget.dataValueRow.type.equal(optionTypeDataMarkDown) ? 15 : 5;
     return Card(
       key: UniqueKey(),
       color: appThemeData.detailBackgroundColor,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         ListTile(
-          leading: groupButton(pathProperties, true, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
           title: Container(
-            padding: const EdgeInsets.all(5),
-            color: appThemeData.selectedAndHiLightColour(true, pathProperties.renamed),
-            child: Text(widget.dataValueRow.getDisplayName(widget.isEditDataDisplay), style: appThemeData.tsMedium),
+            padding: const EdgeInsets.all(3),
+            color: appThemeData.selectedAndHiLightColour(true, plp.renamed),
+            child: Row(
+              children: [
+                groupButton(plp, false, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
+                const SizedBox(width: 10),
+                Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
+              ],
+            ),
           ),
-          subtitle: horizontal ? Text("Owned By: ${widget.dataValueRow.path}.\nType: ${widget.dataValueRow.type}", style: appThemeData.tsSmall) : null,
+          subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}", style: appThemeData.tsMediumBold) : null,
+          onTap: () {
+            widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
+          },
         ),
         SizedBox(
           child: Padding(
-            padding: EdgeInsets.fromLTRB(5, 0, rm, 10),
-            child: _containerForValue(widget.dataValueRow, appThemeData, pathProperties),
+            padding: EdgeInsets.fromLTRB(5, 0, rm, 5),
+            child: _containerForValue(widget.dataValueRow, appThemeData, plp),
           ),
         ),
         Row(
@@ -252,7 +261,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               appThemeData: widget.appThemeData,
               showButton: !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
               timerMs: 500,
-              text: 'Copy',
+              text: 'Copy All',
               onPressed: () async {
                 if (widget.dataValueRow.type.equal(optionTypeDataReference)) {
                   final ss = widget.onResolve(widget.dataValueRow.value);
@@ -282,21 +291,22 @@ class _DetailWidgetState extends State<DetailWidget> {
               },
             ),
             widget.isEditDataDisplay
-                ? IconButton(
-                    color: appThemeData.screenForegroundColour(true),
-                    icon: Icon(Icons.copy, size: widget.appThemeData.iconSize),
-                    tooltip: 'Copy Path',
-                    onPressed: () {
+                ? InkWell(
+                    child: Icon(Icons.copy, size: widget.appThemeData.iconSize, color: appThemeData.screenForegroundColour(true)),
+                    onTap: () {
                       Clipboard.setData(ClipboardData(text: widget.dataValueRow.fullPath.toString()));
                     })
                 : const SizedBox(
                     width: 0,
-                  )
+                  ),
+            const SizedBox(
+              width: 10,
+            )
           ],
         ),
         const SizedBox(
-          height: 10,
-        ),
+          height: 5,
+        )
       ]),
     );
   }
@@ -304,17 +314,24 @@ class _DetailWidgetState extends State<DetailWidget> {
   Widget _detailForMap(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
     return SizedBox(
       child: Card(
+          elevation: 2,
+          margin: const EdgeInsets.all(2),
           key: UniqueKey(),
           color: appThemeData.detailBackgroundColor,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+          child: Column(children: [
             ListTile(
-              leading: groupButton(plp, false, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
-              title: Container(
-                padding: const EdgeInsets.all(5.0),
+               title: Container(
+                padding: const EdgeInsets.all(3),
                 color: appThemeData.selectedAndHiLightColour(true, plp.renamed),
-                child: Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
+                child: Row(
+                  children: [
+                    groupButton(plp, false, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
+                    const SizedBox(width: 10),
+                    Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
+                  ],
+                ),
               ),
-              subtitle: horizontal ? Text("Group is Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: appThemeData.tsSmall) : null,
+              subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: appThemeData.tsMediumBold) : null,
               onTap: () {
                 widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
               },
@@ -346,11 +363,11 @@ class _DetailWidgetState extends State<DetailWidget> {
 }
 
 Widget groupButton(PathProperties plp, bool value, Path path, AppThemeData appThemeData, final Path Function(DetailAction) dataAction) {
-  return IconButton(
-    color: appThemeData.screenForegroundColour(true),
-    icon: plp.groupSelect ? Icon(Icons.radio_button_checked, size: appThemeData.iconSize) : Icon(Icons.radio_button_unchecked, size: appThemeData.iconSize),
-    tooltip: plp.groupSelect ? 'Remove from select' : 'Add to select',
-    onPressed: () {
+  final c = appThemeData.screenForegroundColour(true);
+  final size = appThemeData.iconSize;
+  return InkWell(
+    child: plp.groupSelect ? Icon(Icons.radio_button_checked, color: c, size: size) : Icon(Icons.radio_button_unchecked, color: c, size: size),
+    onTap: () {
       dataAction(DetailAction(ActionType.groupSelect, value, path));
     },
   );

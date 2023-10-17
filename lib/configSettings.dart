@@ -167,7 +167,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
         scDataValue = scData.stringValue;
       }
       if (sv.isNotError) {
-        await DataContainer.testHttpGet("${scGet.stringValue}/$scDataValue", "File: $scDataValue.", (resp) {
+        await DataContainer.testHttpGet("${scGet.stringValue}/$scDataValue", prefix: "File: $scDataValue.", (resp) {
           if (resp.isNotEmpty) {
             sv = SettingValidation.warning(resp);
           }
@@ -211,7 +211,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
       );
     }
     for (var scN in settingsControlList.list) {
-      if ((widget.appThemeData.desktop || scN.detail.desktopOnly) && !scN.detail.hide){
+      if ((widget.appThemeData.desktop || scN.detail.desktopOnly) && !scN.detail.hide) {
         l.add(
           Card(
             margin: EdgeInsetsGeometry.lerp(null, null, 5),
@@ -253,7 +253,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
         Container(
           color: widget.appThemeData.primary.light,
           child: ListTile(
-            leading: (widget.settingsControl.changed) ? Icon(Icons.star, size:widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.radio_button_unchecked, size:widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(false)),
+            leading: (widget.settingsControl.changed) ? Icon(Icons.star, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.radio_button_unchecked, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(false)),
             title: Text(widget.settingsControl.detail.title, style: widget.appThemeData.tsLarge),
             subtitle: widget.settingsControl.validationState.hintText(widget.settingsControl.detail.hint, widget.appThemeData),
           ),
@@ -272,7 +272,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
   Widget _configInputField(SettingDetailType type, void Function(String) onChanged) {
     if (type == SettingDetailType.bool) {
       final set = _stringToBool(widget.settingsControl.stringValue);
-      final iconData = set ? Icon(Icons.circle_outlined, size:widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.circle_rounded, size:widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true));
+      final iconData = set ? Icon(Icons.circle_outlined, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.circle_rounded, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true));
       return Container(
         color: widget.appThemeData.primary.med,
         padding: const EdgeInsets.all(5.0),
@@ -337,7 +337,7 @@ class SettingDetail {
   final String falseValue; // The text value if false
   final double minValue; // The text value if true
   final double maxValue; // The text value if false
-  const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = "",this.minValue = double.maxFinite, this.maxValue = double.maxFinite, this.hide = false});
+  const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = "", this.minValue = double.maxFinite, this.maxValue = double.maxFinite, this.hide = false});
 
   String range(String valueString) {
     final name = detailType == SettingDetailType.double ? 'Decimal' : 'Integer';
@@ -363,7 +363,6 @@ class SettingDetail {
     }
     return "";
   }
-
 }
 
 class SettingControlList {
@@ -515,8 +514,6 @@ bool _stringToBool(String text) {
   return false;
 }
 
-
-
 SettingValidation _initialValidate(String value, SettingDetail detail, SettingControlList controlList, SettingValidation Function(String, SettingDetail) onValidate) {
   final vt = value.trim();
   switch (detail.detailType) {
@@ -602,7 +599,7 @@ Future<void> showColorPeckerDialog(final BuildContext context, final AppThemeDat
 
   final okButtonKey = GlobalKey();
   final okButton = DetailButton(
-    key:okButtonKey,
+    key: okButtonKey,
     text: "OK",
     enabled: false,
     appThemeData: appThemeData,

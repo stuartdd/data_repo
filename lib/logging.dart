@@ -141,9 +141,12 @@ class _LogContentState extends State<LogContent> {
       if (widget._autoScroll) {
         widget._scrollController.jumpTo(widget._scrollController.position.maxScrollExtent);
       }
-      Timer(const Duration(milliseconds: 127), () {
-        setState(() {});
-      },);
+      Timer(
+        const Duration(milliseconds: 127),
+        () {
+          setState(() {});
+        },
+      );
     };
     super.initState();
   }
@@ -170,6 +173,7 @@ class _LogContentState extends State<LogContent> {
 }
 
 Future<void> showLogDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final Logger log, final bool Function(String) onTapLink) async {
+
   final logContent = LogContent(
       log: log,
       appThemeData: appThemeData,
@@ -204,13 +208,14 @@ Future<void> showLogDialog(final BuildContext context, final AppThemeData appThe
             children: [
               const SizedBox(width: 10),
               IndicatorIcon(
-                  iconData: const [Icons.playlist_play, Icons.playlist_remove],
-                  size: 30,
-                  color: appThemeData.screenForegroundColour(true),
-                  getState: (c) async {
-                    return logContent.autoScroll ? 0 : 1;
-                  },
-                  period: 500),
+                const [Icons.playlist_play, Icons.playlist_remove],
+                size: appThemeData.iconSize,
+                color: appThemeData.screenForegroundColour(true),
+                getState: (c) {
+                  return logContent.autoScroll ? 0 : 1;
+                },
+                period: 500,
+              ),
               const SizedBox(width: 10),
               DetailButton(
                 appThemeData: appThemeData,

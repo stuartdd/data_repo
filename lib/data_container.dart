@@ -311,23 +311,23 @@ class DataContainer {
     }
   }
 
-  static Future<void> testHttpGet(final String url, String pre, Function(String) callMe) async {
+  static Future<void> testHttpGet(final String url, Function(String) callMe, {String prefix = ""}) async {
     try {
       String resp = "";
       final uri = Uri.parse(url);
       final response = await http.get(uri).timeout(
         const Duration(milliseconds: 1000),
         onTimeout: () {
-          return http.Response('${pre}Timeout:', StatusCode.REQUEST_TIMEOUT);
+          return http.Response('${prefix}Timeout:', StatusCode.REQUEST_TIMEOUT);
         },
       );
       if (response.statusCode != StatusCode.OK) {
-        callMe("${pre}Status:${response.statusCode} ${getStatusMessage(response.statusCode)}");
+        callMe("${prefix}Status:${response.statusCode} ${getStatusMessage(response.statusCode)}");
         return;
       }
       callMe(resp);
     } catch (e) {
-      callMe("$pre$e");
+      callMe("$prefix$e");
     }
   }
 

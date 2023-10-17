@@ -140,19 +140,18 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _dataWasUpdated = false;
   bool _checkReferences = false;
   bool _isEditDataDisplay = false;
-  double _navBarHeight = _configData.navBarHeight;
+  double _navBarHeight = 0;
   SuccessState _globalSuccessState = SuccessState(true);
   ScrollController _treeViewScrollController = ScrollController();
-  IndicatorIcon? _indicatorIcon;
   DataContainer _loadedData = DataContainer.empty();
   MyTreeNode _treeNodeDataRoot = MyTreeNode.empty();
   MyTreeNode _filteredNodeDataRoot = MyTreeNode.empty();
   MyTreeNode _selectedTreeNode = MyTreeNode.empty();
   Path _selectedPath = Path.empty();
-
-  final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: logger.log);
   int _currentSelectedGroups = 0;
   String _currentSelectedGroupsPrefix = "";
+
+  final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: logger.log);
   final TextEditingController searchEditingController = TextEditingController(text: "");
   final TextEditingController passwordEditingController = TextEditingController(text: "");
 
@@ -1254,29 +1253,29 @@ class _MyHomePageState extends State<MyHomePage> {
       _handleAction(DetailAction.actionOnly(ActionType.showLog));
     }
 
-    _indicatorIcon = IndicatorIcon(
-      iconData: const [Icons.access_time_filled, Icons.access_time],
-      color: _configData.getAppThemeData().secondary.med,
+    final indicatorIconKey = GlobalKey();
+    final indicatorIcon = IndicatorIcon(
+      const [Icons.access_time_filled, Icons.access_time],
+      key: indicatorIconKey,
+      color: _configData.getAppThemeData().screenForegroundColour(true),
       period: 500,
       padding: const EdgeInsets.all(5),
       size: (_configData.appBarHeight / 3.5) * 2,
       onClick: (c) {
         _handleAction(DetailAction.actionOnly(ActionType.showLog));
       },
-      getState: (c) async {
+      getState: (c) {
         if (c == 2 || (c % 15) == 0) {
           DataContainer.testHttpGet(
             _configData.getRemoteTestFileUrl(),
-            "",
             (response) {
               if (response.isEmpty) {
                 logger.log("__REMOTE__ Test file loaded OK");
-                _indicatorIcon!.setVisible(false);
+                (indicatorIconKey.currentState as ShowAble).setShow(false);
               } else {
                 logger.log("__REMOTE__ $response");
-                _indicatorIcon!.setVisible(true);
+                (indicatorIconKey.currentState as ShowAble).setShow(true);
               }
-              _indicatorIcon!.setVisible(response.isNotEmpty);
             },
           );
         }
@@ -1317,6 +1316,7 @@ class _MyHomePageState extends State<MyHomePage> {
       DetailIconButton(
         iconData: Icons.close,
         tooltip: 'Exit application',
+        gap: _configData.iconGap,
         onPressed: () async {
           final close = await _handleShouldExit();
           if (close) {
@@ -1340,6 +1340,7 @@ class _MyHomePageState extends State<MyHomePage> {
       toolBarItems.add(DetailIconButton(
         appThemeData: appThemeData,
         iconData: Icons.file_open,
+        gap: _configData.iconGap,
         tooltip: 'Load Data',
         timerMs: 500,
         onPressed: () {
@@ -1353,6 +1354,7 @@ class _MyHomePageState extends State<MyHomePage> {
           iconData: Icons.rule_folder,
           tooltip: 'Choose File',
           timerMs: 500,
+          gap: _configData.iconGap,
           onPressed: () {
             showLocalFilesDialog(
               context,
@@ -1379,12 +1381,13 @@ class _MyHomePageState extends State<MyHomePage> {
       //
       // Data is loaded
       //
-      _navBarHeight = _configData.navBarHeight;
+      _navBarHeight = _configData.appBarHeight;
       toolBarItems.add(DetailIconButton(
         show: _loadedData.isNotEmpty,
         appThemeData: appThemeData,
         iconData: _isEditDataDisplay ? Icons.search : Icons.edit,
         tooltip: _isEditDataDisplay ? 'Search Mode' : "Edit Mode",
+        gap: _configData.iconGap,
         onPressed: () {
           setState(() {
             _isEditDataDisplay = !_isEditDataDisplay;
@@ -1396,6 +1399,7 @@ class _MyHomePageState extends State<MyHomePage> {
         appThemeData: appThemeData,
         iconData: Icons.save,
         tooltip: "Save",
+        gap: _configData.iconGap,
         onPressed: () {
           _handleAction(DetailAction(ActionType.save, false, Path.empty()));
         },
@@ -1408,14 +1412,12 @@ class _MyHomePageState extends State<MyHomePage> {
           DetailIconButton(
             iconData: Icons.menu,
             tooltip: 'Menu',
+            gap: _configData.iconGap,
             onPressed: () {
               showOptionsDialog(context, _configData.getAppThemeData(), _selectedPath, [
                 MenuOptionDetails("Done", "", ActionType.none, () {
                   return Icons.arrow_back;
                 }),
-                // MenuOptionDetails("Invert Select '%{3}'", "Invert ALL selected in '%{3}'", ActionType.groupSelectAll, () {
-                //   return Icons.select_all;
-                // }),
                 MenuOptionDetails("Add NEW Group", "Add a new group to '%{3}'", ActionType.addGroup, () {
                   return Icons.add_box_outlined;
                 }),
@@ -1465,6 +1467,7 @@ class _MyHomePageState extends State<MyHomePage> {
           onPressed: () {
             _handleAction(DetailAction(ActionType.groupSelectAll, false, _selectedPath));
           },
+          gap: _configData.iconGap,
           tooltip: "Invert Selection",
           iconData: Icons.select_all,
           appThemeData: appThemeData,
@@ -1475,6 +1478,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               _handleAction(DetailAction(ActionType.groupSelectClearAll, false, _selectedPath));
             },
+            gap: _configData.iconGap,
             tooltip: "Clear ALL Selected",
             iconData: Icons.deselect,
             appThemeData: appThemeData,
@@ -1483,6 +1487,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               _handleAction(DetailAction(ActionType.groupCopy, false, _selectedPath));
             },
+            gap: _configData.iconGap,
             tooltip: "Copy to ${_selectedPath.last}",
             iconData: Icons.file_copy,
             appThemeData: appThemeData,
@@ -1491,6 +1496,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               _handleAction(DetailAction(ActionType.groupDelete, false, _selectedPath));
             },
+            gap: _configData.iconGap,
             tooltip: "Delete Data",
             iconData: Icons.delete,
             appThemeData: appThemeData,
@@ -1513,6 +1519,7 @@ class _MyHomePageState extends State<MyHomePage> {
             appThemeData: appThemeData,
             iconData: Icons.search,
             tooltip: 'Search',
+            gap: _configData.iconGap,
             onPressed: () {
               _setSearchExpressionState(searchEditingController.text);
             },
@@ -1523,6 +1530,7 @@ class _MyHomePageState extends State<MyHomePage> {
             appThemeData: appThemeData,
             iconData: Icons.manage_search,
             tooltip: 'Manage Searches',
+            gap: _configData.iconGap,
             onPressed: () async {
               await showSearchDialog(
                 context,
@@ -1542,6 +1550,7 @@ class _MyHomePageState extends State<MyHomePage> {
             appThemeData: appThemeData,
             iconData: Icons.search_off,
             tooltip: 'Clear Search',
+            gap: _configData.iconGap,
             onPressed: () {
               _setSearchExpressionState("");
             },
@@ -1551,11 +1560,12 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     final settings = Positioned(
-        left: (screenSize.width - (_configData.iconSize*2)),
-        top: _navBarHeight - (_configData.iconSize/2),
+        left: (screenSize.width - (_configData.iconSize) - 2),
+        top: _navBarHeight + 7 * _configData.scale,
         child: DetailIconButton(
           iconData: Icons.settings,
           tooltip: 'Settings',
+          gap: _configData.iconGap,
           onPressed: () {
             showConfigDialog(
               context,
@@ -1620,10 +1630,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     Container(
                       height: _configData.appBarHeight,
                       color: appBackgroundColor,
-                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: toolBarItems),
+                      child: Row(children: toolBarItems),
                     ),
                     Container(
-                      color: Colors.black,
+                      color: _configData.getAppThemeData().screenForegroundColour(true),
                       height: 1,
                     ),
                     _loadedData.isEmpty
@@ -1646,28 +1656,29 @@ class _MyHomePageState extends State<MyHomePage> {
                             height: 0,
                           )
                         : Container(
-                            color: Colors.black,
+                            color: _configData.getAppThemeData().screenForegroundColour(true),
                             height: 1,
                           ),
                     Container(
-                      height: screenSize.height - (_configData.appBarHeight + _configData.statusBarHeight + _navBarHeight),
+                      height: screenSize.height - (_configData.appBarHeight + _configData.appBarHeight + _navBarHeight),
                       color: appBackgroundColor,
                       child: displayData.splitView,
                     ),
                     Container(
-                      color: screenForeground,
+                      color: _configData.getAppThemeData().screenForegroundColour(true),
                       height: 1,
                     ),
                     Container(
-                      height: _configData.statusBarHeight,
+                      height: _configData.appBarHeight,
                       color: _globalSuccessState.isSuccess ? appBackgroundColor : appBackgroundErrorColor,
                       child: Row(
                         children: [
-                          _indicatorIcon as Widget,
+                          indicatorIcon,
                           DetailIconButton(
                             appThemeData: appThemeData,
                             iconData: Icons.view_timeline,
                             tooltip: 'Log',
+                            gap: _configData.iconGap,
                             onPressed: () {
                               _handleAction(DetailAction.actionOnly(ActionType.showLog));
                             },

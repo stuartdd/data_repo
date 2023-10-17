@@ -18,13 +18,20 @@ Future<void> showOptionsDialog(final BuildContext context, final AppThemeData ap
             for (int i = 0; i < menuOptionsList.length; i++) ...[
               menuOptionsList[i].enabled
                   ? Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.all(2),
                       color: appThemeData.detailBackgroundColor,
                       child: ListTile(
-                        leading: Icon(menuOptionsList[i].icon, color: appThemeData.screenForegroundColour(true)),
                         title: Container(
-                          padding: const EdgeInsets.all(5.0),
+                          padding: const EdgeInsets.all(4.0),
                           color: appThemeData.dialogBackgroundColor,
-                          child: Text(menuOptionsList[i].s1(sub), style: appThemeData.tsLarge),
+                          child: Row(
+                            children: [
+                              Icon(menuOptionsList[i].icon, size: appThemeData.iconSize, color: appThemeData.screenForegroundColour(true)),
+                              const SizedBox(width: 10),
+                              Text(menuOptionsList[i].s1(sub), style: appThemeData.tsLarge),
+                            ],
+                          ),
                         ),
                         subtitle: menuOptionsList[i].hasSubText ? Text(menuOptionsList[i].s2(sub), style: appThemeData.tsMedium) : null,
                         onTap: () {
@@ -290,7 +297,6 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
     },
   );
 }
-
 
 Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData appThemeData, List<String> files, final Function(String) onSelect, final void Function(SimpleButtonActions) onAction) async {
   return showDialog<void>(

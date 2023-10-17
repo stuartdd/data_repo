@@ -161,6 +161,7 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
         onPressed: () {
           dataAction(DetailAction(ActionType.flipSorted, false, Path.empty()));
         },
+        gap: appThemeData.iconGap,
         tooltip: _sortIconName[sorted + 1],
         iconData: _sortIcon[sorted + 1],
         appThemeData: appThemeData,
@@ -169,6 +170,7 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
         onPressed: () {
           dataAction(DetailAction(ActionType.select, false, Path.empty()));
         },
+        gap: appThemeData.iconGap,
         tooltip: "Home",
         iconData: Icons.home,
         appThemeData: appThemeData,
@@ -178,6 +180,7 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
         onPressed: () {
           dataAction(DetailAction(ActionType.select, false, pathParent));
         },
+        gap: appThemeData.iconGap,
         tooltip: "Back (${pathParent.toString()})",
         iconData: Icons.north_west,
         appThemeData: appThemeData,
@@ -187,6 +190,7 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
         onPressed: () {
           dataAction(DetailAction(ActionType.select, true, pathUp));
         },
+        gap: appThemeData.iconGap,
         tooltip: "Up (${pathUp.toString()})",
         iconData: Icons.arrow_upward,
         appThemeData: appThemeData,
@@ -196,6 +200,7 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
         onPressed: () {
           dataAction(DetailAction(ActionType.select, true, pathDown));
         },
+        gap: appThemeData.iconGap,
         tooltip: "Down (${pathDown.toString()})",
         iconData: Icons.arrow_downward,
         appThemeData: appThemeData,
@@ -205,6 +210,7 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
         onPressed: () {
           dataAction(DetailAction(ActionType.select, true, pathRight));
         },
+        gap: appThemeData.iconGap,
         tooltip: "Right (${pathRight.toString()})",
         iconData: Icons.subdirectory_arrow_right,
         appThemeData: appThemeData,

@@ -44,114 +44,91 @@ abstract class EnableAble {
   void setEnabled(bool x);
 }
 
+abstract class ActiveAble {
+  void setActive(bool x);
+}
+
 abstract class ShowAble {
   void setShow(bool x);
 }
 
 class IndicatorIcon extends StatefulWidget {
-  late final List<Icon> _iconData;
+  final List<IconData> _iconData;
   final double size;
   final Color color;
   final EdgeInsets? padding;
   final int period;
-  final Future<int> Function(int) getState;
+  final bool active;
+  final bool visible;
+  final int Function(int) getState;
   final void Function(int)? onClick;
-  bool disabled;
-  bool visible;
-  double iSize = 0;
-  int state = 0;
-  bool requiresBuild = true;
-  IndicatorIcon({super.key, final List<IconData>? iconData, required this.color, required this.getState, required this.period, this.size = -1, this.padding, this.disabled = false, this.visible = true, this.onClick}) {
-    List<IconData> id = [];
-    if (iconData != null) {
-      id.addAll(iconData);
-    }
-    if (id.isEmpty) {
-      id.add(Icons.check_box_outline_blank);
-    }
-    if (id.length == 1) {
-      id.add(Icons.indeterminate_check_box_outlined);
-    }
-    _iconData = [];
-    for (var icd in id) {
-      if (size > 2) {
-        _iconData.add(Icon(icd, color: color, size: size));
-      } else {
-        _iconData.add(Icon(icd, color: color));
-      }
-    }
-  }
-
-  void setDisabled(bool dis) {
-    if (dis != disabled) {
-      requiresBuild = true;
-      disabled = dis;
-    }
-  }
-
-  void setVisible(bool vis) {
-    if (vis != visible) {
-      requiresBuild = true;
-      visible = vis;
-    }
-  }
-
-  void setState(int st) {
-    if (st != state) {
-      requiresBuild = true;
-      state = st;
-    }
-  }
+  const IndicatorIcon(this._iconData, {super.key, required this.size, required this.color, this.padding, required this.period, required this.getState, this.onClick, this.active = true, this.visible = true});
 
   @override
-  State<IndicatorIcon> createState() => _IndicatorIcon();
+  State<IndicatorIcon> createState() => _IndicatorIconState();
 }
 
-class _IndicatorIcon extends State<IndicatorIcon> {
-  int count = 0;
+class _IndicatorIconState extends State<IndicatorIcon> implements ActiveAble, ShowAble {
+  late bool active;
+  late bool visible;
   late Timer timer;
+  late List<Icon> icons;
+  int state = 0;
 
   @override
   initState() {
     super.initState();
-    count = 1;
+    active = widget.active;
+    visible = widget.visible;
+    icons = [];
+
+    for (var icd in widget._iconData) {
+      if (widget.size > 2) {
+        icons.add(Icon(icd, color: widget.color, size: widget.size));
+      } else {
+        icons.add(Icon(icd, color: widget.color));
+      }
+    }
+
+    if (icons.isEmpty) {
+      if (widget.size > 2) {
+        icons.add(Icon(Icons.check_box_outline_blank, color: widget.color, size: widget.size));
+      } else {
+        icons.add(Icon(Icons.check_box_outline_blank, color: widget.color));
+      }
+    }
+
+    if (icons.length == 1) {
+      if (widget.size > 2) {
+        icons.add(Icon(Icons.indeterminate_check_box_outlined, color: widget.color, size: widget.size));
+      } else {
+        icons.add(Icon(Icons.indeterminate_check_box_outlined, color: widget.color));
+      }
+    }
+
     timer = Timer.periodic(Duration(milliseconds: widget.period), (timer) async {
       if (mounted) {
-        if (!widget.disabled) {
-          count++;
-          final st = await widget.getState(widget.state);
-          if (st != widget.state) {
-            widget.requiresBuild = true;
-            widget.state = st;
+        if (active) {
+          final st = widget.getState(state);
+          if (st != state) {
+            setState(() {
+              state = st;
+            });
           }
-        }
-        if (widget.requiresBuild) {
-          setState(() {
-            widget.requiresBuild = false;
-          });
         }
       }
     });
   }
 
   @override
-  void dispose() {
-    if (timer.isActive) {
-      timer.cancel();
-    }
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (widget.visible) {
-      final ind = widget.state % widget._iconData.length;
-      Widget icon = widget._iconData[ind];
+    if (visible) {
+      Widget icon = icons[state % icons.length];
       if (widget.onClick != null) {
         icon = InkWell(
           child: icon,
           onTap: () {
-            widget.onClick!(widget.state);
+            widget.onClick!(state);
           },
         );
       }
@@ -161,6 +138,28 @@ class _IndicatorIcon extends State<IndicatorIcon> {
       return icon;
     }
     return const SizedBox(width: 0, height: 0);
+  }
+
+  @override
+  void setActive(bool act) {
+    setState(() {
+      active = act;
+    });
+  }
+
+  @override
+  void setShow(bool vi) {
+    setState(() {
+      visible = vi;
+    });
+  }
+
+  @override
+  void dispose() {
+    if (timer.isActive) {
+      timer.cancel();
+    }
+    super.dispose();
   }
 }
 
@@ -172,9 +171,11 @@ class DetailIconButton extends StatefulWidget {
   final IconData iconData;
   final String tooltip;
   final AppThemeData appThemeData;
-  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry? padding;
+  final double gap;
+  final double top;
 
-  const DetailIconButton({super.key, this.show = true, this.enabled = true, required this.onPressed, this.timerMs = 100, required this.iconData, this.tooltip = "", required this.appThemeData, this.padding = const EdgeInsets.fromLTRB(0, 2, 0, 0)});
+  const DetailIconButton({super.key, this.show = true, this.enabled = true, required this.onPressed, this.timerMs = 100, required this.iconData, this.tooltip = "", required this.appThemeData, this.padding, this.gap = 0, this.top = 0});
   @override
   State<DetailIconButton> createState() => _DetailIconButton();
 }
@@ -185,31 +186,34 @@ class _DetailIconButton extends State<DetailIconButton> {
   @override
   Widget build(BuildContext context) {
     if (widget.show) {
-      return InkWell(
-        child: Icon(widget.iconData, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(widget.enabled && !grey)),
-        onTap: () {
-          if (!widget.enabled) {
-            return;
-          }
-          if (grey) {
-            return;
-          }
-          setState(() {
-            grey = true;
-          });
-          Timer(const Duration(milliseconds: 5), () {
-            if (mounted) {
-              widget.onPressed();
-              Timer(Duration(milliseconds: 15 + widget.timerMs), () {
-                if (mounted) {
-                  setState(() {
-                    grey = false;
-                  });
-                }
-              });
+      return Padding(
+        padding: widget.padding != null ? widget.padding! : EdgeInsets.fromLTRB(0, widget.top, widget.gap, 0),
+        child: InkWell(
+          child: Icon(widget.iconData, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(widget.enabled && !grey)),
+          onTap: () {
+            if (!widget.enabled) {
+              return;
             }
-          });
-        },
+            if (grey) {
+              return;
+            }
+            setState(() {
+              grey = true;
+            });
+            Timer(const Duration(milliseconds: 5), () {
+              if (mounted) {
+                widget.onPressed();
+                Timer(Duration(milliseconds: 15 + widget.timerMs), () {
+                  if (mounted) {
+                    setState(() {
+                      grey = false;
+                    });
+                  }
+                });
+              }
+            });
+          },
+        ),
       );
     } else {
       return const SizedBox(width: 0);
@@ -265,7 +269,7 @@ class _DetailButtonState extends State<DetailButton> implements EnableAble, Show
       return Row(
         children: [
           SizedBox(
-            height: 40,
+            height: widget.appThemeData.buttonHeight,
             child: OutlinedButton(
               onPressed: () {
                 if (grey || !enableWidget) {
@@ -287,7 +291,7 @@ class _DetailButtonState extends State<DetailButton> implements EnableAble, Show
               child: Text(widget.text, style: grey ? widget.appThemeData.tsMediumDisabled : widget.appThemeData.tsMedium),
             ),
           ),
-          const SizedBox(width: 8)
+          SizedBox(width: widget.appThemeData.buttonGap)
         ],
       );
     } else {
@@ -443,9 +447,7 @@ class _MarkDownInputField extends State<MarkDownInputField> {
       width: widget.width,
       child: ListView(
         children: [
-          SizedBox(
-            height: 40,
-            child: Row(
+            Row(
               children: [
                 DetailButton(
                   appThemeData: widget.appThemeData,
@@ -467,9 +469,8 @@ class _MarkDownInputField extends State<MarkDownInputField> {
                 )
               ],
             ),
-          ),
           SizedBox(
-            height: widget.height - 40,
+            height: widget.height,
             child: Column(
               children: [
                 widget.shouldDisplayPreview(false)
