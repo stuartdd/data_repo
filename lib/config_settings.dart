@@ -81,11 +81,11 @@ class SettingValidation {
   TextStyle hintStyle(AppThemeData appThemeData) {
     switch (_state) {
       case _SettingState.warning:
-        return appThemeData.tsSmallError;
+        return appThemeData.tsMediumError;
       case _SettingState.error:
         return appThemeData.tsLargeError;
       default:
-        return appThemeData.tsSmall;
+        return appThemeData.tsMedium;
     }
   }
 
@@ -213,9 +213,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
     for (var scN in settingsControlList.list) {
       if ((widget.appThemeData.desktop || scN.detail.desktopOnly) && !scN.detail.hide) {
         l.add(
-          Card(
-            margin: EdgeInsetsGeometry.lerp(null, null, 5),
-            child: ConfigInputSection(
+            ConfigInputSection(
               key: key,
               settingsControl: scN,
               appThemeData: appThemeData,
@@ -226,7 +224,6 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
                 updateState();
               },
             ),
-          ),
         );
       }
     }
@@ -248,13 +245,18 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
   @override
   Widget build(BuildContext context) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           color: widget.appThemeData.primary.light,
           child: ListTile(
-            leading: (widget.settingsControl.changed) ? Icon(Icons.star, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.radio_button_unchecked, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(false)),
-            title: Text(widget.settingsControl.detail.title, style: widget.appThemeData.tsLarge),
+            dense: true,
+             title: Row(
+              children: [
+                (widget.settingsControl.changed) ? Icon(Icons.star, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.radio_button_unchecked, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(false)),
+                SizedBox(width: widget.appThemeData.iconGap),
+                Text(widget.settingsControl.detail.title, style: widget.appThemeData.tsLarge),
+              ],
+            ),
             subtitle: widget.settingsControl.validationState.hintText(widget.settingsControl.detail.hint, widget.appThemeData),
           ),
         ),
@@ -263,7 +265,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
         }),
         Container(
           color: widget.appThemeData.screenForegroundColour(true),
-          height: 1,
+          height: 2,
         ),
       ],
     );
@@ -275,7 +277,6 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
       final iconData = set ? Icon(Icons.circle_outlined, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.circle_rounded, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true));
       return Container(
         color: widget.appThemeData.primary.med,
-        padding: const EdgeInsets.all(5.0),
         child: Row(
           children: [
             Text(widget.settingsControl.getBoolString(set), style: widget.appThemeData.tsLarge),
@@ -310,17 +311,13 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
 
     return Container(
       color: widget.appThemeData.primary.med,
-      padding: const EdgeInsets.all(5.0),
-      child: TextField(
-        controller: widget.settingsControl.getTextController,
-        style: widget.settingsControl.validationState.textStyle(widget.appThemeData),
-        onChanged: (newValue) {
-          onChanged(newValue);
-        },
-        cursorColor: widget.appThemeData.cursorColor,
-        decoration: const InputDecoration.collapsed(hintText: "Value"),
-      ),
-    );
+      padding: const EdgeInsets.all(10.0),
+      child: inputTextField("",widget.appThemeData.tsMedium, widget.appThemeData.textSelectionThemeData, widget.appThemeData.darkMode, false,widget.settingsControl.getTextController, (changeValue) {
+        // onChanged(changeValue);
+      },(setValue) {
+        onChanged(setValue);
+      }, padding: const EdgeInsets.fromLTRB(5,0,0,0)),
+     );
   }
 }
 

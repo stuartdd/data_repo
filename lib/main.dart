@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:data_repo/configSettings.dart';
+import 'package:data_repo/config_settings.dart';
 import 'package:data_repo/data_container.dart';
 import 'package:data_repo/treeNode.dart';
 import 'package:flutter/material.dart';
@@ -1342,7 +1342,6 @@ class _MyHomePageState extends State<MyHomePage> {
         iconData: Icons.file_open,
         gap: _configData.iconGap,
         tooltip: 'Load Data',
-        timerMs: 500,
         onPressed: () {
           _initialPassword = passwordEditingController.text;
           passwordEditingController.text = "";
@@ -1353,7 +1352,6 @@ class _MyHomePageState extends State<MyHomePage> {
           appThemeData: appThemeData,
           iconData: Icons.rule_folder,
           tooltip: 'Choose File',
-          timerMs: 500,
           gap: _configData.iconGap,
           onPressed: () {
             showLocalFilesDialog(

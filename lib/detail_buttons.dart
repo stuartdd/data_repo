@@ -2,6 +2,7 @@ import 'package:data_repo/config.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'data_types.dart';
+
 import 'path.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
@@ -10,6 +11,8 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 // const _inputTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 30.0, color: Colors.black);
 const _trueStr = "true";
 const _falseStr = "false";
+const clickTimerMs = 250;
+
 const helpText = """# # Heading 1 (one more # for each sub heading)
 ## ## Heading 2  (Use blank lines before and after headings)
 _\\_Italic\\__ \\_\\___Bold__\\_\\_ \\_\\_\\____BoldItalic___\\_\\_\\_. One Two or Three underscore.
@@ -50,6 +53,19 @@ abstract class ActiveAble {
 
 abstract class ShowAble {
   void setShow(bool x);
+}
+
+EdgeInsetsGeometry _getPadding(final EdgeInsetsGeometry? pad, final double top, final double gap,final double fallbackGap) {
+  if (pad != null) {
+    return pad;
+  }
+  final g;
+  if (gap == 0) {
+    g = fallbackGap;
+  } else {
+    g = gap;
+  }
+  return EdgeInsets.fromLTRB(2, top, g, 0);
 }
 
 class IndicatorIcon extends StatefulWidget {
@@ -175,19 +191,18 @@ class DetailIconButton extends StatefulWidget {
   final double gap;
   final double top;
 
-  const DetailIconButton({super.key, this.show = true, this.enabled = true, required this.onPressed, this.timerMs = 100, required this.iconData, this.tooltip = "", required this.appThemeData, this.padding, this.gap = 0, this.top = 0});
+  const DetailIconButton({super.key, this.show = true, this.enabled = true, required this.onPressed, this.timerMs = clickTimerMs, required this.iconData, this.tooltip = "", required this.appThemeData, this.padding, this.gap = 0, this.top = 0});
   @override
   State<DetailIconButton> createState() => _DetailIconButton();
 }
 
 class _DetailIconButton extends State<DetailIconButton> {
   bool grey = false;
-
   @override
   Widget build(BuildContext context) {
     if (widget.show) {
       return Padding(
-        padding: widget.padding != null ? widget.padding! : EdgeInsets.fromLTRB(0, widget.top, widget.gap, 0),
+        padding: _getPadding(widget.padding, widget.top, widget.gap, widget.appThemeData.iconGap),
         child: InkWell(
           child: Icon(widget.iconData, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(widget.enabled && !grey)),
           onTap: () {
@@ -222,8 +237,8 @@ class _DetailIconButton extends State<DetailIconButton> {
 }
 
 class DetailButton extends StatefulWidget {
-  const DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = 100, this.showButton = true, this.enabled = true, required this.appThemeData});
-  final bool showButton;
+  const DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = clickTimerMs, this.show = true, this.enabled = true, required this.appThemeData});
+  final bool show;
   final bool enabled;
   final AppThemeData appThemeData;
   final Function() onPressed;
@@ -259,7 +274,7 @@ class _DetailButtonState extends State<DetailButton> implements EnableAble, Show
     super.initState();
     grey = !widget.enabled;
     enableWidget = widget.enabled;
-    showButton = widget.showButton;
+    showButton = widget.show;
   }
 
   @override
@@ -371,7 +386,7 @@ class _OptionListWidgetState extends State<OptionListWidget> {
   }
 }
 
-Widget inputTextField(final String hint, TextStyle ts, TextSelectionThemeData theme, bool isDarkMode, bool isPw, TextEditingController controller, Function(String) setValue, Function(String) onChange) {
+Widget inputTextField(final String hint, TextStyle ts, TextSelectionThemeData theme, bool isDarkMode, bool isPw, TextEditingController controller, Function(String) setValue, Function(String) onChange, {EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(5, 5, 0, 0)}) {
   final Color bc;
   if (theme.cursorColor == null) {
     bc = Colors.black;
@@ -389,7 +404,7 @@ Widget inputTextField(final String hint, TextStyle ts, TextSelectionThemeData th
         hintText: hint,
         focusedBorder: OutlineInputBorder(borderSide: BorderSide(width: 2, color: isDarkMode ? Colors.white : Colors.black)),
         border: const OutlineInputBorder(),
-        contentPadding: const EdgeInsets.fromLTRB(5, 5, 0, 0),
+        contentPadding: padding,
       ),
       autofocus: true,
       onSubmitted: (value) {

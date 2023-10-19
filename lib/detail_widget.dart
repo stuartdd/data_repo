@@ -243,7 +243,7 @@ class _DetailWidgetState extends State<DetailWidget> {
           children: <Widget>[
             DetailButton(
               appThemeData: widget.appThemeData,
-              showButton: widget.isEditDataDisplay,
+              show: widget.isEditDataDisplay,
               text: 'Edit',
               onPressed: () {
                 widget.dataAction(DetailAction(ActionType.editItemData, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
@@ -251,7 +251,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ),
             DetailButton(
               appThemeData: widget.appThemeData,
-              showButton: widget.isEditDataDisplay,
+              show: widget.isEditDataDisplay,
               text: 'Change',
               onPressed: () {
                 widget.dataAction(DetailAction(ActionType.renameItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
@@ -259,8 +259,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ),
             DetailButton(
               appThemeData: widget.appThemeData,
-              showButton: !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
-              timerMs: 500,
+              show: !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
               text: 'Copy All',
               onPressed: () async {
                 if (widget.dataValueRow.type.equal(optionTypeDataReference)) {
@@ -274,8 +273,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ),
             DetailButton(
               appThemeData: widget.appThemeData,
-              showButton: widget.dataValueRow.isLink && !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
-              timerMs: 500,
+              show: widget.dataValueRow.isLink && !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
               text: 'Link',
               onPressed: () {
                 widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
@@ -283,8 +281,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ),
             DetailButton(
               appThemeData: widget.appThemeData,
-              showButton: widget.isEditDataDisplay,
-              timerMs: 500,
+              show: widget.isEditDataDisplay,
               text: 'Remove',
               onPressed: () {
                 widget.dataAction(DetailAction(ActionType.removeItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
@@ -341,7 +338,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               children: <Widget>[
                 DetailButton(
                   appThemeData: widget.appThemeData,
-                  showButton: widget.isEditDataDisplay,
+                  show: widget.isEditDataDisplay,
                   text: 'Change',
                   onPressed: () {
                     widget.dataAction(DetailAction(ActionType.renameItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
@@ -349,7 +346,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                 ),
                 DetailButton(
                   appThemeData: widget.appThemeData,
-                  showButton: widget.isEditDataDisplay,
+                  show: widget.isEditDataDisplay,
                   text: 'Remove',
                   onPressed: () {
                     widget.dataAction(DetailAction(ActionType.removeItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));

@@ -72,7 +72,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
   final okButton = DetailButton(
     key: okButtonKey,
     text: "OK",
-    showButton: false,
+    show: false,
     appThemeData: theme,
     onPressed: () {
       onAction(SimpleButtonActions.ok, fileName, password);
@@ -258,7 +258,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
               DetailButton(
                 appThemeData: appThemeData,
                 text: "Copy",
-                showButton: summaryList.hasNoErrors && copyMove,
+                show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
                   onActionReturn(SimpleButtonActions.copy, into);
                   Navigator.of(context).pop();
@@ -267,7 +267,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
               DetailButton(
                 appThemeData: appThemeData,
                 text: "Move",
-                showButton: summaryList.hasNoErrors && copyMove,
+                show: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
                   onActionReturn(SimpleButtonActions.move, into);
                   Navigator.of(context).pop();
@@ -276,7 +276,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
               DetailButton(
                 appThemeData: appThemeData,
                 text: "Remove",
-                showButton: summaryList.hasNoErrors && !copyMove,
+                show: summaryList.hasNoErrors && !copyMove,
                 onPressed: () {
                   onActionReturn(SimpleButtonActions.delete, Path.empty());
                   Navigator.of(context).pop();
