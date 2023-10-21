@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:data_repo/config.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -299,20 +301,45 @@ class _DetailIconButtonState extends State<DetailIconButton> implements ManageAb
   }
 }
 
-class DetailButton extends StatefulWidget {
-  const DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = clickTimerMs, this.visible = true, this.enabled = true, required this.appThemeData});
+class DetailTextButtonManager {
+  late final GlobalKey key;
+  late final Widget widget;
+  DetailTextButtonManager({bool visible = true, bool enabled = true, int timerMs = clickTimerMs, required String text, required AppThemeData appThemeData, required Function(ManageAble) onPressed}) {
+    key = GlobalKey();
+    widget = DetailTextButton(key: key, text: text, visible: visible, enabled: enabled, timerMs: timerMs, appThemeData: appThemeData, onPressed: onPressed);
+  }
+
+  @override
+  void setVisible(bool x) {
+    final cs = key.currentState;
+    if (cs != null && cs is ManageAble) {
+      (cs as ManageAble).setVisible(x);
+    }
+  }
+
+  @override
+  void setEnabled(bool x) {
+    final cs = key.currentState;
+    if (cs != null && cs is ManageAble) {
+      (cs as ManageAble).setEnabled(x);
+    }
+  }
+}
+
+class DetailTextButton extends StatefulWidget {
+  const DetailTextButton({super.key, required this.onPressed, required this.text, this.timerMs = clickTimerMs, this.visible = true, this.enabled = true, required this.appThemeData});
   final bool visible;
   final bool enabled;
   final AppThemeData appThemeData;
-  final Function() onPressed;
+  final Function(ManageAble) onPressed;
   final String text;
   final int timerMs;
 
   @override
-  State<DetailButton> createState() => _DetailButtonState();
+  State<DetailTextButton> createState() => _DetailTextButtonState();
 }
 
-class _DetailButtonState extends State<DetailButton> implements ManageAble {
+class _DetailTextButtonState extends State<DetailTextButton> implements ManageAble {
   bool grey = false;
   bool enableWidget = true;
   bool visibleButton = true;
@@ -353,7 +380,7 @@ class _DetailButtonState extends State<DetailButton> implements ManageAble {
                 if (grey || !enableWidget) {
                   return;
                 }
-                widget.onPressed();
+                widget.onPressed(this);
                 setState(() {
                   grey = true;
                 });
@@ -369,7 +396,7 @@ class _DetailButtonState extends State<DetailButton> implements ManageAble {
               child: Text(widget.text, style: grey ? widget.appThemeData.tsMediumDisabled : widget.appThemeData.tsMedium),
             ),
           ),
-          SizedBox(width: widget.appThemeData.buttonGap)
+          widget.appThemeData.buttonGapBox(1)
         ],
       );
     } else {
@@ -413,10 +440,7 @@ class _OptionListWidgetState extends State<OptionListWidget> {
   @override
   Widget build(BuildContext context) {
     if (widget.optionList.isEmpty) {
-      return const SizedBox(
-        height: 0,
-        width: 0,
-      );
+      return const SizedBox(height: 0, width: 0);
     }
     return Column(
       children: <Widget>[
@@ -534,19 +558,19 @@ class _MarkDownInputField extends State<MarkDownInputField> {
         children: [
           Row(
             children: [
-              DetailButton(
+              DetailTextButton(
                 appThemeData: widget.appThemeData,
                 text: widget.shouldDisplayHelp(false) ? 'Hide Help' : "Show Help",
-                onPressed: () {
+                onPressed: (button) {
                   setState(() {
                     widget.shouldDisplayHelp(true);
                   });
                 },
               ),
-              DetailButton(
+              DetailTextButton(
                 appThemeData: widget.appThemeData,
                 text: widget.shouldDisplayPreview(false) ? 'Hide Preview' : "Show Preview",
-                onPressed: () {
+                onPressed: (button) {
                   setState(() {
                     widget.shouldDisplayPreview(true);
                   });
@@ -568,9 +592,7 @@ class _MarkDownInputField extends State<MarkDownInputField> {
                           styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
                           onTapLink: doOnTapLink,
                         ))
-                    : const SizedBox(
-                        height: 0,
-                      ),
+                    : const SizedBox(height: 0),
                 widget.shouldDisplayHelp(false)
                     ? Container(
                         color: widget.appThemeData.secondary.light,
@@ -581,9 +603,7 @@ class _MarkDownInputField extends State<MarkDownInputField> {
                           styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
                           onTapLink: doOnTapLink,
                         ))
-                    : const SizedBox(
-                        height: 0,
-                      ),
+                    : const SizedBox(height: 0),
                 Expanded(
                   child: TextField(
                     controller: controller,
@@ -657,7 +677,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
 
   void _validate() {
     setState(() {
-      validateResponse = widget.onValidate(initial, current, initialOption, currentOption);
+      validateResponse = widget.onValidate(initial, current.trim(), initialOption, currentOption);
     });
   }
 
@@ -698,11 +718,9 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                   Text(obscurePw ? "Show password" : "Hide password", style: widget.appThemeData.tsMedium)
                 ],
               )
-            : const SizedBox(height: 10),
+            : const SizedBox(height: 0),
         (validateResponse.isEmpty)
-            ? const SizedBox(
-                height: 0,
-              )
+            ? const SizedBox(height: 0)
             : Column(children: [
                 Container(
                   alignment: Alignment.centerLeft,
@@ -712,9 +730,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                     style: widget.appThemeData.tsMedium,
                   ),
                 ),
-                const SizedBox(
-                  height: 10,
-                )
+                widget.appThemeData.horizontalLine
               ]),
         (currentOption.elementType == bool)
             ? OptionListWidget(

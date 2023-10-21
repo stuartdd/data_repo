@@ -28,7 +28,7 @@ Future<void> showOptionsDialog(final BuildContext context, final AppThemeData ap
                           child: Row(
                             children: [
                               Icon(menuOptionsList[i].icon, size: appThemeData.iconSize, color: appThemeData.screenForegroundColour(true)),
-                              const SizedBox(width: 10),
+                              appThemeData.iconGapBox(1),
                               Text(menuOptionsList[i].s1(sub), style: appThemeData.tsLarge),
                             ],
                           ),
@@ -62,19 +62,17 @@ List<Widget> _stringsToTextList(final List<String> values, final int startAt, fi
 
 Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThemeData appThemeData, final String title, final List<String> info, final String Function(SimpleButtonActions, String, String) onAction) async {
   final theme = appThemeData;
-  const separator = SizedBox(height: 5);
-  final content = _stringsToTextList(info, 1, separator, theme);
+  var separator = appThemeData.iconGapBox(1);
+  final content = _stringsToTextList(info, 1, separator as SizedBox, theme);
 
   var fileName = "";
   var password = "";
 
-  final okButtonKey = GlobalKey();
-  final okButton = DetailButton(
-    key: okButtonKey,
+  final okButtonManager = DetailTextButtonManager(
     text: "OK",
     visible: false,
     appThemeData: theme,
-    onPressed: () {
+    onPressed: (button) {
       onAction(SimpleButtonActions.ok, fileName, password);
       Navigator.of(context).pop();
     },
@@ -97,7 +95,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
       if (message.isEmpty) {
         fileName = vx;
       }
-      (okButtonKey.currentState as ManageAble).setEnabled(message.isEmpty);
+      okButtonManager.setEnabled(message.isEmpty);
       return message;
     },
   );
@@ -141,14 +139,14 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
         actions: [
           Row(
             children: [
-              DetailButton(
+              DetailTextButton(
                 text: "CANCEL",
                 appThemeData: theme,
-                onPressed: () {
+                onPressed: (button) {
                   Navigator.of(context).pop();
                 },
               ),
-              okButton
+              okButtonManager.widget
             ],
           ),
         ],
@@ -248,44 +246,44 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
         actions: <Widget>[
           Row(
             children: [
-              DetailButton(
+              DetailTextButton(
                 appThemeData: appThemeData,
                 text: "Cancel",
-                onPressed: () {
+                onPressed: (button) {
                   Navigator.of(context).pop();
                 },
               ),
-              DetailButton(
+              DetailTextButton(
                 appThemeData: appThemeData,
                 text: "Copy",
                 visible: summaryList.hasNoErrors && copyMove,
-                onPressed: () {
+                onPressed: (button) {
                   onActionReturn(SimpleButtonActions.copy, into);
                   Navigator.of(context).pop();
                 },
               ),
-              DetailButton(
+              DetailTextButton(
                 appThemeData: appThemeData,
                 text: "Move",
                 visible: summaryList.hasNoErrors && copyMove,
-                onPressed: () {
+                onPressed: (button) {
                   onActionReturn(SimpleButtonActions.move, into);
                   Navigator.of(context).pop();
                 },
               ),
-              DetailButton(
+              DetailTextButton(
                 appThemeData: appThemeData,
                 text: "Remove",
                 visible: summaryList.hasNoErrors && !copyMove,
-                onPressed: () {
+                onPressed: (button) {
                   onActionReturn(SimpleButtonActions.delete, Path.empty());
                   Navigator.of(context).pop();
                 },
               ),
-              DetailButton(
+              DetailTextButton(
                 appThemeData: appThemeData,
                 text: "Clear",
-                onPressed: () {
+                onPressed: (button) {
                   onActionReturn(SimpleButtonActions.listClear, Path.empty());
                   Navigator.of(context).pop();
                 },
@@ -310,10 +308,7 @@ Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData
         content: SingleChildScrollView(
           child: ListBody(children: [
             for (int i = 0; i < files.length; i++) ...[
-              Container(
-                height: 1,
-                color: appThemeData.screenForegroundColour(true),
-              ),
+            appThemeData.horizontalLine,
               Container(
                 color: appThemeData.primary.medDark,
                 child: TextButton(
@@ -324,18 +319,13 @@ Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData
                   },
                 ),
               ),
-              Container(
-                height: 1,
-                color: appThemeData.screenForegroundColour(true),
-              ),
-              const SizedBox(
-                height: 10,
-              ),
+              appThemeData.horizontalLine,
+              appThemeData.verticalGapBox,
             ],
-            DetailButton(
+            DetailTextButton(
               appThemeData: appThemeData,
               text: "Create a file",
-              onPressed: () {
+              onPressed: (button) {
                 onAction(SimpleButtonActions.ok);
                 Navigator.of(context).pop();
               },
@@ -343,10 +333,10 @@ Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData
           ]),
         ),
         actions: <Widget>[
-          DetailButton(
+          DetailTextButton(
             appThemeData: appThemeData,
             text: "Cancel",
-            onPressed: () {
+            onPressed: (button) {
               Navigator.of(context).pop();
             },
           ),
@@ -368,10 +358,7 @@ Future<void> showSearchDialog(final BuildContext context, final AppThemeData app
         content: SingleChildScrollView(
           child: ListBody(
             children: [
-              Container(
-                height: 1,
-                color: appThemeData.screenForegroundColour(true),
-              ),
+              appThemeData.horizontalLine,
               for (int i = 0; i < prevList.length; i++) ...[
                 TextButton(
                   child: Text(prevList[i], style: appThemeData.tsMedium),
@@ -380,19 +367,16 @@ Future<void> showSearchDialog(final BuildContext context, final AppThemeData app
                     Navigator.of(context).pop();
                   },
                 ),
-                Container(
-                  height: 1,
-                  color: appThemeData.screenForegroundColour(true),
-                ),
+                appThemeData.horizontalLine,
               ]
             ],
           ),
         ),
         actions: <Widget>[
-          DetailButton(
+          DetailTextButton(
             appThemeData: appThemeData,
             text: "Cancel",
-            onPressed: () {
+            onPressed: (button) {
               onSelect("");
               Navigator.of(context).pop();
             },
@@ -425,10 +409,10 @@ Future<void> showModalButtonsDialog(final BuildContext context, final AppThemeDa
           Row(
             children: [
               for (int i = 0; i < buttons.length; i++) ...[
-                DetailButton(
+                DetailTextButton(
                   appThemeData: appThemeData,
                   text: buttons[i],
-                  onPressed: () {
+                  onPressed: (button) {
                     onResponse(path, buttons[i].toUpperCase());
                     Navigator.of(context).pop();
                   },
@@ -448,22 +432,20 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
   var shouldDisplayMarkdownHelp = false;
   var shouldDisplayMarkdownPreview = false;
 
-  final okButtonKey = GlobalKey();
-  final okButton = DetailButton(
-    key: okButtonKey,
+  final okButtonManager = DetailTextButtonManager(
     text: "OK",
     enabled: false,
     appThemeData: appThemeData,
-    onPressed: () {
+    onPressed: (button) {
       onAction(SimpleButtonActions.ok, updatedText, updatedType);
       Navigator.of(context).pop();
     },
   );
 
-  final cancelButton = DetailButton(
+  final cancelButton = DetailTextButton(
     text: "CANCEL",
     appThemeData: appThemeData,
-    onPressed: () {
+    onPressed: (button) {
       Navigator.of(context).pop();
     },
   );
@@ -480,7 +462,7 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
             appThemeData: appThemeData,
             initialText: currentValue,
             onValidate: (ix, vx, it, vt) {
-              (okButtonKey.currentState as ManageAble).setEnabled(ix != vx);
+              okButtonManager.setEnabled(ix.trim() != vx.trim());
               updatedText = vx;
               updatedType = vt;
               return "";
@@ -512,7 +494,7 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
           ),
           actions: [
             Row(
-              children: [cancelButton, okButton],
+              children: [cancelButton, okButtonManager.widget],
             ),
           ],
         );
@@ -533,22 +515,20 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
             Navigator.of(context).pop();
           },
           onValidate: (ix, vx, it, vt) {
-            final validMsg = externalValidate(ix.trim(), vx.trim(), it, vt);
-            if (okButtonKey.currentState != null) {
-              if (validMsg.isEmpty) {
-                (okButtonKey.currentState as ManageAble).setEnabled(true);
-                updatedText = vx;
-                updatedType = vt;
-              } else {
-                (okButtonKey.currentState as ManageAble).setEnabled(false);
-              }
+            final validMsg = externalValidate(ix, vx, it, vt);
+            if (validMsg.isEmpty && (ix != vx)) {
+              okButtonManager.setEnabled(true);
+              updatedText = vx;
+              updatedType = vt;
+            } else {
+              okButtonManager.setEnabled(false);
             }
             return validMsg;
           },
         ),
         actions: [
           Row(
-            children: [cancelButton, okButton],
+            children: [cancelButton, okButtonManager.widget],
           ),
         ],
       );

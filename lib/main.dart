@@ -1630,18 +1630,11 @@ class _MyHomePageState extends State<MyHomePage> {
                       color: appBackgroundColor,
                       child: Row(children: toolBarItems),
                     ),
-                    Container(
-                      color: _configData.getAppThemeData().screenForegroundColour(true),
-                      height: 1,
-                    ),
+                    _configData.getAppThemeData().horizontalLine,
                     _loadedData.isEmpty
-                        ? const SizedBox(
-                            height: 0,
-                          )
+                        ? const SizedBox(height: 0)
                         : _filteredNodeDataRoot.isEmpty
-                            ? const SizedBox(
-                                height: 0,
-                              )
+                            ? const SizedBox(height: 0)
                             : Container(
                                 height: _navBarHeight,
                                 color: appBackgroundColor,
@@ -1649,23 +1642,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                   return _handleAction(detailActionData);
                                 }),
                               ),
-                    _loadedData.isEmpty
-                        ? const SizedBox(
-                            height: 0,
-                          )
-                        : Container(
-                            color: _configData.getAppThemeData().screenForegroundColour(true),
-                            height: 1,
-                          ),
+                    _loadedData.isEmpty ? const SizedBox(height: 0) : _configData.getAppThemeData().horizontalLine,
                     Container(
                       height: screenSize.height - (_configData.appBarHeight + _configData.appBarHeight + _navBarHeight),
                       color: appBackgroundColor,
                       child: displayData.splitView,
                     ),
-                    Container(
-                      color: _configData.getAppThemeData().screenForegroundColour(true),
-                      height: 1,
-                    ),
+                    _configData.getAppThemeData().horizontalLine,
                     Container(
                       height: _configData.appBarHeight,
                       color: _globalSuccessState.isSuccess ? appBackgroundColor : appBackgroundErrorColor,

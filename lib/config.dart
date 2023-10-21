@@ -30,7 +30,8 @@ const defaultButtonHeight = 45.0;
 const defaultTextInputFieldHeight = 45.0;
 const defaultButtonGap = 15;
 const defaultIconSize = 30;
-const defaultIconGap = 15;
+const defaultIconGap = 20;
+const defaultVerticalGap = 10;
 
 const defaultConfig = """  {
         "application" : {
@@ -155,6 +156,8 @@ class AppThemeData {
   final ColorPallet error;
   final bool darkMode;
   final bool desktop;
+
+  late final double verticalGap;
   late final double iconSize;
   late final double iconGap;
   late final double buttonHeight;
@@ -200,6 +203,7 @@ class AppThemeData {
     iconGap = defaultIconGap * scale;
     buttonHeight = defaultButtonHeight * scale;
     buttonGap = defaultButtonGap * scale;
+    verticalGap = defaultVerticalGap * scale;
     textInputFieldHeight = defaultTextInputFieldHeight * scale;
     for (int i = 0; i < defaultTreeNodeIconData.length; i++) {
       treeNodeIcons.add(Icon(
@@ -262,6 +266,22 @@ class AppThemeData {
 
   Color get screenBackgroundErrorColor {
     return error.med;
+  }
+
+  Widget buttonGapBox(int count) {
+    return SizedBox(width: buttonGap * count);
+  }
+
+  Widget iconGapBox(int count) {
+    return SizedBox(width: iconGap * count);
+  }
+
+  Widget get verticalGapBox {
+    return SizedBox(height: verticalGap);
+  }
+
+  Widget get horizontalLine {
+    return Container(height: 1, color: screenForegroundColour(true));
   }
 
   ColorPallet getColorPalletForName(String name) {

@@ -30,9 +30,9 @@ class MyTreeNode {
     return treeNode;
   }
 
-  static void _insertInOrder(List<MyTreeNode> list, MyTreeNode node , int order) {
+  static void _insertInOrder(List<MyTreeNode> list, MyTreeNode node, int order) {
     final nPathKey = node.pathKey.toLowerCase();
-    for (int i=0; i<list.length;i++) {
+    for (int i = 0; i < list.length; i++) {
       final x = list[i].pathKey.toLowerCase().compareTo(nPathKey);
       if (x == order) {
         list.insert(i, node);
@@ -48,7 +48,7 @@ class MyTreeNode {
       if (order == 0) {
         treeNode.children.add(nn);
       } else {
-        _insertInOrder(treeNode.children,nn, order); // insertion sort
+        _insertInOrder(treeNode.children, nn, order); // insertion sort
       }
       if (value is Map) {
         _fromMapR(value as Map<String, dynamic>, nn, order);
@@ -406,13 +406,11 @@ Widget? buildNodeDefault(final MyTreeNode node, final String rootNodeName, final
           ),
           node.hasLeafNodes
               ? InkWell(
-              onTap: () {
+                  onTap: () {
                     onClick(node.path);
                   },
                   child: appThemeData.treeNodeIcons[defaultTreeNodeIconDataHasData])
-              : const SizedBox(
-                  width: 0,
-                ),
+              : const SizedBox(width: 0),
         ],
       ),
     );

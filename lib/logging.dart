@@ -206,7 +206,7 @@ Future<void> showLogDialog(final BuildContext context, final AppThemeData appThe
         actions: <Widget>[
           Row(
             children: [
-              const SizedBox(width: 10),
+              appThemeData.iconGapBox(2),
               IndicatorIconManager(
                 const [Icons.playlist_play, Icons.playlist_remove],
                 size: appThemeData.iconSize,
@@ -216,25 +216,25 @@ Future<void> showLogDialog(final BuildContext context, final AppThemeData appThe
                 },
                 period: 500,
               ).widget,
-              const SizedBox(width: 10),
-              DetailButton(
+              appThemeData.iconGapBox(1),
+              DetailTextButton(
                 appThemeData: appThemeData,
                 text: "TOP",
-                onPressed: () {
+                onPressed: (button) {
                   logContent.scrollTop();
                 },
               ),
-              DetailButton(
+              DetailTextButton(
                 appThemeData: appThemeData,
                 text: "BOTTOM",
-                onPressed: () {
+                onPressed: (button) {
                   logContent.scrollBottom();
                 },
               ),
-              DetailButton(
+              DetailTextButton(
                 appThemeData: appThemeData,
                 text: "DONE",
-                onPressed: () {
+                onPressed: (button) {
                   Navigator.of(context).pop();
                 },
               ),

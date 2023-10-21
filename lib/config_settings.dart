@@ -253,7 +253,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
             title: Row(
               children: [
                 (widget.settingsControl.changed) ? Icon(Icons.star, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.radio_button_unchecked, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(false)),
-                SizedBox(width: widget.appThemeData.iconGap),
+                widget.appThemeData.iconGapBox(1),
                 Text(widget.settingsControl.detail.title, style: widget.appThemeData.tsLarge),
               ],
             ),
@@ -263,10 +263,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
         _configInputField(widget.settingsControl.detail.detailType, (value) {
           widget.onValidation(value, widget.settingsControl);
         }),
-        Container(
-          color: widget.appThemeData.screenForegroundColour(true),
-          height: 2,
-        ),
+        widget.appThemeData.horizontalLine
       ],
     );
   }
@@ -297,10 +294,10 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
       return Container(
         color: p.med,
         padding: const EdgeInsets.all(5.0),
-        child: DetailButton(
+        child: DetailTextButton(
           appThemeData: widget.appThemeData,
           text: "Select Colour Palette",
-          onPressed: () {
+          onPressed: (button) {
             showColorPeckerDialog(context, widget.appThemeData, widget.settingsControl.detail.title, widget.width, colourNames[widget.settingsControl.stringValue], (palette, index) {
               onChanged(palette.colorName);
             });
@@ -603,12 +600,12 @@ Future<void> showColorPeckerDialog(final BuildContext context, final AppThemeDat
   }
 
   final okButtonKey = GlobalKey();
-  final okButton = DetailButton(
+  final okButton = DetailTextButton(
     key: okButtonKey,
     text: "OK",
     enabled: false,
     appThemeData: appThemeData,
-    onPressed: () {
+    onPressed: (button) {
       onSelect(newPalette!, colorIndex!);
       Navigator.of(context).pop();
     },
@@ -630,10 +627,10 @@ Future<void> showColorPeckerDialog(final BuildContext context, final AppThemeDat
           actions: <Widget>[
             Row(
               children: [
-                DetailButton(
+                DetailTextButton(
                   appThemeData: appThemeData,
                   text: "Cancel",
-                  onPressed: () {
+                  onPressed: (button) {
                     Navigator.of(context).pop();
                   },
                 ),
@@ -649,24 +646,24 @@ Future<void> showConfigDialog(final BuildContext context, ConfigData configData,
   final settingsControlList = SettingControlList(configData.getAppThemeData().desktop, dataFileDir, configData);
   final appThemeData = configData.getAppThemeData();
   final applyButtonKey = GlobalKey();
-  final applyButton = DetailButton(
+  final applyButton = DetailTextButton(
     key: applyButtonKey,
     enabled: false,
     text: "Apply",
     appThemeData: appThemeData,
-    onPressed: () {
+    onPressed: (button) {
       onCommit(settingsControlList, false);
       log("__CONFIG__ changes APPLIED");
       Navigator.of(context).pop();
     },
   );
   final saveButtonKey = GlobalKey();
-  final saveButton = DetailButton(
+  final saveButton = DetailTextButton(
     key: saveButtonKey,
     enabled: false,
     text: "Save",
     appThemeData: appThemeData,
-    onPressed: () {
+    onPressed: (button) {
       onCommit(settingsControlList, true);
       log("__CONFIG__ changes SAVED");
       Navigator.of(context).pop();
@@ -735,10 +732,10 @@ Future<void> showConfigDialog(final BuildContext context, ConfigData configData,
           actions: [
             Row(
               children: [
-                DetailButton(
+                DetailTextButton(
                   text: "Cancel",
                   appThemeData: appThemeData,
-                  onPressed: () {
+                  onPressed: (button) {
                     settingsControlList.clear();
                     Navigator.of(context).pop();
                   },

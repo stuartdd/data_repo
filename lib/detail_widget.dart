@@ -222,12 +222,17 @@ class _DetailWidgetState extends State<DetailWidget> {
             child: Row(
               children: [
                 groupButton(plp, false, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
-                const SizedBox(width: 10),
+                widget.appThemeData.buttonGapBox(1),
                 Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
               ],
             ),
           ),
-          subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}", style: appThemeData.tsMediumBold) : null,
+          subtitle: horizontal
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [widget.appThemeData.verticalGapBox, Text("Owned By:${widget.dataValueRow.path}", style: appThemeData.tsMediumBold)],
+                )
+              : null,
           onTap: () {
             widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
           },
@@ -239,71 +244,66 @@ class _DetailWidgetState extends State<DetailWidget> {
           ),
         ),
         Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            DetailButton(
+            widget.appThemeData.buttonGapBox(2),
+            DetailTextButton(
               appThemeData: widget.appThemeData,
               visible: widget.isEditDataDisplay,
-              text: 'Edit',
-              onPressed: () {
-                widget.dataAction(DetailAction(ActionType.editItemData, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
-              },
-            ),
-            DetailButton(
-              appThemeData: widget.appThemeData,
-              visible: widget.isEditDataDisplay,
-              text: 'Change',
-              onPressed: () {
+              text: 'Edit item details',
+              onPressed: (button) {
                 widget.dataAction(DetailAction(ActionType.renameItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
               },
             ),
-            DetailButton(
-              appThemeData: widget.appThemeData,
-              visible: !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
-              text: 'Copy All',
-              onPressed: () async {
-                if (widget.dataValueRow.type.equal(optionTypeDataReference)) {
-                  final ss = widget.onResolve(widget.dataValueRow.value);
-                  await Clipboard.setData(ClipboardData(text: ss.value));
-                } else {
-                  await Clipboard.setData(ClipboardData(text: widget.dataValueRow.value));
-                }
-                widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
-              },
-            ),
-            DetailButton(
-              appThemeData: widget.appThemeData,
-              visible: widget.dataValueRow.isLink && !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
-              text: 'Link',
-              onPressed: () {
-                widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
-              },
-            ),
-            DetailButton(
-              appThemeData: widget.appThemeData,
-              visible: widget.isEditDataDisplay,
-              text: 'Remove',
-              onPressed: () {
-                widget.dataAction(DetailAction(ActionType.removeItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
-              },
-            ),
-            widget.isEditDataDisplay
-                ? InkWell(
-                    child: Icon(Icons.copy, size: widget.appThemeData.iconSize, color: appThemeData.screenForegroundColour(true)),
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: widget.dataValueRow.fullPath.toString()));
-                    })
-                : const SizedBox(
-                    width: 0,
-                  ),
-            const SizedBox(
-              width: 10,
-            )
+            DetailIconButton(
+                appThemeData: appThemeData,
+                visible: widget.isEditDataDisplay,
+                iconData: Icons.edit,
+                tooltip: "Edit value",
+                onPressed: (p0) {
+                  widget.dataAction(DetailAction(ActionType.editItemData, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                }),
+            DetailIconButton(
+                appThemeData: appThemeData,
+                visible: !widget.isEditDataDisplay,
+                iconData: Icons.edit,
+                tooltip: "Copy value",
+                onPressed: (p0) async {
+                  if (widget.dataValueRow.type.equal(optionTypeDataReference)) {
+                    final ss = widget.onResolve(widget.dataValueRow.value);
+                    await Clipboard.setData(ClipboardData(text: ss.value));
+                  } else {
+                    await Clipboard.setData(ClipboardData(text: widget.dataValueRow.value));
+                  }
+                  widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                }),
+            DetailIconButton(
+                appThemeData: appThemeData,
+                visible: widget.dataValueRow.isLink && !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
+                iconData: Icons.launch_outlined,
+                tooltip: "Open in browser",
+                onPressed: (p0) {
+                  widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                }),
+            DetailIconButton(
+                appThemeData: appThemeData,
+                visible: widget.isEditDataDisplay,
+                iconData: Icons.delete,
+                tooltip: "Delete item",
+                onPressed: (p0) {
+                  widget.dataAction(DetailAction(ActionType.removeItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                }),
+            DetailIconButton(
+                appThemeData: appThemeData,
+                visible: widget.isEditDataDisplay,
+                iconData: Icons.copy,
+                tooltip: "Copy reference to item",
+                onPressed: (p0) {
+                  Clipboard.setData(ClipboardData(text: widget.dataValueRow.fullPath.toString()));
+                })
           ],
         ),
-        const SizedBox(
-          height: 5,
-        )
+        widget.appThemeData.verticalGapBox
       ]),
     );
   }
@@ -317,43 +317,49 @@ class _DetailWidgetState extends State<DetailWidget> {
           color: appThemeData.detailBackgroundColor,
           child: Column(children: [
             ListTile(
-               title: Container(
+              title: Container(
                 padding: const EdgeInsets.all(3),
                 color: appThemeData.selectedAndHiLightColour(true, plp.renamed),
                 child: Row(
                   children: [
                     groupButton(plp, false, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
-                    const SizedBox(width: 10),
+                    widget.appThemeData.buttonGapBox(1),
                     Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
                   ],
                 ),
               ),
-              subtitle: horizontal ? Text("Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: appThemeData.tsMediumBold) : null,
+              subtitle: horizontal
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [widget.appThemeData.verticalGapBox, Text("Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: appThemeData.tsMediumBold)],
+                    )
+                  : null,
               onTap: () {
                 widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
               },
             ),
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: <Widget>[
-                DetailButton(
+                widget.appThemeData.buttonGapBox(2),
+                DetailTextButton(
                   appThemeData: widget.appThemeData,
                   visible: widget.isEditDataDisplay,
-                  text: 'Change',
-                  onPressed: () {
+                  text: 'Edit item details',
+                  onPressed: (button) {
                     widget.dataAction(DetailAction(ActionType.renameItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
                   },
                 ),
-                DetailButton(
-                  appThemeData: widget.appThemeData,
-                  visible: widget.isEditDataDisplay,
-                  text: 'Remove',
-                  onPressed: () {
-                    widget.dataAction(DetailAction(ActionType.removeItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
-                  },
-                ),
+                DetailIconButton(
+                    appThemeData: appThemeData,
+                    visible: widget.isEditDataDisplay,
+                    iconData: Icons.delete,
+                    tooltip: "Delete item",
+                    onPressed: (p0) {
+                      widget.dataAction(DetailAction(ActionType.removeItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
+                    }),
               ],
-            )
+            ),
           ])),
     );
   }
