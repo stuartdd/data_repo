@@ -43,19 +43,12 @@ mages ``![alt text](images/image.jpg "Comment")``
 [Link](https://www.markdownguide.org/basic-syntax/#images-1) ``[Link](https://www.markdownguide.org/basic-syntax/#images-1)``
 """;
 
-abstract class EnableAble {
+abstract class ManageAble {
+  void setVisible(bool x);
   void setEnabled(bool x);
 }
 
-abstract class ActiveAble {
-  void setActive(bool x);
-}
-
-abstract class ShowAble {
-  void setShow(bool x);
-}
-
-EdgeInsetsGeometry _getPadding(final EdgeInsetsGeometry? pad, final double top, final double gap,final double fallbackGap) {
+EdgeInsetsGeometry _getPadding(final EdgeInsetsGeometry? pad, final double top, final double gap, final double fallbackGap) {
   if (pad != null) {
     return pad;
   }
@@ -68,24 +61,49 @@ EdgeInsetsGeometry _getPadding(final EdgeInsetsGeometry? pad, final double top, 
   return EdgeInsets.fromLTRB(2, top, g, 0);
 }
 
-class IndicatorIcon extends StatefulWidget {
+class IndicatorIconManager implements ManageAble {
+  late final GlobalKey key;
+  late final Widget widget;
+  IndicatorIconManager(List<IconData> iconData, {required double size, required Color color, EdgeInsets? padding, required int period, required int Function(int, ManageAble) getState, void Function(int, ManageAble)? onClick, bool active = true, bool visible = true}) {
+    key = GlobalKey();
+    widget = _IndicatorIcon(key: key, iconData, size: size, color: color, period: period, getState: getState);
+  }
+
+  @override
+  void setVisible(bool x) {
+    final cs = key.currentState;
+    if (cs != null && cs is ManageAble) {
+      (cs as ManageAble).setVisible(x);
+    }
+  }
+
+  @override
+  void setEnabled(bool x) {
+    final cs = key.currentState;
+    if (cs != null && cs is ManageAble) {
+      (cs as ManageAble).setEnabled(x);
+    }
+  }
+}
+
+class _IndicatorIcon extends StatefulWidget {
   final List<IconData> _iconData;
   final double size;
   final Color color;
   final EdgeInsets? padding;
   final int period;
-  final bool active;
+  final bool enabled;
   final bool visible;
-  final int Function(int) getState;
-  final void Function(int)? onClick;
-  const IndicatorIcon(this._iconData, {super.key, required this.size, required this.color, this.padding, required this.period, required this.getState, this.onClick, this.active = true, this.visible = true});
+  final int Function(int, _IndicatorIconState) getState;
+  final void Function(int, _IndicatorIconState)? onClick;
+  const _IndicatorIcon(this._iconData, {super.key, required this.size, required this.color, this.padding, required this.period, required this.getState, this.onClick, this.enabled = true, this.visible = true});
 
   @override
-  State<IndicatorIcon> createState() => _IndicatorIconState();
+  State<_IndicatorIcon> createState() => _IndicatorIconState();
 }
 
-class _IndicatorIconState extends State<IndicatorIcon> implements ActiveAble, ShowAble {
-  late bool active;
+class _IndicatorIconState extends State<_IndicatorIcon> implements ManageAble {
+  late bool enabled;
   late bool visible;
   late Timer timer;
   late List<Icon> icons;
@@ -94,7 +112,7 @@ class _IndicatorIconState extends State<IndicatorIcon> implements ActiveAble, Sh
   @override
   initState() {
     super.initState();
-    active = widget.active;
+    enabled = widget.enabled;
     visible = widget.visible;
     icons = [];
 
@@ -124,8 +142,8 @@ class _IndicatorIconState extends State<IndicatorIcon> implements ActiveAble, Sh
 
     timer = Timer.periodic(Duration(milliseconds: widget.period), (timer) async {
       if (mounted) {
-        if (active) {
-          final st = widget.getState(state);
+        if (enabled) {
+          final st = widget.getState(state, this);
           if (st != state) {
             setState(() {
               state = st;
@@ -144,7 +162,7 @@ class _IndicatorIconState extends State<IndicatorIcon> implements ActiveAble, Sh
         icon = InkWell(
           child: icon,
           onTap: () {
-            widget.onClick!(state);
+            widget.onClick!(state, this);
           },
         );
       }
@@ -157,16 +175,16 @@ class _IndicatorIconState extends State<IndicatorIcon> implements ActiveAble, Sh
   }
 
   @override
-  void setActive(bool act) {
+  void setVisible(bool vi) {
     setState(() {
-      active = act;
+      visible = vi;
     });
   }
 
   @override
-  void setShow(bool vi) {
+  void setEnabled(bool en) {
     setState(() {
-      visible = vi;
+      enabled = en;
     });
   }
 
@@ -179,66 +197,111 @@ class _IndicatorIconState extends State<IndicatorIcon> implements ActiveAble, Sh
   }
 }
 
+class DetailIconButtonManager implements ManageAble {
+  late final GlobalKey key;
+  late final Widget widget;
+  DetailIconButtonManager({bool visible = true, bool enabled = true, int timerMs = clickTimerMs, required IconData iconData, String tooltip = "", required AppThemeData appThemeData, EdgeInsetsGeometry? padding, required Function(ManageAble) onPressed}) {
+    key = GlobalKey();
+    widget = DetailIconButton(key: key, visible: visible, enabled: enabled, timerMs: timerMs, iconData: iconData, tooltip: tooltip, appThemeData: appThemeData, padding: padding, onPressed: onPressed);
+  }
+
+  @override
+  void setVisible(bool x) {
+    final cs = key.currentState;
+    if (cs != null && cs is ManageAble) {
+      (cs as ManageAble).setVisible(x);
+    }
+  }
+
+  @override
+  void setEnabled(bool x) {
+    final cs = key.currentState;
+    if (cs != null && cs is ManageAble) {
+      (cs as ManageAble).setEnabled(x);
+    }
+  }
+}
+
 class DetailIconButton extends StatefulWidget {
-  final bool show;
+  final bool visible;
   final bool enabled;
-  final Function() onPressed;
+  final Function(ManageAble) onPressed;
   final int timerMs;
   final IconData iconData;
   final String tooltip;
   final AppThemeData appThemeData;
   final EdgeInsetsGeometry? padding;
-  final double gap;
-  final double top;
 
-  const DetailIconButton({super.key, this.show = true, this.enabled = true, required this.onPressed, this.timerMs = clickTimerMs, required this.iconData, this.tooltip = "", required this.appThemeData, this.padding, this.gap = 0, this.top = 0});
+  const DetailIconButton({super.key, this.visible = true, this.enabled = true, required this.onPressed, this.timerMs = clickTimerMs, required this.iconData, this.tooltip = "", required this.appThemeData, this.padding});
   @override
-  State<DetailIconButton> createState() => _DetailIconButton();
+  State<DetailIconButton> createState() => _DetailIconButtonState();
 }
 
-class _DetailIconButton extends State<DetailIconButton> {
+class _DetailIconButtonState extends State<DetailIconButton> implements ManageAble {
   bool grey = false;
+  late bool enabled;
+  late bool visible;
+  @override
+  initState() {
+    super.initState();
+    enabled = widget.enabled;
+    visible = widget.visible;
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (widget.show) {
-      return Padding(
-        padding: _getPadding(widget.padding, widget.top, widget.gap, widget.appThemeData.iconGap),
-        child: InkWell(
-          child: Icon(widget.iconData, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(widget.enabled && !grey)),
-          onTap: () {
-            if (!widget.enabled) {
-              return;
+    final double iSize = widget.appThemeData.iconSize;
+    if (visible) {
+      return IconButton(
+        alignment: Alignment.center,
+        padding: widget.padding ?? const EdgeInsets.all(0),
+        tooltip: widget.tooltip,
+        constraints: BoxConstraints.tightFor(width: iSize + widget.appThemeData.iconGap, height: iSize),
+        icon: Icon(widget.iconData, size: iSize, color: widget.appThemeData.screenForegroundColour(widget.enabled && !grey)),
+        onPressed: () {
+          if (!enabled || grey) {
+            return;
+          }
+          setState(() {
+            grey = true;
+          });
+          Timer(const Duration(milliseconds: 5), () {
+            if (mounted) {
+              widget.onPressed(this);
+              Timer(Duration(milliseconds: 15 + widget.timerMs), () {
+                if (mounted) {
+                  setState(() {
+                    grey = false;
+                  });
+                }
+              });
             }
-            if (grey) {
-              return;
-            }
-            setState(() {
-              grey = true;
-            });
-            Timer(const Duration(milliseconds: 5), () {
-              if (mounted) {
-                widget.onPressed();
-                Timer(Duration(milliseconds: 15 + widget.timerMs), () {
-                  if (mounted) {
-                    setState(() {
-                      grey = false;
-                    });
-                  }
-                });
-              }
-            });
-          },
-        ),
+          });
+        },
       );
     } else {
       return const SizedBox(width: 0);
     }
   }
+
+  @override
+  void setVisible(bool vi) {
+    setState(() {
+      visible = vi;
+    });
+  }
+
+  @override
+  void setEnabled(bool en) {
+    setState(() {
+      enabled = en;
+    });
+  }
 }
 
 class DetailButton extends StatefulWidget {
-  const DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = clickTimerMs, this.show = true, this.enabled = true, required this.appThemeData});
-  final bool show;
+  const DetailButton({super.key, required this.onPressed, required this.text, this.timerMs = clickTimerMs, this.visible = true, this.enabled = true, required this.appThemeData});
+  final bool visible;
   final bool enabled;
   final AppThemeData appThemeData;
   final Function() onPressed;
@@ -249,23 +312,23 @@ class DetailButton extends StatefulWidget {
   State<DetailButton> createState() => _DetailButtonState();
 }
 
-class _DetailButtonState extends State<DetailButton> implements EnableAble, ShowAble {
+class _DetailButtonState extends State<DetailButton> implements ManageAble {
   bool grey = false;
   bool enableWidget = true;
-  bool showButton = true;
+  bool visibleButton = true;
 
   @override
-  void setEnabled(bool x) {
+  void setEnabled(bool en) {
     setState(() {
-      enableWidget = x;
-      grey = !x;
+      enableWidget = en;
+      grey = !en;
     });
   }
 
   @override
-  void setShow(bool x) {
+  void setVisible(bool vi) {
     setState(() {
-      showButton = x;
+      visibleButton = vi;
     });
   }
 
@@ -274,12 +337,12 @@ class _DetailButtonState extends State<DetailButton> implements EnableAble, Show
     super.initState();
     grey = !widget.enabled;
     enableWidget = widget.enabled;
-    showButton = widget.show;
+    visibleButton = widget.visible;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (showButton) {
+    if (visibleButton) {
       final style = BorderSide(color: widget.appThemeData.screenForegroundColour(!grey), width: 2);
       return Row(
         children: [
@@ -386,35 +449,42 @@ class _OptionListWidgetState extends State<OptionListWidget> {
   }
 }
 
-Widget inputTextField(final String hint, TextStyle ts, TextSelectionThemeData theme, bool isDarkMode, bool isPw, TextEditingController controller, Function(String) setValue, Function(String) onChange, {EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(5, 5, 0, 0)}) {
+Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, final bool isDarkMode, final TextEditingController controller, {final double width = 0, final double height = 0, final bool isPw = false, final String hint = "", final EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(5, 5, 0, 0), final Function(String)? onChange, final Function(String)? setValue}) {
   final Color bc;
   if (theme.cursorColor == null) {
     bc = Colors.black;
   } else {
     bc = theme.cursorColor!;
   }
-
-  return Theme(
-    data: ThemeData(
-      textSelectionTheme: theme,
-    ),
-    child: TextField(
-      style: ts,
-      decoration: InputDecoration(
-        hintText: hint,
-        focusedBorder: OutlineInputBorder(borderSide: BorderSide(width: 2, color: isDarkMode ? Colors.white : Colors.black)),
-        border: const OutlineInputBorder(),
-        contentPadding: padding,
+  return SizedBox(
+    height: height < 1 ? null : height,
+    width: width < 1 ? null : width,
+    child: Theme(
+      data: ThemeData(
+        textSelectionTheme: theme,
       ),
-      autofocus: true,
-      onSubmitted: (value) {
-        setValue(value);
-      },
-      onChanged: (value) {
-        onChange(value);
-      },
-      obscureText: isPw,
-      controller: controller,
+      child: TextField(
+        style: ts,
+        decoration: InputDecoration(
+          hintText: hint,
+          focusedBorder: OutlineInputBorder(borderSide: BorderSide(width: 2, color: isDarkMode ? Colors.white : Colors.black)),
+          border: const OutlineInputBorder(),
+          contentPadding: padding,
+        ),
+        autofocus: true,
+        onSubmitted: (value) {
+          if (setValue != null) {
+            setValue(value);
+          }
+        },
+        onChanged: (value) {
+          if (onChange != null) {
+            onChange(value);
+          }
+        },
+        obscureText: isPw,
+        controller: controller,
+      ),
     ),
   );
 }
@@ -462,28 +532,28 @@ class _MarkDownInputField extends State<MarkDownInputField> {
       width: widget.width,
       child: ListView(
         children: [
-            Row(
-              children: [
-                DetailButton(
-                  appThemeData: widget.appThemeData,
-                  text: widget.shouldDisplayHelp(false) ? 'Hide Help' : "Show Help",
-                  onPressed: () {
-                    setState(() {
-                      widget.shouldDisplayHelp(true);
-                    });
-                  },
-                ),
-                DetailButton(
-                  appThemeData: widget.appThemeData,
-                  text: widget.shouldDisplayPreview(false) ? 'Hide Preview' : "Show Preview",
-                  onPressed: () {
-                    setState(() {
-                      widget.shouldDisplayPreview(true);
-                    });
-                  },
-                )
-              ],
-            ),
+          Row(
+            children: [
+              DetailButton(
+                appThemeData: widget.appThemeData,
+                text: widget.shouldDisplayHelp(false) ? 'Hide Help' : "Show Help",
+                onPressed: () {
+                  setState(() {
+                    widget.shouldDisplayHelp(true);
+                  });
+                },
+              ),
+              DetailButton(
+                appThemeData: widget.appThemeData,
+                text: widget.shouldDisplayPreview(false) ? 'Hide Preview' : "Show Preview",
+                onPressed: () {
+                  setState(() {
+                    widget.shouldDisplayPreview(true);
+                  });
+                },
+              )
+            ],
+          ),
           SizedBox(
             height: widget.height,
             child: Column(
@@ -655,16 +725,25 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                   current = option.key;
                   _validate();
                 })
-            : inputTextField("", widget.appThemeData.tsMedium, widget.appThemeData.textSelectionThemeData, widget.appThemeData.darkMode, widget.isPassword && obscurePw, widget.controller, (value) {
-                current = value;
-                _validate();
-                if (validateResponse.isEmpty && widget.onSubmit != null) {
-                  widget.onSubmit!(current, currentOption);
-                }
-              }, (value) {
-                current = value;
-                _validate();
-              }),
+            : inputTextField(
+                widget.appThemeData.tsMedium,
+                widget.appThemeData.textSelectionThemeData,
+                widget.appThemeData.darkMode,
+                widget.controller,
+                height: widget.appThemeData.textInputFieldHeight,
+                isPw: widget.isPassword && obscurePw,
+                setValue: (value) {
+                  current = value;
+                  _validate();
+                  if (validateResponse.isEmpty && widget.onSubmit != null) {
+                    widget.onSubmit!(current, currentOption);
+                  }
+                },
+                onChange: (value) {
+                  current = value;
+                  _validate();
+                },
+              ),
       ],
     );
   }

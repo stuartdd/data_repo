@@ -1253,28 +1253,26 @@ class _MyHomePageState extends State<MyHomePage> {
       _handleAction(DetailAction.actionOnly(ActionType.showLog));
     }
 
-    final indicatorIconKey = GlobalKey();
-    final indicatorIcon = IndicatorIcon(
+    final indicatorIconManager = IndicatorIconManager(
       const [Icons.access_time_filled, Icons.access_time],
-      key: indicatorIconKey,
       color: _configData.getAppThemeData().screenForegroundColour(true),
       period: 500,
       padding: const EdgeInsets.all(5),
       size: (_configData.appBarHeight / 3.5) * 2,
-      onClick: (c) {
+      onClick: (c, iii) {
         _handleAction(DetailAction.actionOnly(ActionType.showLog));
       },
-      getState: (c) {
-        if (c == 2 || (c % 15) == 0) {
+      getState: (c, widget) {
+        if ((c % 15) == 0 && c > 0) {
           DataContainer.testHttpGet(
             _configData.getRemoteTestFileUrl(),
             (response) {
               if (response.isEmpty) {
                 logger.log("__REMOTE__ Test file loaded OK");
-                (indicatorIconKey.currentState as ShowAble).setShow(false);
+                widget.setVisible(false);
               } else {
                 logger.log("__REMOTE__ $response");
-                (indicatorIconKey.currentState as ShowAble).setShow(true);
+                widget.setVisible(true);
               }
             },
           );
@@ -1316,8 +1314,7 @@ class _MyHomePageState extends State<MyHomePage> {
       DetailIconButton(
         iconData: Icons.close,
         tooltip: 'Exit application',
-        gap: _configData.iconGap,
-        onPressed: () async {
+        onPressed: (button) async {
           final close = await _handleShouldExit();
           if (close) {
             closer(0);
@@ -1331,18 +1328,27 @@ class _MyHomePageState extends State<MyHomePage> {
       _navBarHeight = 0;
       toolBarItems.add(Container(
         color: appThemeData.primary.med,
-        width: screenSize.width / 3,
-        child: inputTextField("Password:", appThemeData.tsLarge, _configData.getAppThemeData().textSelectionThemeData, _configData.getAppThemeData().darkMode, true, passwordEditingController, (v) {
-          _initialPassword = v;
-          _loadDataState();
-        }, (v) {}),
+        child: inputTextField(
+          appThemeData.tsLarge,
+          _configData.getAppThemeData().textSelectionThemeData,
+          _configData.getAppThemeData().darkMode,
+          passwordEditingController,
+          width: screenSize.width / 3,
+          height: _configData.getAppThemeData().textInputFieldHeight,
+          hint: "Password:",
+          isPw: true,
+          setValue: (v) {
+            _initialPassword = v;
+            _loadDataState();
+          },
+        ),
       ));
+
       toolBarItems.add(DetailIconButton(
         appThemeData: appThemeData,
         iconData: Icons.file_open,
-        gap: _configData.iconGap,
         tooltip: 'Load Data',
-        onPressed: () {
+        onPressed: (button) {
           _initialPassword = passwordEditingController.text;
           passwordEditingController.text = "";
           _loadDataState();
@@ -1352,8 +1358,7 @@ class _MyHomePageState extends State<MyHomePage> {
           appThemeData: appThemeData,
           iconData: Icons.rule_folder,
           tooltip: 'Choose File',
-          gap: _configData.iconGap,
-          onPressed: () {
+          onPressed: (button) {
             showLocalFilesDialog(
               context,
               _configData.getAppThemeData(),
@@ -1381,24 +1386,22 @@ class _MyHomePageState extends State<MyHomePage> {
       //
       _navBarHeight = _configData.appBarHeight;
       toolBarItems.add(DetailIconButton(
-        show: _loadedData.isNotEmpty,
+        visible: _loadedData.isNotEmpty,
         appThemeData: appThemeData,
         iconData: _isEditDataDisplay ? Icons.search : Icons.edit,
         tooltip: _isEditDataDisplay ? 'Search Mode' : "Edit Mode",
-        gap: _configData.iconGap,
-        onPressed: () {
+        onPressed: (button) {
           setState(() {
             _isEditDataDisplay = !_isEditDataDisplay;
           });
         },
       ));
       toolBarItems.add(DetailIconButton(
-        show: _dataWasUpdated,
+        visible: _dataWasUpdated,
         appThemeData: appThemeData,
         iconData: Icons.save,
         tooltip: "Save",
-        gap: _configData.iconGap,
-        onPressed: () {
+        onPressed: (button) {
           _handleAction(DetailAction(ActionType.save, false, Path.empty()));
         },
       ));
@@ -1410,8 +1413,7 @@ class _MyHomePageState extends State<MyHomePage> {
           DetailIconButton(
             iconData: Icons.menu,
             tooltip: 'Menu',
-            gap: _configData.iconGap,
-            onPressed: () {
+            onPressed: (button) {
               showOptionsDialog(context, _configData.getAppThemeData(), _selectedPath, [
                 MenuOptionDetails("Done", "", ActionType.none, () {
                   return Icons.arrow_back;
@@ -1462,10 +1464,9 @@ class _MyHomePageState extends State<MyHomePage> {
           color: screenForeground,
         ));
         toolBarItems.add(DetailIconButton(
-          onPressed: () {
+          onPressed: (button) {
             _handleAction(DetailAction(ActionType.groupSelectAll, false, _selectedPath));
           },
-          gap: _configData.iconGap,
           tooltip: "Invert Selection",
           iconData: Icons.select_all,
           appThemeData: appThemeData,
@@ -1473,28 +1474,25 @@ class _MyHomePageState extends State<MyHomePage> {
         final canPaste = _pathPropertiesList.hasGroupSelects;
         if (canPaste) {
           toolBarItems.add(DetailIconButton(
-            onPressed: () {
+            onPressed: (button) {
               _handleAction(DetailAction(ActionType.groupSelectClearAll, false, _selectedPath));
             },
-            gap: _configData.iconGap,
             tooltip: "Clear ALL Selected",
             iconData: Icons.deselect,
             appThemeData: appThemeData,
           ));
           toolBarItems.add(DetailIconButton(
-            onPressed: () {
+            onPressed: (button) {
               _handleAction(DetailAction(ActionType.groupCopy, false, _selectedPath));
             },
-            gap: _configData.iconGap,
             tooltip: "Copy to ${_selectedPath.last}",
             iconData: Icons.file_copy,
             appThemeData: appThemeData,
           ));
           toolBarItems.add(DetailIconButton(
-            onPressed: () {
+            onPressed: (button) {
               _handleAction(DetailAction(ActionType.groupDelete, false, _selectedPath));
             },
-            gap: _configData.iconGap,
             tooltip: "Delete Data",
             iconData: Icons.delete,
             appThemeData: appThemeData,
@@ -1504,11 +1502,17 @@ class _MyHomePageState extends State<MyHomePage> {
         toolBarItems.add(
           Container(
             color: appThemeData.primary.med,
-            child: SizedBox(
+            child: inputTextField(
+              appThemeData.tsMedium,
+              _configData.getAppThemeData().textSelectionThemeData,
+              _configData.getAppThemeData().darkMode,
+              searchEditingController,
               width: screenSize.width / 3,
-              child: inputTextField("Search:", appThemeData.tsMedium, _configData.getAppThemeData().textSelectionThemeData, _configData.getAppThemeData().darkMode, false, searchEditingController, (v) {
+              height: _configData.getAppThemeData().textInputFieldHeight,
+              hint: "Search:",
+              setValue: (v) {
                 _setSearchExpressionState(v);
-              }, (v) {}),
+              },
             ),
           ),
         );
@@ -1517,8 +1521,7 @@ class _MyHomePageState extends State<MyHomePage> {
             appThemeData: appThemeData,
             iconData: Icons.search,
             tooltip: 'Search',
-            gap: _configData.iconGap,
-            onPressed: () {
+            onPressed: (button) {
               _setSearchExpressionState(searchEditingController.text);
             },
           ),
@@ -1528,8 +1531,7 @@ class _MyHomePageState extends State<MyHomePage> {
             appThemeData: appThemeData,
             iconData: Icons.manage_search,
             tooltip: 'Manage Searches',
-            gap: _configData.iconGap,
-            onPressed: () async {
+            onPressed: (button) async {
               await showSearchDialog(
                 context,
                 _configData.getAppThemeData(),
@@ -1548,8 +1550,7 @@ class _MyHomePageState extends State<MyHomePage> {
             appThemeData: appThemeData,
             iconData: Icons.search_off,
             tooltip: 'Clear Search',
-            gap: _configData.iconGap,
-            onPressed: () {
+            onPressed: (button) {
               _setSearchExpressionState("");
             },
           ),
@@ -1563,8 +1564,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: DetailIconButton(
           iconData: Icons.settings,
           tooltip: 'Settings',
-          gap: _configData.iconGap,
-          onPressed: () {
+          onPressed: (button) {
             showConfigDialog(
               context,
               _configData,
@@ -1671,13 +1671,12 @@ class _MyHomePageState extends State<MyHomePage> {
                       color: _globalSuccessState.isSuccess ? appBackgroundColor : appBackgroundErrorColor,
                       child: Row(
                         children: [
-                          indicatorIcon,
+                          indicatorIconManager.widget,
                           DetailIconButton(
                             appThemeData: appThemeData,
                             iconData: Icons.view_timeline,
                             tooltip: 'Log',
-                            gap: _configData.iconGap,
-                            onPressed: () {
+                            onPressed: (button) {
                               _handleAction(DetailAction.actionOnly(ActionType.showLog));
                             },
                           ),

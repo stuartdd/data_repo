@@ -72,7 +72,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
   final okButton = DetailButton(
     key: okButtonKey,
     text: "OK",
-    show: false,
+    visible: false,
     appThemeData: theme,
     onPressed: () {
       onAction(SimpleButtonActions.ok, fileName, password);
@@ -97,7 +97,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
       if (message.isEmpty) {
         fileName = vx;
       }
-      (okButtonKey.currentState as EnableAble).setEnabled(message.isEmpty);
+      (okButtonKey.currentState as ManageAble).setEnabled(message.isEmpty);
       return message;
     },
   );
@@ -258,7 +258,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
               DetailButton(
                 appThemeData: appThemeData,
                 text: "Copy",
-                show: summaryList.hasNoErrors && copyMove,
+                visible: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
                   onActionReturn(SimpleButtonActions.copy, into);
                   Navigator.of(context).pop();
@@ -267,7 +267,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
               DetailButton(
                 appThemeData: appThemeData,
                 text: "Move",
-                show: summaryList.hasNoErrors && copyMove,
+                visible: summaryList.hasNoErrors && copyMove,
                 onPressed: () {
                   onActionReturn(SimpleButtonActions.move, into);
                   Navigator.of(context).pop();
@@ -276,7 +276,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
               DetailButton(
                 appThemeData: appThemeData,
                 text: "Remove",
-                show: summaryList.hasNoErrors && !copyMove,
+                visible: summaryList.hasNoErrors && !copyMove,
                 onPressed: () {
                   onActionReturn(SimpleButtonActions.delete, Path.empty());
                   Navigator.of(context).pop();
@@ -480,7 +480,7 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
             appThemeData: appThemeData,
             initialText: currentValue,
             onValidate: (ix, vx, it, vt) {
-              (okButtonKey.currentState as EnableAble).setEnabled(ix != vx);
+              (okButtonKey.currentState as ManageAble).setEnabled(ix != vx);
               updatedText = vx;
               updatedType = vt;
               return "";
@@ -536,11 +536,11 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
             final validMsg = externalValidate(ix.trim(), vx.trim(), it, vt);
             if (okButtonKey.currentState != null) {
               if (validMsg.isEmpty) {
-                (okButtonKey.currentState as EnableAble).setEnabled(true);
+                (okButtonKey.currentState as ManageAble).setEnabled(true);
                 updatedText = vx;
                 updatedType = vt;
               } else {
-                (okButtonKey.currentState as EnableAble).setEnabled(false);
+                (okButtonKey.currentState as ManageAble).setEnabled(false);
               }
             }
             return validMsg;

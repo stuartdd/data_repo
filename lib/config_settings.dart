@@ -213,17 +213,17 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
     for (var scN in settingsControlList.list) {
       if ((widget.appThemeData.desktop || scN.detail.desktopOnly) && !scN.detail.hide) {
         l.add(
-            ConfigInputSection(
-              key: key,
-              settingsControl: scN,
-              appThemeData: appThemeData,
-              width: width,
-              onValidation: (newValue, settingControl) {
-                settingControl.stringValue = newValue;
-                settingControl.validationState = _initialValidate(newValue, settingControl.detail, settingsControlList, onValidate);
-                updateState();
-              },
-            ),
+          ConfigInputSection(
+            key: key,
+            settingsControl: scN,
+            appThemeData: appThemeData,
+            width: width,
+            onValidation: (newValue, settingControl) {
+              settingControl.stringValue = newValue;
+              settingControl.validationState = _initialValidate(newValue, settingControl.detail, settingsControlList, onValidate);
+              updateState();
+            },
+          ),
         );
       }
     }
@@ -250,7 +250,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
           color: widget.appThemeData.primary.light,
           child: ListTile(
             dense: true,
-             title: Row(
+            title: Row(
               children: [
                 (widget.settingsControl.changed) ? Icon(Icons.star, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.radio_button_unchecked, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(false)),
                 SizedBox(width: widget.appThemeData.iconGap),
@@ -311,13 +311,21 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
 
     return Container(
       color: widget.appThemeData.primary.med,
-      padding: const EdgeInsets.all(10.0),
-      child: inputTextField("",widget.appThemeData.tsMedium, widget.appThemeData.textSelectionThemeData, widget.appThemeData.darkMode, false,widget.settingsControl.getTextController, (changeValue) {
-        // onChanged(changeValue);
-      },(setValue) {
-        onChanged(setValue);
-      }, padding: const EdgeInsets.fromLTRB(5,0,0,0)),
-     );
+      padding: const EdgeInsets.all(5.0),
+      child: inputTextField(
+        widget.appThemeData.tsMedium,
+        widget.appThemeData.textSelectionThemeData,
+        widget.appThemeData.darkMode,
+        widget.settingsControl.getTextController,
+        height: widget.appThemeData.textInputFieldHeight,
+        setValue: (setValue) {
+          onChanged(setValue);
+        },
+        onChange: (setValue) {
+          onChanged(setValue);
+        },
+      ),
+    );
   }
 }
 
@@ -617,7 +625,7 @@ Future<void> showColorPeckerDialog(final BuildContext context, final AppThemeDat
           content: ColorPecker(width, colorList, currentIndex, 7, 18, appThemeData.primary.med, appThemeData.hiLight.med, (color, index) {
             newPalette = appThemeData.getColorPalletWithColourInIt(color);
             colorIndex = index;
-            (okButtonKey.currentState as EnableAble).setEnabled(newPalette != null);
+            (okButtonKey.currentState as ManageAble).setEnabled(newPalette != null);
           }, rowSelect: true),
           actions: <Widget>[
             Row(
@@ -718,8 +726,8 @@ Future<void> showConfigDialog(final BuildContext context, ConfigData configData,
             },
             onUpdateState: (settingsControlList, hint) {
               final enable = settingsControlList.canSaveOrApply & hint.isEmpty;
-              (applyButtonKey.currentState as EnableAble).setEnabled(enable);
-              (saveButtonKey.currentState as EnableAble).setEnabled(enable);
+              (applyButtonKey.currentState as ManageAble).setEnabled(enable);
+              (saveButtonKey.currentState as ManageAble).setEnabled(enable);
             },
             hint: canChangeConfig(),
             width: size.width,

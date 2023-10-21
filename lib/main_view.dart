@@ -146,7 +146,6 @@ void _insertDisplayValueListInOrder(List<DataValueDisplayRow> displayValueList, 
   }
 }
 
-
 const _sortIconName = ["Un-Sort", "Ascending", "Descending"];
 const _sortIcon = [Icons.sort, Icons.flight_takeoff, Icons.flight_land];
 
@@ -158,59 +157,53 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
   return Row(
     children: [
       DetailIconButton(
-        onPressed: () {
+        onPressed: (button) {
           dataAction(DetailAction(ActionType.flipSorted, false, Path.empty()));
         },
-        gap: appThemeData.iconGap,
         tooltip: _sortIconName[sorted + 1],
         iconData: _sortIcon[sorted + 1],
         appThemeData: appThemeData,
       ),
       DetailIconButton(
-        onPressed: () {
+        onPressed: (button) {
           dataAction(DetailAction(ActionType.select, false, Path.empty()));
         },
-        gap: appThemeData.iconGap,
         tooltip: "Home",
         iconData: Icons.home,
         appThemeData: appThemeData,
       ),
       DetailIconButton(
         enabled: pathParent.isNotEmpty,
-        onPressed: () {
+        onPressed: (button) {
           dataAction(DetailAction(ActionType.select, false, pathParent));
         },
-        gap: appThemeData.iconGap,
         tooltip: "Back (${pathParent.toString()})",
         iconData: Icons.north_west,
         appThemeData: appThemeData,
       ),
       DetailIconButton(
         enabled: pathUp.isNotEmpty,
-        onPressed: () {
+        onPressed: (button) {
           dataAction(DetailAction(ActionType.select, true, pathUp));
         },
-        gap: appThemeData.iconGap,
         tooltip: "Up (${pathUp.toString()})",
         iconData: Icons.arrow_upward,
         appThemeData: appThemeData,
       ),
       DetailIconButton(
         enabled: pathDown.isNotEmpty,
-        onPressed: () {
+        onPressed: (button) {
           dataAction(DetailAction(ActionType.select, true, pathDown));
         },
-        gap: appThemeData.iconGap,
         tooltip: "Down (${pathDown.toString()})",
         iconData: Icons.arrow_downward,
         appThemeData: appThemeData,
       ),
       DetailIconButton(
         enabled: pathRight.isNotEmpty,
-        onPressed: () {
+        onPressed: (button) {
           dataAction(DetailAction(ActionType.select, true, pathRight));
         },
-        gap: appThemeData.iconGap,
         tooltip: "Right (${pathRight.toString()})",
         iconData: Icons.subdirectory_arrow_right,
         appThemeData: appThemeData,
@@ -241,12 +234,10 @@ Widget _createDetailContainer(final dynamic selectedNode, Path selectedPath, MyT
   );
 }
 
-
 List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> json, Path path, MyTreeNode treeNodeRoot, int sortOrder) {
   List<DataValueDisplayRow> lm = List.empty(growable: true);
   List<DataValueDisplayRow> lv = List.empty(growable: true);
   for (var element in json.entries) {
-
     if (element.value is Map) {
       final p = treeNodeRoot.findByPath(path.cloneAppendList([element.key]));
       if (p != null) {
@@ -258,7 +249,7 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
         _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as List).length), sortOrder);
       }
     } else {
-      _insertDisplayValueListInOrder(lv,DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.staticFindOptionTypeFromNameAndType(element.value.runtimeType, element.key), true, path, 0), sortOrder);
+      _insertDisplayValueListInOrder(lv, DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.staticFindOptionTypeFromNameAndType(element.value.runtimeType, element.key), true, path, 0), sortOrder);
     }
   }
   lm.addAll(lv);

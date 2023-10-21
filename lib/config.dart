@@ -27,6 +27,7 @@ const double defaultTreeNodeHeight = 30.0;
 
 const defaultAppBarHeight = 45.0;
 const defaultButtonHeight = 45.0;
+const defaultTextInputFieldHeight = 45.0;
 const defaultButtonGap = 15;
 const defaultIconSize = 30;
 const defaultIconGap = 15;
@@ -158,6 +159,7 @@ class AppThemeData {
   late final double iconGap;
   late final double buttonHeight;
   late final double buttonGap;
+  late final double textInputFieldHeight;
 
   late final TextStyle tsLarge;
   late final TextStyle tsLargeDisabled;
@@ -198,7 +200,7 @@ class AppThemeData {
     iconGap = defaultIconGap * scale;
     buttonHeight = defaultButtonHeight * scale;
     buttonGap = defaultButtonGap * scale;
-
+    textInputFieldHeight = defaultTextInputFieldHeight * scale;
     for (int i = 0; i < defaultTreeNodeIconData.length; i++) {
       treeNodeIcons.add(Icon(
         defaultTreeNodeIconData[i],

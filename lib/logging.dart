@@ -207,15 +207,15 @@ Future<void> showLogDialog(final BuildContext context, final AppThemeData appThe
           Row(
             children: [
               const SizedBox(width: 10),
-              IndicatorIcon(
+              IndicatorIconManager(
                 const [Icons.playlist_play, Icons.playlist_remove],
                 size: appThemeData.iconSize,
                 color: appThemeData.screenForegroundColour(true),
-                getState: (c) {
+                getState: (c, widget) {
                   return logContent.autoScroll ? 0 : 1;
                 },
                 period: 500,
-              ),
+              ).widget,
               const SizedBox(width: 10),
               DetailButton(
                 appThemeData: appThemeData,
