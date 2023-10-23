@@ -25,9 +25,9 @@ const double defaultFontScaleDesktop = 1.0;
 const double defaultFontScaleMobile = 0.8;
 const double defaultTreeNodeHeight = 30.0;
 
-const defaultAppBarHeight = 45.0;
-const defaultButtonHeight = 45.0;
-const defaultTextInputFieldHeight = 45.0;
+const defaultAppBarHeight = 50.0;
+const defaultButtonHeight = 50.0;
+const defaultTextInputFieldHeight = 50.0;
 const defaultButtonGap = 15;
 const defaultIconSize = 30;
 const defaultIconGap = 20;
@@ -161,7 +161,7 @@ class AppThemeData {
   late final double iconSize;
   late final double iconGap;
   late final double buttonHeight;
-  late final double buttonGap;
+  late final double _buttonGap;
   late final double textInputFieldHeight;
 
   late final TextStyle tsLarge;
@@ -202,7 +202,7 @@ class AppThemeData {
     iconSize = defaultIconSize * scale;
     iconGap = defaultIconGap * scale;
     buttonHeight = defaultButtonHeight * scale;
-    buttonGap = defaultButtonGap * scale;
+    _buttonGap = defaultButtonGap * scale;
     verticalGap = defaultVerticalGap * scale;
     textInputFieldHeight = defaultTextInputFieldHeight * scale;
     for (int i = 0; i < defaultTreeNodeIconData.length; i++) {
@@ -268,16 +268,20 @@ class AppThemeData {
     return error.med;
   }
 
+  double buttonGap(int count) {
+    return _buttonGap * count;
+  }
+
   Widget buttonGapBox(int count) {
-    return SizedBox(width: buttonGap * count);
+    return SizedBox(width: _buttonGap * count);
   }
 
   Widget iconGapBox(int count) {
     return SizedBox(width: iconGap * count);
   }
 
-  Widget get verticalGapBox {
-    return SizedBox(height: verticalGap);
+  Widget verticalGapBox(int count) {
+    return SizedBox(height: verticalGap * count);
   }
 
   Widget get horizontalLine {

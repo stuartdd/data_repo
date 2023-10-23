@@ -35,11 +35,11 @@ class DataValueDisplayRow {
     if (editMode) {
       return name;
     }
-    return name.substring(0, (_name.length - _type.suffix.length));
+    return name.substring(0, (_name.length - _type.functionalSuffix.length));
   }
 
   String get value {
-    if (_type.elementType == bool) {
+    if (_type.dataValueType == bool) {
       if (_value == "true") {
         return "Yes";
       }
@@ -61,9 +61,9 @@ class DataValueDisplayRow {
   @override
   String toString() {
     if (_isValue) {
-      return "Name:$value ($_type) = $value";
+      return "Name:$name ($_type) = Value:$value";
     }
-    return "Name:$value [$_mapSize]";
+    return "Name:$name [$_mapSize]";
   }
 }
 
@@ -230,7 +230,7 @@ class _DetailWidgetState extends State<DetailWidget> {
           subtitle: horizontal
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [widget.appThemeData.verticalGapBox, Text("Owned By:${widget.dataValueRow.path}", style: appThemeData.tsMediumBold)],
+                  children: [widget.appThemeData.verticalGapBox(1), Text("Owned By:${widget.dataValueRow.path}", style: appThemeData.tsMediumBold)],
                 )
               : null,
           onTap: () {
@@ -303,7 +303,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                 })
           ],
         ),
-        widget.appThemeData.verticalGapBox
+        widget.appThemeData.verticalGapBox(1)
       ]),
     );
   }
@@ -331,7 +331,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               subtitle: horizontal
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [widget.appThemeData.verticalGapBox, Text("Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: appThemeData.tsMediumBold)],
+                      children: [widget.appThemeData.verticalGapBox(1), Text("Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: appThemeData.tsMediumBold)],
                     )
                   : null,
               onTap: () {
@@ -360,7 +360,9 @@ class _DetailWidgetState extends State<DetailWidget> {
                     }),
               ],
             ),
-          ])),
+            widget.appThemeData.verticalGapBox(1)
+          ])
+      ),
     );
   }
 }

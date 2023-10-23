@@ -516,7 +516,7 @@ class _MyHomePageState extends State<MyHomePage> {
             screenSize,
             "Update Value '${detailActionData.getLastPathElement()}'",
             detailActionData.oldValue,
-            optionGroupUpdateElement,
+            detailActionData.oldValueType.dataValueTypeFixed ? [] : optionGroupUpdateElement,
             detailActionData.oldValueType,
             false,
             false,
@@ -533,7 +533,7 @@ class _MyHomePageState extends State<MyHomePage> {
               //
               // Validate a value type for Edit function
               //
-              if (valueType.elementType == bool) {
+              if (valueType.dataValueType == bool) {
                 final valueTrimmedLc = valueTrimmed.toLowerCase();
                 if (valueTrimmedLc == "yes" || valueTrimmedLc == "no" || valueTrimmedLc == "true" || valueTrimmedLc == "false") {
                   return "";
@@ -541,7 +541,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   return "Must be 'Yes' or 'No";
                 }
               }
-              if (valueType.elementType == String) {
+              if (valueType.dataValueType == String) {
                 if (valueTrimmed == initialTrimmed && initialTrimmed != "") {
                   return "";
                 }
@@ -551,7 +551,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 }
                 return "";
               }
-              if (valueType.elementType == double) {
+              if (valueType.dataValueType == double) {
                 try {
                   final d = double.parse(valueTrimmed);
                   return valueType.inRangeDouble("Value ", d);
@@ -559,7 +559,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   return "That is not a ${valueType.description}";
                 }
               }
-              if (valueType.elementType == int) {
+              if (valueType.dataValueType == int) {
                 try {
                   final i = int.parse(valueTrimmed);
                   return valueType.inRangeInt("Value ", i);
@@ -993,7 +993,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (newNameNoSuffix.contains(".")) {
       return "New Name Cannot contain '.'";
     }
-    final newName = "$newNameNoSuffix${newType.suffix}";
+    final newName = "$newNameNoSuffix${newType.functionalSuffix}";
     if (detailActionData.oldValue != newName) {
       final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
       if (mapNodes.error) {
@@ -1007,7 +1007,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _handleRenameState(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
-    final newName = "$newNameNoSuffix${newType.suffix}";
+    final newName = "$newNameNoSuffix${newType.functionalSuffix}";
     final oldName = detailActionData.oldValue;
     if (oldName != newName) {
       setState(() {
@@ -1105,11 +1105,11 @@ class _MyHomePageState extends State<MyHomePage> {
         _checkReferences = true;
         final nvTrim = newValue.trim();
         try {
-          if (type.elementType == bool) {
+          if (type.dataValueType == bool) {
             final lvTrimLc = nvTrim.toLowerCase();
             parentNode![key] = (lvTrimLc == "true" || lvTrimLc == "yes" || nvTrim == "1");
           } else {
-            if (type.elementType == double || type.elementType == int) {
+            if (type.dataValueType == double || type.dataValueType == int) {
               try {
                 final iv = int.parse(nvTrim);
                 parentNode![key] = iv;
@@ -1559,7 +1559,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     final settings = Positioned(
-        left: (screenSize.width - (_configData.iconSize) - 2),
+        left: (screenSize.width - (_configData.iconSize + _configData.iconGap + _configData.iconGap)),
         top: _navBarHeight + 7 * _configData.scale,
         child: DetailIconButton(
           iconData: Icons.settings,

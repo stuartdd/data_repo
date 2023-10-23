@@ -327,13 +327,14 @@ class DetailTextButtonManager {
 }
 
 class DetailTextButton extends StatefulWidget {
-  const DetailTextButton({super.key, required this.onPressed, required this.text, this.timerMs = clickTimerMs, this.visible = true, this.enabled = true, required this.appThemeData});
+  const DetailTextButton({super.key, required this.onPressed, required this.text, this.timerMs = clickTimerMs, this.visible = true, this.enabled = true, this.gaps = 1, required this.appThemeData});
   final bool visible;
   final bool enabled;
   final AppThemeData appThemeData;
   final Function(ManageAble) onPressed;
   final String text;
   final int timerMs;
+  final int gaps;
 
   @override
   State<DetailTextButton> createState() => _DetailTextButtonState();
@@ -371,33 +372,34 @@ class _DetailTextButtonState extends State<DetailTextButton> implements ManageAb
   Widget build(BuildContext context) {
     if (visibleButton) {
       final style = BorderSide(color: widget.appThemeData.screenForegroundColour(!grey), width: 2);
-      return Row(
-        children: [
-          SizedBox(
-            height: widget.appThemeData.buttonHeight,
-            child: OutlinedButton(
-              onPressed: () {
-                if (grey || !enableWidget) {
-                  return;
-                }
-                widget.onPressed(this);
+      final button = SizedBox(
+        height: widget.appThemeData.buttonHeight,
+        child: TextButton(
+          onPressed: () {
+            if (grey || !enableWidget) {
+              return;
+            }
+            widget.onPressed(this);
+            setState(() {
+              grey = true;
+            });
+            Timer(Duration(milliseconds: 15 + widget.timerMs), () {
+              if (mounted) {
                 setState(() {
-                  grey = true;
+                  grey = false;
                 });
-                Timer(Duration(milliseconds: 15 + widget.timerMs), () {
-                  if (mounted) {
-                    setState(() {
-                      grey = false;
-                    });
-                  }
-                });
-              },
-              style: OutlinedButton.styleFrom(side: style),
-              child: Text(widget.text, style: grey ? widget.appThemeData.tsMediumDisabled : widget.appThemeData.tsMedium),
-            ),
-          ),
-          widget.appThemeData.buttonGapBox(1)
-        ],
+              }
+            });
+          },
+          style: OutlinedButton.styleFrom(side: style),
+          child: Text(widget.text, style: grey ? widget.appThemeData.tsMediumDisabled : widget.appThemeData.tsMedium),
+        ),
+      );
+      if (widget.gaps == 0) {
+        return button;
+      }
+      return Row(
+        children: [button, widget.appThemeData.buttonGapBox(widget.gaps)],
       );
     } else {
       return const SizedBox(width: 0);
@@ -408,15 +410,15 @@ class _DetailTextButtonState extends State<DetailTextButton> implements ManageAb
 class OptionListWidget extends StatefulWidget {
   final List<OptionsTypeData> optionList;
   final OptionsTypeData selectedOption;
-  final void Function(String, OptionsTypeData) onSelect;
+  final void Function(OptionsTypeData) onSelect;
   final AppThemeData appThemeData;
   const OptionListWidget({super.key, required this.optionList, required this.selectedOption, required this.onSelect, required this.appThemeData});
   // Find the element type index for a given type name.
   //    -1 indicated not found
-  int _findIndexFroOption(String key) {
+  int _findIndexFroOption(String type) {
     if (optionList.isNotEmpty) {
       for (int i = 0; i < optionList.length; i++) {
-        if (optionList[i].key == key) {
+        if (optionList[i].functionalType == type) {
           return i;
         }
       }
@@ -430,43 +432,45 @@ class OptionListWidget extends StatefulWidget {
 
 class _OptionListWidgetState extends State<OptionListWidget> {
   OptionsTypeData _currentSelect = optionTypeDataNotFound;
+  int selIndex = 0;
 
   @override
   initState() {
     super.initState();
     _currentSelect = widget.selectedOption;
+    selIndex = widget._findIndexFroOption(_currentSelect.functionalType);
+    if (selIndex < 0) {
+      selIndex = 0;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (widget.optionList.isEmpty) {
-      return const SizedBox(height: 0, width: 0);
+      return const SizedBox(height: 0);
     }
     return Column(
       children: <Widget>[
         for (int i = 0; i < widget.optionList.length; i++) ...[
-          RadioListTile<String>(
-            title: Text(
-              widget.optionList[i].description,
-              style: widget.appThemeData.tsMedium,
-            ),
-            value: widget.optionList[i].key,
-            activeColor: widget.appThemeData.screenForegroundColour(true),
-            dense: true,
-            groupValue: _currentSelect.key,
-            onChanged: (String? value) {
-              setState(() {
-                if (value != null) {
-                  debugPrint("Select $value");
-                  final i = widget._findIndexFroOption(value);
-                  if (i >= 0) {
-                    _currentSelect = widget.optionList[i];
-                    widget.onSelect(value, _currentSelect);
-                  }
-                }
-              });
-            },
+          Row(
+            children: [
+              DetailIconButton(
+                  onPressed: (button) {
+                    setState(() {
+                      selIndex = i;
+                      _currentSelect = widget.optionList[i];
+                      widget.onSelect(_currentSelect);
+                    });
+                  },
+                  iconData: (i == selIndex) ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  appThemeData: widget.appThemeData),
+              Text(
+                widget.optionList[i].description,
+                style: widget.appThemeData.tsMediumBold,
+              )
+            ],
           ),
+          widget.appThemeData.verticalGapBox(2),
         ],
       ],
     );
@@ -690,20 +694,17 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
             appThemeData: widget.appThemeData,
             optionList: widget.options,
             selectedOption: widget.initialOption,
-            onSelect: (value, sel) {
+            onSelect: (sel) {
               currentOption = sel;
-              if (currentOption.elementType == bool) {
-                current = _toTrueFalse(current);
-              }
-              debugPrint("currentOption $currentOption Value '$current'");
               _validate();
             }),
         currentOption.isEmpty
             ? const SizedBox(height: 0)
             : Container(
-                alignment: Alignment.centerLeft,
-                child: Text(widget.prompt.replaceAll("[type]", currentOption.description), style: widget.appThemeData.tsMedium),
-              ),
+                alignment: Alignment.topLeft,
+                child: Column(
+                  children: [Text(widget.prompt.replaceAll("[type]", currentOption.description), style: widget.appThemeData.tsMediumBold), widget.appThemeData.verticalGapBox(2)],
+                )),
         (widget.isPassword)
             ? Row(
                 children: [
@@ -730,15 +731,15 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                     style: widget.appThemeData.tsMedium,
                   ),
                 ),
-                widget.appThemeData.horizontalLine
+                widget.appThemeData.verticalGapBox(1)
               ]),
-        (currentOption.elementType == bool)
+        (currentOption.dataValueType == bool)
             ? OptionListWidget(
                 appThemeData: widget.appThemeData,
                 optionList: optionGroupUYesNo,
                 selectedOption: OptionsTypeData.toTrueFalseOptionsType(current),
-                onSelect: (value, option) {
-                  current = option.key;
+                onSelect: (option) {
+                  current = option.functionalType;
                   _validate();
                 })
             : inputTextField(

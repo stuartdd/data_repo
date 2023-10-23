@@ -61,8 +61,9 @@ List<Widget> _stringsToTextList(final List<String> values, final int startAt, fi
 }
 
 Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThemeData appThemeData, final String title, final List<String> info, final String Function(SimpleButtonActions, String, String) onAction) async {
+  debugPrint("showFileNamePasswordDialog");
   final theme = appThemeData;
-  var separator = appThemeData.iconGapBox(1);
+  var separator = appThemeData.verticalGapBox(1);
   final content = _stringsToTextList(info, 1, separator as SizedBox, theme);
 
   var fileName = "";
@@ -297,39 +298,39 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
 }
 
 Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData appThemeData, List<String> files, final Function(String) onSelect, final void Function(SimpleButtonActions) onAction) async {
+  final style = BorderSide(color: appThemeData.screenForegroundColour(true), width: 2);
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        backgroundColor: appThemeData.dialogBackgroundColor,
+        actionsPadding: EdgeInsets.fromLTRB(appThemeData.buttonGap(3), 0, 0, appThemeData.buttonGap(1)),
         insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+        backgroundColor: appThemeData.dialogBackgroundColor,
         title: Text('Choose File', style: appThemeData.tsMedium),
         content: SingleChildScrollView(
           child: ListBody(children: [
-            for (int i = 0; i < files.length; i++) ...[
             appThemeData.horizontalLine,
-              Container(
-                color: appThemeData.primary.medDark,
-                child: TextButton(
-                  child: Text(files[i], style: appThemeData.tsMedium),
-                  onPressed: () {
-                    onSelect(files[i]);
-                    Navigator.of(context).pop();
-                  },
-                ),
+            for (int i = 0; i < files.length; i++) ...[
+              TextButton(
+                child: Text(files[i], style: appThemeData.tsMediumBold),
+                onPressed: () {
+                  onSelect(files[i]);
+                  Navigator.of(context).pop();
+                },
               ),
               appThemeData.horizontalLine,
-              appThemeData.verticalGapBox,
             ],
+            appThemeData.verticalGapBox(1),
             DetailTextButton(
+              gaps: 0,
               appThemeData: appThemeData,
-              text: "Create a file",
+              text: "Create a new file",
               onPressed: (button) {
                 onAction(SimpleButtonActions.ok);
                 Navigator.of(context).pop();
               },
-            ),
+            )
           ]),
         ),
         actions: <Widget>[
@@ -361,7 +362,7 @@ Future<void> showSearchDialog(final BuildContext context, final AppThemeData app
               appThemeData.horizontalLine,
               for (int i = 0; i < prevList.length; i++) ...[
                 TextButton(
-                  child: Text(prevList[i], style: appThemeData.tsMedium),
+                  child: Text(prevList[i], style: appThemeData.tsMediumBold),
                   onPressed: () {
                     onSelect(prevList[i]);
                     Navigator.of(context).pop();
@@ -511,17 +512,29 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
           prompt: "Input: ${isRename ? "New Name" : "[type]"}",
           appThemeData: appThemeData,
           onSubmit: (text, type) {
+            debugPrint("val:value:$text type$type");
             onAction(SimpleButtonActions.ok, text, type);
             Navigator.of(context).pop();
           },
           onValidate: (ix, vx, it, vt) {
             final validMsg = externalValidate(ix, vx, it, vt);
-            if (validMsg.isEmpty && (ix != vx)) {
-              okButtonManager.setEnabled(true);
-              updatedText = vx;
-              updatedType = vt;
+            debugPrint("M:$validMsg\nval:value:$ix type$it\nval:value:$vx type$vt");
+            if (validMsg.isNotEmpty) {
+              if (vt.dataValueType == bool) {
+                okButtonManager.setEnabled(true);
+                return "";
+              } else {
+                okButtonManager.setEnabled(false);
+              }
             } else {
-              okButtonManager.setEnabled(false);
+              if (it.notEqual(vt) || (ix != vx)) {
+                okButtonManager.setEnabled(true);
+                updatedType = vt;
+                updatedText = vx;
+                debugPrint("UTY:value:$updatedText type$updatedType");
+              } else {
+                okButtonManager.setEnabled(false);
+              }
             }
             return validMsg;
           },
