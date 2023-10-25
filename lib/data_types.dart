@@ -24,6 +24,7 @@ class DisplayTypeData {
   final String description;
   const DisplayTypeData({required this.displayType, required this.extension, required this.extensionLength, required this.description});
 }
+
 const emptyString = "";
 const positionalStringExtension = ":pl";
 const markDownExtension = ":md";
@@ -40,23 +41,23 @@ const DisplayTypeData markDownData = DisplayTypeData(displayType: DisplayType.ma
 // End Display type data
 //
 
-const optionsDataTypeEmpty = OptionsTypeData(String, "string", "empty", noExtension);
-const OptionsTypeData optionTypeDataNotFound = OptionsTypeData(String, "error", "Type Not Found", noExtension);
-const OptionsTypeData optionTypeDataString = OptionsTypeData(String, "text", "Text", noExtension);
-const OptionsTypeData optionTypeDataBool = OptionsTypeData(bool, "bool", "Yes or No", noExtension, min: 2, max: 3);
-const OptionsTypeData optionTypeDataDouble = OptionsTypeData(double, "double", "Decimal number", noExtension);
-const OptionsTypeData optionTypeDataInt = OptionsTypeData(int, "int", "Integer number", noExtension);
+const optionsDataTypeEmpty = OptionsTypeData(String, "string", "empty");
+const OptionsTypeData optionTypeDataNotFound = OptionsTypeData(String, "error", "Type Not Found");
+const OptionsTypeData optionTypeDataString = OptionsTypeData(String, "text", "Text");
+const OptionsTypeData optionTypeDataBool = OptionsTypeData(bool, "bool", "Yes or No", initialValue: "true", min: 2, max: 3);
+const OptionsTypeData optionTypeDataDouble = OptionsTypeData(double, "double", "Decimal number", initialValue: "0.0");
+const OptionsTypeData optionTypeDataInt = OptionsTypeData(int, "int", "Integer number", initialValue: "0");
 // Values to identify special case String values as Positional Lists or Markdown
-const OptionsTypeData optionTypeDataPositional = OptionsTypeData(String, "positional", "Positional List", positionalStringExtension, dataValueTypeFixed: true);
-const OptionsTypeData optionTypeDataMarkDown = OptionsTypeData(String, "markdown", "Multi Line Markdown", markDownExtension, dataValueTypeFixed: true);
-const OptionsTypeData optionTypeDataLink = OptionsTypeData(String, "link", "Web link or url", linkExtension, dataValueTypeFixed: true);
-const OptionsTypeData optionTypeDataReference = OptionsTypeData(String, "reference", "Reference to another item", referenceExtension, dataValueTypeFixed: true);
+const OptionsTypeData optionTypeDataPositional = OptionsTypeData(String, "positional", "Positional List", nameSuffix: positionalStringExtension, dataValueTypeFixed: true);
+const OptionsTypeData optionTypeDataMarkDown = OptionsTypeData(String, "markdown", "Multi Line Markdown", nameSuffix: markDownExtension, dataValueTypeFixed: true);
+const OptionsTypeData optionTypeDataLink = OptionsTypeData(String, "link", "Web link or url", nameSuffix: linkExtension, dataValueTypeFixed: true);
+const OptionsTypeData optionTypeDataReference = OptionsTypeData(String, "reference", "Reference to another item", nameSuffix: referenceExtension, dataValueTypeFixed: true);
 // Values for adding elements as groups or values
-const OptionsTypeData optionTypeDataGroup = OptionsTypeData(String, "group", "A Group Name", noExtension, min: 2, max: 30, dataValueTypeFixed: true);
-const OptionsTypeData optionTypeDataValue = OptionsTypeData(String, "value", "A Value Name", noExtension, min: 2, max: 30, dataValueTypeFixed: true);
+const OptionsTypeData optionTypeDataGroup = OptionsTypeData(String, "group", "A Group Name", min: 2, max: 30, dataValueTypeFixed: true);
+const OptionsTypeData optionTypeDataValue = OptionsTypeData(String, "value", "A Value Name", min: 2, max: 30, dataValueTypeFixed: true);
 // Value for function 'forTypeOrName(Type type, String name)' if no match found
-const OptionsTypeData optionTypeDataBoolYes = OptionsTypeData(bool, "true", "Yes", noExtension, min: 2, max: 3);
-const OptionsTypeData optionTypeDataBoolNo = OptionsTypeData(bool, "false", "No", noExtension, min: 2, max: 3);
+const OptionsTypeData optionTypeDataBoolYes = OptionsTypeData(bool, "true", "Yes", min: 2, max: 3);
+const OptionsTypeData optionTypeDataBoolNo = OptionsTypeData(bool, "false", "No", min: 2, max: 3);
 
 // Don't add simpleDisplayData to this list.
 const Map<String, OptionsTypeData> optionsTypeSuffixMap = {
@@ -72,6 +73,7 @@ const Map<Type, OptionsTypeData> optionsTypeMap = {
   double: optionTypeDataDouble,
   bool: optionTypeDataBool,
 };
+
 //
 // When renaming a data element the Options are derived from this class.
 //
@@ -80,10 +82,11 @@ class OptionsTypeData {
   final bool dataValueTypeFixed;
   final String functionalType; // Local type 'group', 'positional' ,'String',,,
   final String description; // For the user
-  final String functionalSuffix; // Extension for special sub types like positional markdown link and reference.
+  final String nameSuffix;
+  final String initialValue; // Extension for special sub types like positional markdown link and reference.
   final int min; // For length (string) or magnitude (int, double..)
   final int max;
-  const OptionsTypeData(this.dataValueType, this.functionalType, this.description, this.functionalSuffix, {this.min = -maxIntValue, this.max = maxIntValue, this.dataValueTypeFixed = false});
+  const OptionsTypeData(this.dataValueType, this.functionalType, this.description, {this.initialValue = "", this.nameSuffix = noExtension, this.min = -maxIntValue, this.max = maxIntValue, this.dataValueTypeFixed = false});
 
   static OptionsTypeData staticFindOptionTypeInList(Type type, String elementName, List<OptionsTypeData> l, OptionsTypeData fallback) {
     final toFind = staticFindOptionTypeFromNameAndType(type, elementName);
@@ -109,7 +112,7 @@ class OptionsTypeData {
     }
     return optionTypeDataNotFound;
   }
-  
+
   bool notEqual(OptionsTypeData other) {
     return functionalType != other.functionalType || dataValueType != other.dataValueType;
   }
@@ -124,8 +127,8 @@ class OptionsTypeData {
 
   @override
   String toString() {
-    if (functionalSuffix.isNotEmpty) {
-      return "FunctionalType:'$functionalType' Fixed:[$dataValueTypeFixed] FunctionalSuffix:[$functionalSuffix] DataValueType:[$dataValueType]  Fixed:[$dataValueTypeFixed] Desc:$description";
+    if (nameSuffix.isNotEmpty) {
+      return "FunctionalType:'$functionalType' Fixed:[$dataValueTypeFixed] FunctionalSuffix:[$nameSuffix] DataValueType:[$dataValueType]  Fixed:[$dataValueTypeFixed] Desc:$description";
     }
     return "FunctionalType:'$functionalType' DataValueType:[$dataValueType] Desc:$description";
   }
@@ -252,7 +255,7 @@ class DetailAction {
   final String additional;
   DetailAction(this.action, this.value, this.path, {this.oldValue = "", this.oldValueType = optionsDataTypeEmpty, this.onCompleteActionNullable, this.additional = ""});
 
-  factory DetailAction.actionOnly( ActionType action) {
+  factory DetailAction.actionOnly(ActionType action) {
     return DetailAction(action, false, Path.empty());
   }
 
@@ -261,7 +264,7 @@ class DetailAction {
   }
 
   String getDisplayValue(bool editMode) {
-    return oldValue.substring(0, oldValue.length - oldValueType.functionalSuffix.length);
+    return oldValue.substring(0, oldValue.length - oldValueType.nameSuffix.length);
   }
 
   String get valueName {
@@ -556,6 +559,7 @@ class ScreenSize {
   double get width {
     return _width;
   }
+
   double get height {
     return _height;
   }

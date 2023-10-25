@@ -993,7 +993,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (newNameNoSuffix.contains(".")) {
       return "New Name Cannot contain '.'";
     }
-    final newName = "$newNameNoSuffix${newType.functionalSuffix}";
+    final newName = "$newNameNoSuffix${newType.nameSuffix}";
     if (detailActionData.oldValue != newName) {
       final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
       if (mapNodes.error) {
@@ -1007,7 +1007,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _handleRenameState(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
-    final newName = "$newNameNoSuffix${newType.functionalSuffix}";
+    final newName = "$newNameNoSuffix${newType.nameSuffix}";
     final oldName = detailActionData.oldValue;
     if (oldName != newName) {
       setState(() {

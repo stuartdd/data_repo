@@ -35,7 +35,7 @@ class DataValueDisplayRow {
     if (editMode) {
       return name;
     }
-    return name.substring(0, (_name.length - _type.functionalSuffix.length));
+    return name.substring(0, (_name.length - _type.nameSuffix.length));
   }
 
   String get value {

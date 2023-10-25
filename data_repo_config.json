@@ -10,7 +10,7 @@
       "error": "red"
     },
     "darkMode": false,
-    "textScale": 0.5
+    "textScale": 0.8
   },
   "file": {
     "getDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",

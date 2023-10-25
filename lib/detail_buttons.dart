@@ -695,6 +695,11 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
             optionList: widget.options,
             selectedOption: widget.initialOption,
             onSelect: (sel) {
+              if (sel.initialValue.isEmpty) {
+                current = initial;
+              } else {
+                current = sel.initialValue;
+              }
               currentOption = sel;
               _validate();
             }),
@@ -720,7 +725,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                 ],
               )
             : const SizedBox(height: 0),
-        (validateResponse.isEmpty)
+        (validateResponse.isEmpty) // Need to display error message?
             ? const SizedBox(height: 0)
             : Column(children: [
                 Container(
@@ -734,7 +739,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                 widget.appThemeData.verticalGapBox(1)
               ]),
         (currentOption.dataValueType == bool)
-            ? OptionListWidget(
+            ? OptionListWidget(  // True or false
                 appThemeData: widget.appThemeData,
                 optionList: optionGroupUYesNo,
                 selectedOption: OptionsTypeData.toTrueFalseOptionsType(current),
@@ -742,7 +747,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                   current = option.functionalType;
                   _validate();
                 })
-            : inputTextField(
+            : inputTextField( // Text input
                 widget.appThemeData.tsMedium,
                 widget.appThemeData.textSelectionThemeData,
                 widget.appThemeData.darkMode,
