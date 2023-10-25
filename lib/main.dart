@@ -1137,8 +1137,12 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  SuccessState handleResolveLink(String value) {
-    final p = Path.fromDotPath(value);
+  SuccessState handleOnResolve(String value) {
+    final type = OptionsTypeData.staticFindOptionTypeFromNameAndType(null, value);
+    if (type != optionTypeDataNotFound) {
+      return SuccessState(false, message: "Cannot reference '${type.displayName}' data", value: value);
+    }
+     final p = Path.fromDotPath(value);
     if (p.isEmpty) {
       return SuccessState(false, message: "Invalid Path", value: value);
     }
@@ -1232,15 +1236,21 @@ class _MyHomePageState extends State<MyHomePage> {
       int count = 0;
       _loadedData.visitEachSubNode((key, path, node) {
         if (key.endsWith(referenceExtension) && node is String) {
-          final p = Path.fromDotPath(node);
-          final n = _loadedData.getNodeFromJson(p);
-          if (n == null) {
+          final ss = OptionsTypeData.staticFindOptionTypeFromNameAndType(null, node.toString());
+          if (ss != optionTypeDataNotFound) {
             count++;
-            logger.log("## __REF_ERROR__ ${path.asMarkdownLink} not found");
+            logger.log("## __REF_ERROR__ [$key] cannot ref an ${ss.displayName}");
           } else {
-            if (n is Map || n is List) {
+            final p = Path.fromDotPath(node);
+            final n = _loadedData.getNodeFromJson(p);
+            if (n == null) {
               count++;
-              logger.log("## __REF_ERROR__ ${path.asMarkdownLink} is not a value");
+              logger.log("## __REF_ERROR__ ${path.asMarkdownLink} not found");
+            } else {
+              if (n is Map || n is List) {
+                count++;
+                logger.log("## __REF_ERROR__ ${path.asMarkdownLink} is not a value");
+              }
             }
           }
         }
@@ -1296,7 +1306,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _selectNodeState,
       _expandNodeState,
       (value) {
-        return handleResolveLink(value);
+        return handleOnResolve(value);
       },
       (divPos) {
         // On divider change

@@ -101,15 +101,17 @@ class OptionsTypeData {
     return fallback;
   }
 
-  static OptionsTypeData staticFindOptionTypeFromNameAndType(Type type, String elementName) {
+  static OptionsTypeData staticFindOptionTypeFromNameAndType(Type? type, String elementName) {
     final en = elementName.trim().toLowerCase();
     for (var suf in optionsTypeSuffixMap.keys) {
       if (en.endsWith(suf)) {
         return optionsTypeSuffixMap[suf]!;
       }
     }
-    if (optionsTypeMap.containsKey(type)) {
-      return optionsTypeMap[type]!;
+    if (type!=null) {
+      if (optionsTypeMap.containsKey(type)) {
+        return optionsTypeMap[type]!;
+      }
     }
     return optionTypeDataNotFound;
   }
