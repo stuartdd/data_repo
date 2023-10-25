@@ -82,6 +82,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
   final fileNameInput = ValidatedInputField(
     prompt: "File Name",
     appThemeData: appThemeData,
+    onSubmit: (vx, vt) {},
     onValidate: (ix, vx, it, vt) {
       var message = "";
       if (vx.length < 2) {
@@ -105,6 +106,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
     isPassword: true,
     prompt: "Password",
     appThemeData: appThemeData,
+    onSubmit: (vx, vt) {},
     onValidate: (ix, vx, it, vt) {
       var message = "";
       if (vx.isNotEmpty && vx.length <= 4) {
@@ -511,27 +513,16 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
           initialValue: currentValue,
           prompt: "Input: ${isRename ? "New Name" : "[type]"}",
           appThemeData: appThemeData,
-          onSubmit: (text, type) {
-            debugPrint("val:value:$text type$type");
-            onAction(SimpleButtonActions.ok, text, type);
-            Navigator.of(context).pop();
-          },
+          onSubmit: (text, type) {},
           onValidate: (ix, vx, it, vt) {
             final validMsg = externalValidate(ix, vx, it, vt);
-            debugPrint("M:$validMsg\nval:value:$ix type$it\nval:value:$vx type$vt");
             if (validMsg.isNotEmpty) {
-              if (vt.dataValueType == bool) {
-                okButtonManager.setEnabled(true);
-                return "";
-              } else {
-                okButtonManager.setEnabled(false);
-              }
+              okButtonManager.setEnabled(false);
             } else {
               if (it.notEqual(vt) || (ix != vx)) {
                 okButtonManager.setEnabled(true);
                 updatedType = vt;
                 updatedText = vx;
-                debugPrint("UTY:value:$updatedText type$updatedType");
               } else {
                 okButtonManager.setEnabled(false);
               }

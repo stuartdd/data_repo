@@ -1152,7 +1152,10 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_isEditDataDisplay) {
       return SuccessState(true, message: "", value: value);
     }
-    return SuccessState(true, message: "", value: n);
+    if (n is bool) {
+      return n ? SuccessState(true, message: "", value: "Yes") : SuccessState(true, message: "", value: "No");
+    }
+    return SuccessState(true, message: "", value: n.toString());
   }
 
   Future<bool> _handleShouldExit() async {
@@ -1235,9 +1238,9 @@ class _MyHomePageState extends State<MyHomePage> {
             count++;
             logger.log("## __REF_ERROR__ ${path.asMarkdownLink} not found");
           } else {
-            if (n is! String) {
+            if (n is Map || n is List) {
               count++;
-              logger.log("## __REF_ERROR__ ${path.asMarkdownLink} to non String");
+              logger.log("## __REF_ERROR__ ${path.asMarkdownLink} is not a value");
             }
           }
         }
@@ -1337,7 +1340,8 @@ class _MyHomePageState extends State<MyHomePage> {
           height: _configData.getAppThemeData().textInputFieldHeight,
           hint: "Password:",
           isPw: true,
-          setValue: (v) {
+          onChange: (v) {},
+          onSubmit: (v) {
             _initialPassword = v;
             _loadDataState();
           },
@@ -1510,7 +1514,8 @@ class _MyHomePageState extends State<MyHomePage> {
               width: screenSize.width / 3,
               height: _configData.getAppThemeData().textInputFieldHeight,
               hint: "Search:",
-              setValue: (v) {
+              onChange: (v) {},
+              onSubmit: (v) {
                 _setSearchExpressionState(v);
               },
             ),

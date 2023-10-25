@@ -27,6 +27,13 @@ class DataValueDisplayRow {
   bool get isValue => _isValue;
   int get mapSize => _mapSize;
 
+  String get displayName {
+    if (isValue && type.hasSuffix) {
+      return _name.substring(0, _name.length - _type.nameSuffix.length);
+    }
+    return _name;
+  }
+
   Path get fullPath {
     return _path.cloneAppendList([_name]);
   }
@@ -50,10 +57,14 @@ class DataValueDisplayRow {
 
   bool get isLink {
     if (_isValue) {
-      var t = _value.toLowerCase();
-      if (t.startsWith("http://") || t.startsWith("https://")) {
-        return true;
-      }
+      return isLinkString(_value);
+    }
+    return false;
+  }
+
+  bool get isRef {
+    if (_isValue) {
+      return type.isRef;
     }
     return false;
   }
@@ -211,6 +222,25 @@ class _DetailWidgetState extends State<DetailWidget> {
 
   Widget _detailForValue(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
     final double rm = widget.dataValueRow.type.equal(optionTypeDataMarkDown) ? 15 : 5;
+    final String resolvedValue;
+    final bool resolvedValueIsLink;
+    final bool refIsResolved;
+    if (widget.dataValueRow.type.isRef) {
+      final v = widget.onResolve(widget.dataValueRow.value);
+      if (v.isSuccess) {
+        refIsResolved = true;
+        resolvedValue = v.value;
+        resolvedValueIsLink = isLinkString(resolvedValue);
+      } else {
+        refIsResolved = false;
+        resolvedValue = widget.dataValueRow.value;
+        resolvedValueIsLink = false;
+      }
+    } else {
+      refIsResolved = true;
+      resolvedValue = widget.dataValueRow.value;
+      resolvedValueIsLink = isLinkString(resolvedValue);
+    }
     return Card(
       key: UniqueKey(),
       color: appThemeData.detailBackgroundColor,
@@ -223,14 +253,14 @@ class _DetailWidgetState extends State<DetailWidget> {
               children: [
                 groupButton(plp, false, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
                 widget.appThemeData.buttonGapBox(1),
-                Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
+                Text(widget.dataValueRow.displayName, style: appThemeData.tsMedium),
               ],
             ),
           ),
           subtitle: horizontal
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [widget.appThemeData.verticalGapBox(1), Text("Owned By:${widget.dataValueRow.path}", style: appThemeData.tsMediumBold)],
+                  children: [widget.appThemeData.verticalGapBox(1), Text("[${widget.dataValueRow.type.displayName}] Owned By:${widget.dataValueRow.path}", style: appThemeData.tsMediumBold)],
                 )
               : null,
           onTap: () {
@@ -250,7 +280,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             DetailTextButton(
               appThemeData: widget.appThemeData,
               visible: widget.isEditDataDisplay,
-              text: 'Edit item details',
+              text: 'Edit Details',
               onPressed: (button) {
                 widget.dataAction(DetailAction(ActionType.renameItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
               },
@@ -265,25 +295,20 @@ class _DetailWidgetState extends State<DetailWidget> {
                 }),
             DetailIconButton(
                 appThemeData: appThemeData,
-                visible: !widget.isEditDataDisplay,
+                visible: !widget.isEditDataDisplay && refIsResolved,
                 iconData: Icons.edit,
                 tooltip: "Copy value",
                 onPressed: (p0) async {
-                  if (widget.dataValueRow.type.equal(optionTypeDataReference)) {
-                    final ss = widget.onResolve(widget.dataValueRow.value);
-                    await Clipboard.setData(ClipboardData(text: ss.value));
-                  } else {
-                    await Clipboard.setData(ClipboardData(text: widget.dataValueRow.value));
-                  }
+                  await Clipboard.setData(ClipboardData(text: resolvedValue));
                   widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
                 }),
             DetailIconButton(
                 appThemeData: appThemeData,
-                visible: widget.dataValueRow.isLink && !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional),
+                visible: resolvedValueIsLink && !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional) && refIsResolved,
                 iconData: Icons.launch_outlined,
                 tooltip: "Open in browser",
                 onPressed: (p0) {
-                  widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                  widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.pathWithName, oldValue: resolvedValue, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
                 }),
             DetailIconButton(
                 appThemeData: appThemeData,
@@ -295,11 +320,19 @@ class _DetailWidgetState extends State<DetailWidget> {
                 }),
             DetailIconButton(
                 appThemeData: appThemeData,
-                visible: widget.isEditDataDisplay,
+                visible: widget.isEditDataDisplay && widget.dataValueRow.type.isNotRef,
                 iconData: Icons.copy,
                 tooltip: "Copy reference to item",
                 onPressed: (p0) {
                   Clipboard.setData(ClipboardData(text: widget.dataValueRow.fullPath.toString()));
+                }),
+            DetailIconButton(
+                appThemeData: appThemeData,
+                visible: widget.isEditDataDisplay && widget.dataValueRow.type.isRef && refIsResolved,
+                iconData: Icons.double_arrow,
+                tooltip: "Go to Reference",
+                onPressed: (p0) {
+                  widget.dataAction(DetailAction(ActionType.select, true, Path.fromDotPath(widget.dataValueRow.value).cloneParentPath(), oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
                 })
           ],
         ),
@@ -361,8 +394,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               ],
             ),
             widget.appThemeData.verticalGapBox(1)
-          ])
-      ),
+          ])),
     );
   }
 }
@@ -376,4 +408,12 @@ Widget groupButton(PathProperties plp, bool value, Path path, AppThemeData appTh
       dataAction(DetailAction(ActionType.groupSelect, value, path));
     },
   );
+}
+
+bool isLinkString(String test) {
+  var t = test.toLowerCase();
+  if (t.startsWith("http://") || t.startsWith("https://")) {
+    return true;
+  }
+  return false;
 }

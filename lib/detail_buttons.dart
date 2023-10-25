@@ -477,7 +477,7 @@ class _OptionListWidgetState extends State<OptionListWidget> {
   }
 }
 
-Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, final bool isDarkMode, final TextEditingController controller, {final double width = 0, final double height = 0, final bool isPw = false, final String hint = "", final EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(5, 5, 0, 0), final Function(String)? onChange, final Function(String)? setValue}) {
+Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, final bool isDarkMode, final TextEditingController controller, {final double width = 0, final double height = 0, final bool isPw = false, final String hint = "", final EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(5, 5, 0, 0), required final Function(String)? onChange, required final Function(String)? onSubmit}) {
   final Color bc;
   if (theme.cursorColor == null) {
     bc = Colors.black;
@@ -501,8 +501,8 @@ Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, fi
         ),
         autofocus: true,
         onSubmitted: (value) {
-          if (setValue != null) {
-            setValue(value);
+          if (onSubmit != null) {
+            onSubmit(value);
           }
         },
         onChanged: (value) {
@@ -633,13 +633,13 @@ class _MarkDownInputField extends State<MarkDownInputField> {
 }
 
 class ValidatedInputField extends StatefulWidget {
-  ValidatedInputField({super.key, this.initialValue = "", this.isPassword = false, this.onSubmit, required this.onValidate, required this.prompt, this.options = const [], this.initialOption = optionsDataTypeEmpty, required this.appThemeData});
+  ValidatedInputField({super.key, this.initialValue = "", this.isPassword = false, required this.onSubmit, required this.onValidate, required this.prompt, this.options = const [], this.initialOption = optionsDataTypeEmpty, required this.appThemeData});
   final String initialValue;
   final List<OptionsTypeData> options;
   final OptionsTypeData initialOption;
   final String prompt;
   final bool isPassword;
-  final void Function(String, OptionsTypeData)? onSubmit;
+  final void Function(String, OptionsTypeData) onSubmit;
   final String Function(String, String, OptionsTypeData, OptionsTypeData) onValidate;
   final controller = TextEditingController();
   final AppThemeData appThemeData;
@@ -700,6 +700,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
               } else {
                 current = sel.initialValue;
               }
+              widget.controller.text = current;
               currentOption = sel;
               _validate();
             }),
@@ -739,7 +740,8 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                 widget.appThemeData.verticalGapBox(1)
               ]),
         (currentOption.dataValueType == bool)
-            ? OptionListWidget(  // True or false
+            ? OptionListWidget(
+                // True or false
                 appThemeData: widget.appThemeData,
                 optionList: optionGroupUYesNo,
                 selectedOption: OptionsTypeData.toTrueFalseOptionsType(current),
@@ -747,18 +749,19 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                   current = option.functionalType;
                   _validate();
                 })
-            : inputTextField( // Text input
+            : inputTextField(
+                // Text input
                 widget.appThemeData.tsMedium,
                 widget.appThemeData.textSelectionThemeData,
                 widget.appThemeData.darkMode,
                 widget.controller,
                 height: widget.appThemeData.textInputFieldHeight,
                 isPw: widget.isPassword && obscurePw,
-                setValue: (value) {
+                onSubmit: (value) {
                   current = value;
                   _validate();
-                  if (validateResponse.isEmpty && widget.onSubmit != null) {
-                    widget.onSubmit!(current, currentOption);
+                  if (validateResponse.isEmpty) {
+                    widget.onSubmit(current, currentOption);
                   }
                 },
                 onChange: (value) {

@@ -315,7 +315,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
         widget.appThemeData.darkMode,
         widget.settingsControl.getTextController,
         height: widget.appThemeData.textInputFieldHeight,
-        setValue: (setValue) {
+        onSubmit: (setValue) {
           onChanged(setValue);
         },
         onChange: (setValue) {

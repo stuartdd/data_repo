@@ -43,15 +43,15 @@ const DisplayTypeData markDownData = DisplayTypeData(displayType: DisplayType.ma
 
 const optionsDataTypeEmpty = OptionsTypeData(String, "string", "empty");
 const OptionsTypeData optionTypeDataNotFound = OptionsTypeData(String, "error", "Type Not Found");
-const OptionsTypeData optionTypeDataString = OptionsTypeData(String, "text", "Text");
-const OptionsTypeData optionTypeDataBool = OptionsTypeData(bool, "bool", "Yes or No", initialValue: "true", min: 2, max: 3);
-const OptionsTypeData optionTypeDataDouble = OptionsTypeData(double, "double", "Decimal number", initialValue: "0.0");
-const OptionsTypeData optionTypeDataInt = OptionsTypeData(int, "int", "Integer number", initialValue: "0");
+const OptionsTypeData optionTypeDataString = OptionsTypeData(String, "text", "Text", functionalTypeName: "Text");
+const OptionsTypeData optionTypeDataBool = OptionsTypeData(bool, "bool", "Yes or No", initialValue: "true", min: 2, max: 3, functionalTypeName: "Boolean");
+const OptionsTypeData optionTypeDataDouble = OptionsTypeData(double, "double", "Decimal number", initialValue: "0.0", functionalTypeName: "Decimal");
+const OptionsTypeData optionTypeDataInt = OptionsTypeData(int, "int", "Integer number", initialValue: "0", functionalTypeName: "Integer");
 // Values to identify special case String values as Positional Lists or Markdown
-const OptionsTypeData optionTypeDataPositional = OptionsTypeData(String, "positional", "Positional List", nameSuffix: positionalStringExtension, dataValueTypeFixed: true);
-const OptionsTypeData optionTypeDataMarkDown = OptionsTypeData(String, "markdown", "Multi Line Markdown", nameSuffix: markDownExtension, dataValueTypeFixed: true);
-const OptionsTypeData optionTypeDataLink = OptionsTypeData(String, "link", "Web link or url", nameSuffix: linkExtension, dataValueTypeFixed: true);
-const OptionsTypeData optionTypeDataReference = OptionsTypeData(String, "reference", "Reference to another item", nameSuffix: referenceExtension, dataValueTypeFixed: true);
+const OptionsTypeData optionTypeDataPositional = OptionsTypeData(String, "positional", "Positional List", nameSuffix: positionalStringExtension, dataValueTypeFixed: true, functionalTypeName: "List");
+const OptionsTypeData optionTypeDataMarkDown = OptionsTypeData(String, "markdown", "Multi Line Markdown", nameSuffix: markDownExtension, dataValueTypeFixed: true, functionalTypeName: "MD");
+const OptionsTypeData optionTypeDataLink = OptionsTypeData(String, "link", "Web link or url", nameSuffix: linkExtension, dataValueTypeFixed: true, functionalTypeName: "Web Link");
+const OptionsTypeData optionTypeDataReference = OptionsTypeData(String, "reference", "Reference to another item", nameSuffix: referenceExtension, dataValueTypeFixed: true, functionalTypeName: "Reference");
 // Values for adding elements as groups or values
 const OptionsTypeData optionTypeDataGroup = OptionsTypeData(String, "group", "A Group Name", min: 2, max: 30, dataValueTypeFixed: true);
 const OptionsTypeData optionTypeDataValue = OptionsTypeData(String, "value", "A Value Name", min: 2, max: 30, dataValueTypeFixed: true);
@@ -81,12 +81,13 @@ class OptionsTypeData {
   final Type dataValueType; // Native 'dart' type
   final bool dataValueTypeFixed;
   final String functionalType; // Local type 'group', 'positional' ,'String',,,
+  final String functionalTypeName; // Local type 'group', 'positional' ,'String',,,
   final String description; // For the user
   final String nameSuffix;
   final String initialValue; // Extension for special sub types like positional markdown link and reference.
   final int min; // For length (string) or magnitude (int, double..)
   final int max;
-  const OptionsTypeData(this.dataValueType, this.functionalType, this.description, {this.initialValue = "", this.nameSuffix = noExtension, this.min = -maxIntValue, this.max = maxIntValue, this.dataValueTypeFixed = false});
+  const OptionsTypeData(this.dataValueType, this.functionalType, this.description, {this.functionalTypeName = "", this.initialValue = "", this.nameSuffix = noExtension, this.min = -maxIntValue, this.max = maxIntValue, this.dataValueTypeFixed = false});
 
   static OptionsTypeData staticFindOptionTypeInList(Type type, String elementName, List<OptionsTypeData> l, OptionsTypeData fallback) {
     final toFind = staticFindOptionTypeFromNameAndType(type, elementName);
@@ -123,6 +124,22 @@ class OptionsTypeData {
 
   bool get isEmpty {
     return equal(optionsDataTypeEmpty);
+  }
+
+  String get displayName {
+    return functionalTypeName.isEmpty? functionalType : functionalTypeName;
+  }
+
+  bool get hasSuffix {
+    return nameSuffix.isNotEmpty;
+  }
+
+  bool get isRef {
+    return nameSuffix == referenceExtension;
+  }
+
+  bool get isNotRef {
+    return nameSuffix != referenceExtension;
   }
 
   @override
