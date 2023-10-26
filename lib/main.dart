@@ -1214,15 +1214,15 @@ class _MyHomePageState extends State<MyHomePage> {
     final value = node.toString();
     final ss = OptionsTypeData.staticFindOptionTypeFromNameAndType(null, value);
     if (ss.hasSuffix) {
-      return SuccessState(false, message: "Cannot ref to ${ss.displayName}");
+      return SuccessState(false, message: "Cannot ref ${ss.displayName}");
     }
     final p = Path.fromDotPath(value);
     final n = _loadedData.getNodeFromJson(p);
     if (n == null) {
-      return SuccessState(false, message: "Not found");
+      return SuccessState(false, message: "Item Not found");
     } else {
       if (n is Map || n is List) {
-        return SuccessState(false, message: "Is not a value item");
+        return SuccessState(false, message: "Is not a value Item");
       }
     }
 
