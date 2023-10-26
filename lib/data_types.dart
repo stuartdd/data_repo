@@ -13,7 +13,7 @@ enum DisplayType { simpleDisplay, positionalString, markDown, referenceString }
 
 enum SimpleButtonActions { ok, select, cancel, validate, copy, move, delete, listRemove, listClear, link }
 
-enum ActionType { none, reload, restart, clearState, save, saveAlt, flipSorted, addGroup, addDetail, editItemData, createFile, renameItem, select, querySelect, removeItem, link, clip, groupSelectClearAll, groupSelectAll, groupSelect, groupCopy, groupDelete, showLog }
+enum ActionType { none, reload, restart, clearState, save, saveAlt, flipSorted, addGroup, addDetail, editItemData, checkReferences, createFile, renameItem, select, querySelect, removeItem, link, clip, groupSelectClearAll, groupSelectAll, groupSelect, groupCopy, groupDelete, showLog }
 
 const int maxIntValue = -1 >>> 1;
 
@@ -49,7 +49,7 @@ const OptionsTypeData optionTypeDataDouble = OptionsTypeData(double, "double", "
 const OptionsTypeData optionTypeDataInt = OptionsTypeData(int, "int", "Integer number", initialValue: "0", functionalTypeName: "Integer");
 // Values to identify special case String values as Positional Lists or Markdown
 const OptionsTypeData optionTypeDataPositional = OptionsTypeData(String, "positional", "Positional List", nameSuffix: positionalStringExtension, dataValueTypeFixed: true, functionalTypeName: "List");
-const OptionsTypeData optionTypeDataMarkDown = OptionsTypeData(String, "markdown", "Multi Line Markdown", nameSuffix: markDownExtension, dataValueTypeFixed: true, functionalTypeName: "MD");
+const OptionsTypeData optionTypeDataMarkDown = OptionsTypeData(String, "markdown", "Multi Line Markdown", nameSuffix: markDownExtension, dataValueTypeFixed: true, functionalTypeName: "Mark Down");
 const OptionsTypeData optionTypeDataLink = OptionsTypeData(String, "link", "Web link or url", nameSuffix: linkExtension, dataValueTypeFixed: true, functionalTypeName: "Web Link");
 const OptionsTypeData optionTypeDataReference = OptionsTypeData(String, "reference", "Reference to another item", nameSuffix: referenceExtension, dataValueTypeFixed: true, functionalTypeName: "Reference");
 // Values for adding elements as groups or values
@@ -108,7 +108,7 @@ class OptionsTypeData {
         return optionsTypeSuffixMap[suf]!;
       }
     }
-    if (type!=null) {
+    if (type != null) {
       if (optionsTypeMap.containsKey(type)) {
         return optionsTypeMap[type]!;
       }
@@ -129,11 +129,15 @@ class OptionsTypeData {
   }
 
   String get displayName {
-    return functionalTypeName.isEmpty? functionalType : functionalTypeName;
+    return functionalTypeName.isEmpty ? functionalType : functionalTypeName;
   }
 
   bool get hasSuffix {
     return nameSuffix.isNotEmpty;
+  }
+
+  bool get hasNoSuffix {
+    return nameSuffix.isEmpty;
   }
 
   bool get isRef {
@@ -143,6 +147,7 @@ class OptionsTypeData {
   bool get isNotRef {
     return nameSuffix != referenceExtension;
   }
+
 
   @override
   String toString() {
@@ -294,6 +299,10 @@ class DetailAction {
   String toString() {
     final s = "Type:'${value ? "Value" : "Map"}' Path:'$path' V1:'$oldValue' ";
     switch (action) {
+      case ActionType.checkReferences:
+        {
+          return "CHECK_REF";
+        }
       case ActionType.showLog:
         {
           return "SHOW_LOG: $s";

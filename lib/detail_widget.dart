@@ -296,7 +296,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             DetailIconButton(
                 appThemeData: appThemeData,
                 visible: !widget.isEditDataDisplay && refIsResolved,
-                iconData: Icons.edit,
+                iconData: Icons.copy,
                 tooltip: "Copy value",
                 onPressed: (p0) async {
                   await Clipboard.setData(ClipboardData(text: resolvedValue));
@@ -320,7 +320,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                 }),
             DetailIconButton(
                 appThemeData: appThemeData,
-                visible: widget.isEditDataDisplay && widget.dataValueRow.type.isNotRef,
+                visible: widget.isEditDataDisplay && widget.dataValueRow.type.hasNoSuffix,
                 iconData: Icons.copy,
                 tooltip: "Copy reference to item",
                 onPressed: (p0) {

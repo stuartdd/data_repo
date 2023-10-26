@@ -773,19 +773,3 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
     );
   }
 }
-
-String _toTrueFalse(String value) {
-  final v = value.trim().toLowerCase();
-  if (v.contains("tru") || v.contains("yes")) {
-    return _trueStr;
-  }
-  try {
-    final i = int.parse(v);
-    if (i == 0) {
-      return _falseStr;
-    }
-    return _trueStr;
-  } catch (e) {
-    return _falseStr;
-  }
-}

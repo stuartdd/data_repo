@@ -341,6 +341,13 @@ class _MyHomePageState extends State<MyHomePage> {
           });
           break;
         }
+      case ActionType.checkReferences:
+        {
+          setState(() {
+            _checkReferences = true;
+          });
+          break;
+        }
       case ActionType.clearState:
         {
           setState(() {
@@ -542,6 +549,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 }
               }
               if (valueType.dataValueType == String) {
+                if (valueType.equal(optionTypeDataReference)) {
+                  final ss = _checkSingleReference(Path.fromDotPath(valueTrimmed), valueTrimmed);
+                  return ss.message;
+                }
                 if (valueTrimmed == initialTrimmed && initialTrimmed != "") {
                   return "";
                 }
@@ -1142,7 +1153,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (type != optionTypeDataNotFound) {
       return SuccessState(false, message: "Cannot reference '${type.displayName}' data", value: value);
     }
-     final p = Path.fromDotPath(value);
+    final p = Path.fromDotPath(value);
     if (p.isEmpty) {
       return SuccessState(false, message: "Invalid Path", value: value);
     }
@@ -1196,6 +1207,33 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  SuccessState _checkSingleReference(Path path, dynamic node) {
+    if (node is! String) {
+      return SuccessState(false, message: "Must be a String node");
+    }
+    final value = node.toString();
+    final ss = OptionsTypeData.staticFindOptionTypeFromNameAndType(null, value);
+    if (ss.hasSuffix) {
+      return SuccessState(false, message: "Cannot ref to ${ss.displayName}");
+    }
+    final p = Path.fromDotPath(value);
+    final n = _loadedData.getNodeFromJson(p);
+    if (n == null) {
+      return SuccessState(false, message: "Not found");
+    } else {
+      if (n is Map || n is List) {
+        return SuccessState(false, message: "Is not a value item");
+      }
+    }
+
+    // final ss = OptionsTypeData.staticFindOptionTypeFromNameAndType(null, path.last);
+    // if (ss.hasSuffix) {
+    //   return SuccessState(false,message:"Cannot ref to ${ss.displayName}");
+    // } else {
+    // }
+    return SuccessState(true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppThemeData appThemeData = _configData.getAppThemeData();
@@ -1235,23 +1273,11 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_checkReferences) {
       int count = 0;
       _loadedData.visitEachSubNode((key, path, node) {
-        if (key.endsWith(referenceExtension) && node is String) {
-          final ss = OptionsTypeData.staticFindOptionTypeFromNameAndType(null, node.toString());
-          if (ss != optionTypeDataNotFound) {
+        if (key.endsWith(referenceExtension)) {
+          final ss = _checkSingleReference(path, node);
+          if (ss.isFail) {
             count++;
-            logger.log("## __REF_ERROR__ [$key] cannot ref an ${ss.displayName}");
-          } else {
-            final p = Path.fromDotPath(node);
-            final n = _loadedData.getNodeFromJson(p);
-            if (n == null) {
-              count++;
-              logger.log("## __REF_ERROR__ ${path.asMarkdownLink} not found");
-            } else {
-              if (n is Map || n is List) {
-                count++;
-                logger.log("## __REF_ERROR__ ${path.asMarkdownLink} is not a value");
-              }
-            }
+            logger.log("## __REF_ERROR__ ${path.asMarkdownLink} ${ss.message}");
           }
         }
       });
@@ -1440,6 +1466,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 }),
                 MenuOptionDetails("Clear Select", "Clear ALL selected", ActionType.groupSelectClearAll, () {
                   return Icons.deselect;
+                }),
+                MenuOptionDetails("Validate references", "Check validity of reference elements", ActionType.checkReferences, () {
+                  return Icons.check_circle_outline;
                 }),
                 MenuOptionDetails("Save %{0}", "Save %{4} %{2}%{0}", ActionType.save, () {
                   return Icons.lock_open;
