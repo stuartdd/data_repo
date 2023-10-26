@@ -550,6 +550,9 @@ class _MyHomePageState extends State<MyHomePage> {
               }
               if (valueType.dataValueType == String) {
                 if (valueType.equal(optionTypeDataReference)) {
+                  if (valueTrimmed.isEmpty) {
+                    return "Reference cannot be empty";
+                  }
                   final ss = _checkSingleReference(Path.fromDotPath(valueTrimmed), valueTrimmed);
                   return ss.message;
                 }
