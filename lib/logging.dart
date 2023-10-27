@@ -106,10 +106,18 @@ class Logger {
   }
 }
 
+class InterfaceNotImplementedException implements Exception {
+  final String message;
+  InterfaceNotImplementedException(this.message);
+  String error() {
+    return message;
+  }
+}
+
 abstract class ScrollAble {
   void scrollBottom();
   void scrollTop();
-  bool get autoScroll;
+  bool get autoFollow;
 }
 
 class LogContentManager implements ScrollAble {
@@ -120,29 +128,30 @@ class LogContentManager implements ScrollAble {
     widget = _LogContent(key: key, log: log, scrollToEndOnStart: scrollToEndOnStart, appThemeData: appThemeData, onTapLink: onTapLink);
   }
 
+  ScrollAble _getInstance() {
+    final cs = key.currentState;
+    if (cs == null) {
+      throw InterfaceNotImplementedException("LogContentManager: Global key returned null 'currentState'");
+    }
+    if (cs is ScrollAble) {
+      return (cs as ScrollAble);
+    }
+    throw InterfaceNotImplementedException("LogContentManager:ScrollAble Global key 'currentState' returned type:${cs.runtimeType}");
+  }
+
   @override
   void scrollBottom() {
-    final cs = key.currentState;
-    if (cs != null && cs is ScrollAble) {
-      (cs as ScrollAble).scrollBottom();
-    }
+    _getInstance().scrollBottom();
   }
 
   @override
   void scrollTop() {
-    final cs = key.currentState;
-    if (cs != null && cs is ScrollAble) {
-      (cs as ScrollAble).scrollTop();
-    }
+    _getInstance().scrollTop();
   }
 
   @override
-  bool get autoScroll {
-    final cs = key.currentState;
-    if (cs != null && cs is ScrollAble) {
-      (cs as ScrollAble).autoScroll;
-    }
-    return true;
+  bool get autoFollow {
+    return _getInstance().autoFollow;
   }
 }
 
@@ -159,38 +168,18 @@ class _LogContent extends StatefulWidget {
 
 class _LogContentState extends State<_LogContent> implements ScrollAble {
   final _scrollController = ScrollController(keepScrollOffset: true);
-  bool _autoScroll = false;
+  bool _autoFollow = true;
   bool _waitingToScroll = false;
 
-  @override
-  void scrollBottom() {
-    debugPrint("Log scrollBottom");
-    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-    _autoScroll = true;
-    _waitingToScroll = false;
-  }
-
-  @override
-  void scrollTop() {
-    debugPrint("Log scrollTop");
-    _scrollController.jumpTo(_scrollController.position.minScrollExtent);
-    _autoScroll = false;
-    _waitingToScroll = false;
-  }
-
-  @override
-  bool get autoScroll {
-    return _autoScroll;
-  }
-
   void _scrollBottomLater(int ms) {
+    if (_waitingToScroll) {
+      return;
+    }
     _waitingToScroll = true;
     Timer(
       Duration(milliseconds: ms),
-      () {
-        setState(() {
-          scrollBottom();
-        });
+          () {
+        scrollBottom();
       },
     );
   }
@@ -199,13 +188,37 @@ class _LogContentState extends State<_LogContent> implements ScrollAble {
   void initState() {
     super.initState();
     widget.log.onUpdate = () {
-      if (_autoScroll && !_waitingToScroll) {
+      // This only happens if the log is updated!
+      if (_autoFollow) {
         _scrollBottomLater(127);
       }
     };
     if (widget.scrollToEndOnStart) {
-    _scrollBottomLater(300);
+      _scrollBottomLater(100);
     }
+  }
+
+
+  @override
+  void scrollBottom() {
+    setState(() {
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      _waitingToScroll = false;
+      _autoFollow = true;
+    });
+  }
+
+  @override
+  void scrollTop() {
+    setState(() {
+      _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+      _autoFollow = false;
+    });
+  }
+
+  @override
+  bool get autoFollow {
+    return _autoFollow;
   }
 
   @override
@@ -271,7 +284,7 @@ Future<void> showLogDialog(final BuildContext context, final AppThemeData appThe
                 size: appThemeData.iconSize,
                 color: appThemeData.screenForegroundColour(true),
                 getState: (c, widget) {
-                  return logContentManager.autoScroll ? 0 : 1;
+                  return logContentManager.autoFollow ? 0 : 1;
                 },
                 period: 500,
               ).widget,
@@ -285,7 +298,7 @@ Future<void> showLogDialog(final BuildContext context, final AppThemeData appThe
               ),
               DetailTextButton(
                 appThemeData: appThemeData,
-                text: "BOTTOM",
+                text: "FOLLOW",
                 onPressed: (button) {
                   logContentManager.scrollBottom();
                 },
