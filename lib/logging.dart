@@ -48,7 +48,7 @@ class Logger {
   LogEntry? first;
   LogEntry? last;
   int length = 0;
-  Function()? update;
+  Function()? onUpdate;
 
   Logger(this.maxLength, this.asMarkdown) {
     last = first;
@@ -78,8 +78,8 @@ class Logger {
   log(String text) {
     if (last != null && last!.equals(text)) {
       last!.inc();
-      if (update != null) {
-        update!();
+      if (onUpdate != null) {
+        onUpdate!();
       }
       return;
     }
@@ -100,82 +100,141 @@ class Logger {
         length++;
       }
     }
-    if (update != null) {
-      update!();
+    if (onUpdate != null) {
+      onUpdate!();
     }
   }
 }
 
-class LogContent extends StatefulWidget {
+abstract class ScrollAble {
+  void scrollBottom();
+  void scrollTop();
+  bool get autoScroll;
+}
+
+class LogContentManager implements ScrollAble {
+  late final GlobalKey key;
+  late final Widget widget;
+  LogContentManager({required Logger log, required bool scrollToEndOnStart, required AppThemeData appThemeData, required Function(String, String?, String) onTapLink}) {
+    key = GlobalKey();
+    widget = _LogContent(key: key, log: log, scrollToEndOnStart: scrollToEndOnStart, appThemeData: appThemeData, onTapLink: onTapLink);
+  }
+
+  @override
+  void scrollBottom() {
+    final cs = key.currentState;
+    if (cs != null && cs is ScrollAble) {
+      (cs as ScrollAble).scrollBottom();
+    }
+  }
+
+  @override
+  void scrollTop() {
+    final cs = key.currentState;
+    if (cs != null && cs is ScrollAble) {
+      (cs as ScrollAble).scrollTop();
+    }
+  }
+
+  @override
+  bool get autoScroll {
+    final cs = key.currentState;
+    if (cs != null && cs is ScrollAble) {
+      (cs as ScrollAble).autoScroll;
+    }
+    return true;
+  }
+}
+
+class _LogContent extends StatefulWidget {
   final Logger log;
   final AppThemeData appThemeData;
-
+  final bool scrollToEndOnStart;
   final Function(String, String?, String) onTapLink;
+  const _LogContent({super.key, required this.log, required this.scrollToEndOnStart, required this.appThemeData, required this.onTapLink});
+
+  @override
+  State<_LogContent> createState() => _LogContentState();
+}
+
+class _LogContentState extends State<_LogContent> implements ScrollAble {
   final _scrollController = ScrollController(keepScrollOffset: true);
-  bool _autoScroll = true;
+  bool _autoScroll = false;
+  bool _waitingToScroll = false;
 
-  LogContent({super.key, required this.log, required this.appThemeData, required this.onTapLink});
-
+  @override
   void scrollBottom() {
+    debugPrint("Log scrollBottom");
     _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
     _autoScroll = true;
+    _waitingToScroll = false;
   }
 
+  @override
   void scrollTop() {
+    debugPrint("Log scrollTop");
     _scrollController.jumpTo(_scrollController.position.minScrollExtent);
     _autoScroll = false;
+    _waitingToScroll = false;
   }
 
+  @override
   bool get autoScroll {
     return _autoScroll;
   }
 
-  @override
-  State<LogContent> createState() => _LogContentState();
-}
+  void _scrollBottomLater(int ms) {
+    _waitingToScroll = true;
+    Timer(
+      Duration(milliseconds: ms),
+      () {
+        setState(() {
+          scrollBottom();
+        });
+      },
+    );
+  }
 
-class _LogContentState extends State<LogContent> {
   @override
   void initState() {
-    widget.log.update = () {
-      if (widget._autoScroll) {
-        widget._scrollController.jumpTo(widget._scrollController.position.maxScrollExtent);
-      }
-      Timer(
-        const Duration(milliseconds: 127),
-        () {
-          setState(() {});
-        },
-      );
-    };
     super.initState();
+    widget.log.onUpdate = () {
+      if (_autoScroll && !_waitingToScroll) {
+        _scrollBottomLater(127);
+      }
+    };
+    if (widget.scrollToEndOnStart) {
+    _scrollBottomLater(300);
+    }
   }
 
   @override
   void dispose() {
-    widget.log.update = null;
+    widget.log.onUpdate = null;
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Markdown(
-      controller: widget._scrollController,
-      data: widget.log.toString(),
-      selectable: true,
-      shrinkWrap: true,
-      styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
-      onTapLink: (text, href, title) {
-        widget.onTapLink(text, href, title);
-      },
-    );
+    return Container(
+        color: widget.appThemeData.primary.lightest,
+        child: Markdown(
+          controller: _scrollController,
+          data: widget.log.toString(),
+          selectable: true,
+          shrinkWrap: true,
+          styleSheetTheme: MarkdownStyleSheetBaseTheme.material,
+          onTapLink: (text, href, title) {
+            widget.onTapLink(text, href, title);
+          },
+        ));
   }
 }
 
 Future<void> showLogDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final Logger log, final bool Function(String) onTapLink) async {
-
-  final logContent = LogContent(
+  final logContentManager = LogContentManager(
       log: log,
+      scrollToEndOnStart: true,
       appThemeData: appThemeData,
       onTapLink: (text, href, title) {
         bool ok = true;
@@ -201,7 +260,7 @@ Future<void> showLogDialog(final BuildContext context, final AppThemeData appThe
           height: screenSize.height,
           width: screenSize.width,
           color: appThemeData.primary.dark,
-          child: logContent,
+          child: logContentManager.widget,
         ),
         actions: <Widget>[
           Row(
@@ -212,7 +271,7 @@ Future<void> showLogDialog(final BuildContext context, final AppThemeData appThe
                 size: appThemeData.iconSize,
                 color: appThemeData.screenForegroundColour(true),
                 getState: (c, widget) {
-                  return logContent.autoScroll ? 0 : 1;
+                  return logContentManager.autoScroll ? 0 : 1;
                 },
                 period: 500,
               ).widget,
@@ -221,14 +280,14 @@ Future<void> showLogDialog(final BuildContext context, final AppThemeData appThe
                 appThemeData: appThemeData,
                 text: "TOP",
                 onPressed: (button) {
-                  logContent.scrollTop();
+                  logContentManager.scrollTop();
                 },
               ),
               DetailTextButton(
                 appThemeData: appThemeData,
                 text: "BOTTOM",
                 onPressed: (button) {
-                  logContent.scrollBottom();
+                  logContentManager.scrollBottom();
                 },
               ),
               DetailTextButton(

@@ -23,6 +23,7 @@ late final ApplicationState _applicationState;
 
 final logger = Logger(50, true);
 
+int logLineCounter = 0;
 bool _inExitProcess = false;
 
 void closer(final int returnCode) async {
@@ -59,6 +60,14 @@ void main() async {
     debugPrint(e.toString());
     closer(1);
   }
+  for (int i = 0; i< 100; i++) {
+    logLineCounter = i;
+    logger.log("## Padding[ $i ]");
+  }
+  Timer.periodic(const Duration(milliseconds: 1000), (timer) {
+    logLineCounter++;
+    logger.log("## Timed[ ${logLineCounter} ]");
+  });
   runApp(MyApp());
 }
 
