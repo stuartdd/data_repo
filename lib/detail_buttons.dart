@@ -147,9 +147,11 @@ class _IndicatorIconState extends State<_IndicatorIcon> implements ManageAble {
         if (enabled) {
           final st = widget.getState(state, this);
           if (st != state) {
-            setState(() {
-              state = st;
-            });
+            if (mounted) {
+              setState(() {
+                state = st;
+              });
+            }
           }
         }
       }
@@ -178,16 +180,20 @@ class _IndicatorIconState extends State<_IndicatorIcon> implements ManageAble {
 
   @override
   void setVisible(bool vi) {
-    setState(() {
-      visible = vi;
-    });
+    if (mounted) {
+      setState(() {
+        visible = vi;
+      });
+    }
   }
 
   @override
   void setEnabled(bool en) {
-    setState(() {
-      enabled = en;
-    });
+    if (mounted) {
+      setState(() {
+        enabled = en;
+      });
+    }
   }
 
   @override
@@ -517,6 +523,36 @@ Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, fi
   );
 }
 
+void markdownOnTapLink(String text, String? href, String title, Path Function(DetailAction) dataAction) {
+  if (href != null) {
+    dataAction(DetailAction(
+      ActionType.link,
+      true,
+      Path.empty(),
+      oldValue: href,
+      oldValueType: optionTypeDataString,
+    ));
+  }
+}
+
+Widget markdownDisplayWidget(bool show, String text, Color background, void Function(String, String?, String) onTapLinkExt, {ScrollController? scrollController}) {
+  if (show) {
+    return Container(
+        color: background,
+        alignment: Alignment.topLeft,
+        child: Markdown(
+          controller: scrollController,
+          data: text,
+          selectable: true,
+          shrinkWrap: true,
+          styleSheetTheme: MarkdownStyleSheetBaseTheme.material,
+          onTapLink: onTapLinkExt,
+        ));
+  } else {
+    return const SizedBox(height: 0, width: 0);
+  }
+}
+
 class MarkDownInputField extends StatefulWidget {
   final String initialText;
   final double height;
@@ -538,18 +574,6 @@ class _MarkDownInputField extends State<MarkDownInputField> {
   initState() {
     super.initState();
     controller.text = widget.initialText;
-  }
-
-  void doOnTapLink(String text, String? href, String title) {
-    if (href != null) {
-      widget.dataAction(DetailAction(
-        ActionType.link,
-        true,
-        Path.empty(),
-        oldValue: href,
-        oldValueType: optionTypeDataString,
-      ));
-    }
   }
 
   @override
@@ -586,28 +610,12 @@ class _MarkDownInputField extends State<MarkDownInputField> {
             height: widget.height,
             child: Column(
               children: [
-                widget.shouldDisplayPreview(false)
-                    ? Container(
-                        color: widget.appThemeData.hiLight.light,
-                        child: Markdown(
-                          data: controller.text,
-                          selectable: true,
-                          shrinkWrap: true,
-                          styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
-                          onTapLink: doOnTapLink,
-                        ))
-                    : const SizedBox(height: 0),
-                widget.shouldDisplayHelp(false)
-                    ? Container(
-                        color: widget.appThemeData.secondary.light,
-                        child: Markdown(
-                          data: helpText,
-                          selectable: true,
-                          shrinkWrap: true,
-                          styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
-                          onTapLink: doOnTapLink,
-                        ))
-                    : const SizedBox(height: 0),
+                markdownDisplayWidget(widget.shouldDisplayPreview(false), controller.text, widget.appThemeData.secondary.light, (text, href, title) {
+                  markdownOnTapLink(text, href, title, widget.dataAction);
+                }),
+                markdownDisplayWidget(widget.shouldDisplayHelp(false), helpText, widget.appThemeData.hiLight.light, (text, href, title) {
+                  markdownOnTapLink(text, href, title, widget.dataAction);
+                }),
                 Expanded(
                   child: TextField(
                     controller: controller,

@@ -229,18 +229,9 @@ class _LogContentState extends State<_LogContent> implements ScrollAble {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-        color: widget.appThemeData.primary.lightest,
-        child: Markdown(
-          controller: _scrollController,
-          data: widget.log.toString(),
-          selectable: true,
-          shrinkWrap: true,
-          styleSheetTheme: MarkdownStyleSheetBaseTheme.material,
-          onTapLink: (text, href, title) {
-            widget.onTapLink(text, href, title);
-          },
-        ));
+    return markdownDisplayWidget(true, widget.log.toString(),  widget.appThemeData.primary.lightest, scrollController: _scrollController, (text, href, title) {
+       widget.onTapLink(text, href, title);
+    });
   }
 }
 

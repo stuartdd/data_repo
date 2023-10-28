@@ -100,12 +100,6 @@ class _DetailWidgetState extends State<DetailWidget> {
     return true;
   }
 
-  void doOnTapLink(String text, String? href, String title) {
-    if (href != null) {
-      widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.path, oldValue: href, oldValueType: widget.dataValueRow.type));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final hiLight = widget.pathPropertiesList.propertiesForPath(widget.dataValueRow.pathWithName);
@@ -170,17 +164,9 @@ class _DetailWidgetState extends State<DetailWidget> {
     }
 
     if (dataValueRow.type.equal(optionTypeDataMarkDown)) {
-      return Container(
-        color: bgColour,
-        alignment: Alignment.centerLeft,
-        child: Markdown(
-          data: dataValueRow.value,
-          selectable: true,
-          shrinkWrap: true,
-          styleSheetTheme: MarkdownStyleSheetBaseTheme.platform,
-          onTapLink: doOnTapLink,
-        ),
-      );
+      return markdownDisplayWidget(true, dataValueRow.value, bgColour, (text, href, title) {
+        markdownOnTapLink(text, href, title, widget.dataAction);
+      });
     }
 
     if (dataValueRow.type.equal(optionTypeDataReference)) {
