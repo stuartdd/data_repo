@@ -69,29 +69,29 @@ void main() {
 
   test('Test Get From Server', () async {
     await startTestServer();
-    final r = await DataContainer.fromHttpGet("http://localhost:$serverPort/files/data01.json");
+    final r = await DataContainer.receiveHttpGet("http://localhost:$serverPort/files/data01.json");
     if (r.isFail) {
       fail(r.exception.toString());
     }
     if (!r.value.contains("\"Stuart\": {")) {
       fail("Response does not contain \"Stuart\": {");
     }
-    var f = await DataContainer.fromHttpGet("http://localhost:$serverPort/files/data0.xxx");
+    var f = await DataContainer.receiveHttpGet("http://localhost:$serverPort/files/data0.xxx");
     if (f.isSuccess) {
       fail(r.message);
     }
     if (!f.message.contains("Status:404")) {
       fail("Message does not contain \"Status:404\"");
     }
-    f = await DataContainer.fromHttpGet("http://localhost:$serverPort/files/json_test_data_empty.json");
+    f = await DataContainer.receiveHttpGet("http://localhost:$serverPort/files/json_test_data_empty.json");
     if (f.isSuccess) {
       fail(r.message);
     }
-    f = await DataContainer.fromHttpGet("http://localhost:$serverPort/files/json_test_data.html");
+    f = await DataContainer.receiveHttpGet("http://localhost:$serverPort/files/json_test_data.html");
     if (f.isSuccess) {
       fail(r.message);
     }
-    f = await DataContainer.fromHttpGet("http://localhost:$serverPort/files/data_with_prefix.json", prefix: "ABC123.X");
+    f = await DataContainer.receiveHttpGet("http://localhost:$serverPort/files/data_with_prefix.json", prefix: "ABC123.X");
     if (f.isFail) {
       fail(r.message);
     }

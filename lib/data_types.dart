@@ -13,7 +13,33 @@ enum DisplayType { simpleDisplay, positionalString, markDown, referenceString }
 
 enum SimpleButtonActions { ok, select, cancel, validate, copy, move, delete, listRemove, listClear, link }
 
-enum ActionType { none, reload, restart, clearState, save, saveAlt, flipSorted, addGroup, addDetail, editItemData, checkReferences, createFile, renameItem, select, querySelect, removeItem, link, clip, groupSelectClearAll, groupSelectAll, groupSelect, groupCopy, groupDelete, showLog }
+enum ActionType {
+  // Actions implemented in main.dart _handleAction
+  none,
+  reload, // Reload the data, Confirms if data was updated
+  restart, // Restart the application, Confirms if data was updated
+  clearState, // Reset (delete) the saved state config json
+  save, // Save as it is (encrypted or un-encrypted)
+  saveAlt, // Save unencrypted as encrypted OR save encrypted as un-encrypted
+  flipSorted,
+  addGroup, // Add a group entry to the data at the selected group
+  addDetail, // Add a detail (leaf node) at the selected group
+  editItemData, // Edit the current items data (value) and type (String int double bool...)
+  renameItem,// Edit the current items name (key) and type (MarkDown, List, Reference...)
+  checkReferences,
+  createFile,
+  select,
+  querySelect,
+  removeItem,
+  link,
+  clip,
+  groupSelectClearAll,
+  groupSelectAll,
+  groupSelect,
+  groupCopy,
+  groupDelete,
+  showLog,
+}
 
 const int maxIntValue = -1 >>> 1;
 
@@ -147,7 +173,6 @@ class OptionsTypeData {
   bool get isNotRef {
     return nameSuffix != referenceExtension;
   }
-
 
   @override
   String toString() {

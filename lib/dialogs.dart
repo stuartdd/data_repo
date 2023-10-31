@@ -276,7 +276,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
               ),
               DetailTextButton(
                 appThemeData: appThemeData,
-                text: "Remove",
+                text: "DELETE",
                 visible: summaryList.hasNoErrors && !copyMove,
                 onPressed: (button) {
                   onActionReturn(SimpleButtonActions.delete, Path.empty());

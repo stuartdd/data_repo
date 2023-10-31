@@ -185,7 +185,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return p;
   }
 
-  Future<void> _implementLinkState(final String href, final String from) async {
+  Future<void> _implementLinkStateAsync(final String href, final String from) async {
     var urlCanLaunch = await canLaunchUrlString(href); //canLaunch is from url_launcher package
     if (urlCanLaunch) {
       await launchUrlString(href); //launch is from url_launcher package to launch URL
@@ -199,35 +199,27 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void selectNode({final Path? path}) {
-    if (path != null) {
-      final n = _treeNodeDataRoot.findByPath(path);
-      if (n == null) {
-        _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
-        logger.log("__ERROR__ Selected node [$path] was not found");
-      } else {
-        if (n.isLeaf) {
-          final pp = path.cloneParentPath();
-          final n = _treeNodeDataRoot.findByPath(pp);
-          if (n == null) {
-            _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
-            logger.log("__ERROR__ Selected node [$path] was a data node");
-          } else {
-            if (n.isNotRequired) {
-              n.setRequired(true, recursive: true);
-            }
-            _selectedTreeNode = n;
-          }
-        } else {
-          if (n.isNotRequired) {
-            n.setRequired(true, recursive: true);
-          }
-          _selectedTreeNode = n;
-        }
-      }
+  void _selectNodeState(final Path path) {
+    setState(() {
+      selectNode(path);
+    });
+  }
+
+  void selectNode(final Path path) {
+    var pa = path;
+    var sn = _treeNodeDataRoot.findByPath(pa);
+    while ((sn == null || sn.isLeaf) && pa.length > 1) {
+      pa = pa.cloneParentPath();
+      sn = _treeNodeDataRoot.findByPath(pa);
     }
-    _selectedPath = _selectedTreeNode.path;
-    _selectedTreeNode.expandParent(true);
+    if (sn != null) {
+      _selectedTreeNode = sn;
+      _selectedPath = _selectedTreeNode.path;
+      _selectedTreeNode.setRequired(true);
+      _selectedTreeNode.setExpandedParentNodes(true);
+    } else {
+      logger.log("__SELECT__ Failed Path:'$path'");
+    }
 
     Future.delayed(
       const Duration(milliseconds: 300),
@@ -272,35 +264,28 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _selectNodeState(final Path path) {
-    setState(() {
-      selectNode(path: path);
-    });
-  }
-
   void _expandNodeState(final Path path) {
     setState(() {
       final n = _treeNodeDataRoot.findByPath(path);
       if (n != null) {
         n.expanded = !n.expanded;
-        selectNode(path: path);
+        selectNode(path);
       }
     });
   }
 
   void _setSearchExpressionState(final String st) {
-    if (st == _search) {
-      return;
-    }
-    _lastSearch = "[$_search]"; // Need search and _lastSearch to be different so filter is applied
-    if (st.isEmpty) {
-      logger.log("__SEARCH__ cleared");
-      selectNode();
-    }
+    _lastSearch = "[$st]"; // Force search to run in build method!
     setState(() {
       searchEditingController.text = st;
       _search = st;
     });
+    Timer(
+      const Duration(milliseconds: 200),
+      () {
+        _selectNodeState(_selectedPath);
+      },
+    );
   }
 
   GroupCopyMoveSummary _checkNodeForGroupSelection(final Path from, final Path to, final bool isValue, final bool groupCopy) {
@@ -326,75 +311,64 @@ class _MyHomePageState extends State<MyHomePage> {
     return GroupCopyMoveSummaryList(sb);
   }
 
-  Path _handleAction(DetailAction detailActionData) {
-    switch (detailActionData.action) {
-      case ActionType.showLog:
-        {
-          Timer(const Duration(milliseconds: 500), () {
-            showLogDialog(context, _configData.getAppThemeData(), screenSize, logger, (dotPath) {
-              final p = Path.fromDotPath(dotPath);
-              if (p.isRational(_loadedData.dataMap)) {
-                _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
-                return true;
-              }
-              return false;
-            });
-          });
-          break;
-        }
-      case ActionType.checkReferences:
-        {
-          setState(() {
-            _checkReferences = true;
-          });
-          break;
-        }
-      case ActionType.clearState:
-        {
-          setState(() {
-            _applicationState.deleteAppStateConfigFile();
-            _applicationState.clear(_configData.isDesktop());
-          });
-          break;
-        }
-      case ActionType.groupSelectAll:
-        {
-          setState(() {
-            _selectedTreeNode.visitEachChildNode((sn) {
-              _pathPropertiesList.setGroupSelect(sn.path, sn.isLeaf);
-            });
-          });
-          break;
-        }
-      case ActionType.groupSelectClearAll:
-        {
-          setState(() {
-            _pathPropertiesList.clearAllGroupSelect();
-          });
-          break;
-        }
-      case ActionType.flipSorted:
-        {
-          setState(() {
-            _applicationState.flipDataSorted;
-            _reloadAndCopyFlags();
-            selectNode();
-          });
-          break;
-        }
-      case ActionType.groupSelect:
-        {
-          setState(() {
-            _pathPropertiesList.setGroupSelect(detailActionData.path, detailActionData.value);
-          });
-          break;
-        }
-      case ActionType.groupCopy:
-      case ActionType.groupDelete:
-        {
-          if (_pathPropertiesList.hasGroupSelects) {
-            Timer(const Duration(milliseconds: 500), () {
-              if (mounted) {
+  void _handleActionTimed(DetailAction detailActionData, int ms) {
+    Timer(Duration(milliseconds: ms), () {
+      if (mounted) {
+        switch (detailActionData.action) {
+          case ActionType.removeItem:
+            {
+              showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState);
+              break;
+            }
+          case ActionType.showLog:
+            {
+              showLogDialog(context, _configData.getAppThemeData(), screenSize, logger, (dotPath) {
+                final p = Path.fromDotPath(dotPath);
+                if (p.isRational(_loadedData.dataMap)) {
+                  _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
+                  return true;
+                }
+                return false;
+              });
+              break;
+            }
+          case ActionType.saveAlt: // Save unencrypted as encrypted OR save encrypted as un-encrypted
+            {
+              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, _loadedData.hasPassword ? "Confirm Password" : "New Password", "", [], optionsDataTypeEmpty, false, true, (button, pw, type) {
+                if (button == SimpleButtonActions.ok) {
+                  if (_loadedData.hasPassword) {
+                    // Confirm PW (Save un-encrypted)
+                    logger.log("__SAVE__ Data as plain text");
+                    _loadedData.password = "";
+                  } else {
+                    // New password (Save encrypted)
+                    logger.log("__SAVE__ Data as ENCRYPTED text");
+                    _loadedData.password = pw;
+                  }
+                  _saveDataState(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
+                }
+              }, (initial, value, initialType, valueType) {
+                // Validate
+                if (_loadedData.hasPassword) {
+                  if (_loadedData.password != value) {
+                    return "Invalid Password";
+                  }
+                } else {
+                  if (value.isEmpty) {
+                    return "Password required";
+                  }
+                  if (value.length < 5) {
+                    return "Password length";
+                  }
+                }
+                return "";
+              });
+              break;
+            }
+          case ActionType.groupCopy:
+          case ActionType.groupDelete:
+            {
+              if (_pathPropertiesList.hasGroupSelects) {
                 final groupCopy = detailActionData.action == ActionType.groupCopy;
                 showCopyMoveDialog(
                   context,
@@ -403,6 +377,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   _summariseGroupSelection(_pathPropertiesList, groupCopy),
                   groupCopy,
                   (action, intoPath) {
+                    // onActionReturn
                     setState(() {
                       if (action == SimpleButtonActions.copy || action == SimpleButtonActions.move || action == SimpleButtonActions.delete) {
                         final groupMap = _pathPropertiesList.groupSelectsClone;
@@ -445,7 +420,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           },
                         );
 
-                        _reloadAndCopyFlags();
+                        _reloadTreeFromMapAndCopyFlags();
                       }
                       if (action == SimpleButtonActions.listRemove) {
                         _pathPropertiesList.setGroupSelect(intoPath, false);
@@ -457,145 +432,117 @@ class _MyHomePageState extends State<MyHomePage> {
                     _handleAction(detailActionData);
                   },
                   (action, intoPath) {
+                    // onActionClose. Node was selected in list.
                     if (action == SimpleButtonActions.select) {
-                      _selectNodeState(intoPath);
+                      setState(() {
+                        selectNode(intoPath);
+                      });
                     }
                   },
                 );
               }
-            });
-          }
-          break;
-        }
-      case ActionType.removeItem:
-        {
-          showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState);
-          break;
-        }
-      case ActionType.clip:
-        {
-          setState(() {
-            _globalSuccessState = SuccessState(true, message: "Copied to clipboard");
-          });
-          break;
-        }
-      case ActionType.select:
-        {
-          _selectNodeState(detailActionData.path);
-          selectNode();
-          break;
-        }
-      case ActionType.querySelect:
-        {
-          return querySelect(detailActionData.path, detailActionData.additional);
-        }
-      case ActionType.renameItem:
-        {
-          final title = detailActionData.valueName;
-          showModalInputDialog(
-            context,
-            _configData.getAppThemeData(),
-            screenSize,
-            "Change $title '${detailActionData.getLastPathElement()}'",
-            detailActionData.getDisplayValue(false),
-            detailActionData.value ? optionGroupRenameElement : [],
-            detailActionData.oldValueType,
-            true,
-            false,
-            (action, text, type) {
-              if (action == SimpleButtonActions.ok) {
-                _handleRenameState(detailActionData, text, type);
-              }
-            },
-            (initial, value, initialType, valueType) {
-              //
-              // Validate a re-name
-              //
-              return _checkRenameOk(detailActionData, value, valueType);
-            },
-          );
-          break;
-        }
-      case ActionType.editItemData:
-        {
-          showModalInputDialog(
-            context,
-            _configData.getAppThemeData(),
-            screenSize,
-            "Update Value '${detailActionData.getLastPathElement()}'",
-            detailActionData.oldValue,
-            detailActionData.oldValueType.dataValueTypeFixed ? [] : optionGroupUpdateElement,
-            detailActionData.oldValueType,
-            false,
-            false,
-            (action, text, type) {
-              if (action == SimpleButtonActions.ok) {
-                _handleEditState(detailActionData, text, type);
-              } else {
-                if (action == SimpleButtonActions.link) {
-                  _implementLinkState(text, detailActionData.path.last);
-                }
-              }
-            },
-            (initialTrimmed, valueTrimmed, initialType, valueType) {
-              //
-              // Validate a value type for Edit function
-              //
-              if (valueType.dataValueType == bool) {
-                final valueTrimmedLc = valueTrimmed.toLowerCase();
-                if (valueTrimmedLc == "yes" || valueTrimmedLc == "no" || valueTrimmedLc == "true" || valueTrimmedLc == "false") {
-                  return "";
-                } else {
-                  return "Must be 'Yes' or 'No";
-                }
-              }
-              if (valueType.dataValueType == String) {
-                if (valueType.equal(optionTypeDataReference)) {
-                  if (valueTrimmed.isEmpty) {
-                    return "Reference cannot be empty";
+              break;
+            }
+          case ActionType.renameItem:
+            {
+              final title = detailActionData.valueName;
+              showModalInputDialog(
+                context,
+                _configData.getAppThemeData(),
+                screenSize,
+                "Change $title '${detailActionData.getLastPathElement()}'",
+                detailActionData.getDisplayValue(false),
+                detailActionData.value ? optionGroupRenameElement : [],
+                detailActionData.oldValueType,
+                true,
+                false,
+                (action, text, type) {
+                  if (action == SimpleButtonActions.ok) {
+                    _handleRenameState(detailActionData, text, type);
                   }
-                  final ss = _checkSingleReference(Path.fromDotPath(valueTrimmed), valueTrimmed);
-                  return ss.message;
-                }
-                if (valueTrimmed == initialTrimmed && initialTrimmed != "") {
+                },
+                (initial, value, initialType, valueType) {
+                  //
+                  // Validate a re-name
+                  //
+                  return _checkRenameOk(detailActionData, value, valueType);
+                },
+              );
+              break;
+            }
+          case ActionType.editItemData:
+            {
+              showModalInputDialog(
+                context,
+                _configData.getAppThemeData(),
+                screenSize,
+                "Update Value '${detailActionData.getLastPathElement()}'",
+                detailActionData.oldValue,
+                detailActionData.oldValueType.dataValueTypeFixed ? [] : optionGroupUpdateElement,
+                detailActionData.oldValueType,
+                false,
+                false,
+                (action, text, type) {
+                  if (action == SimpleButtonActions.ok) {
+                    _handleEditState(detailActionData, text, type);
+                  } else {
+                    if (action == SimpleButtonActions.link) {
+                      _implementLinkStateAsync(text, detailActionData.path.last);
+                    }
+                  }
+                },
+                (initialTrimmed, valueTrimmed, initialType, valueType) {
+                  //
+                  // Validate a value type for Edit function
+                  //
+                  if (valueType.dataValueType == bool) {
+                    final valueTrimmedLc = valueTrimmed.toLowerCase();
+                    if (valueTrimmedLc == "yes" || valueTrimmedLc == "no" || valueTrimmedLc == "true" || valueTrimmedLc == "false") {
+                      return "";
+                    } else {
+                      return "Must be 'Yes' or 'No";
+                    }
+                  }
+                  if (valueType.dataValueType == String) {
+                    if (valueType.equal(optionTypeDataReference)) {
+                      if (valueTrimmed.isEmpty) {
+                        return "Reference cannot be empty";
+                      }
+                      final ss = _checkSingleReference(Path.fromDotPath(valueTrimmed), valueTrimmed);
+                      return ss.message;
+                    }
+                    if (valueTrimmed == initialTrimmed && initialTrimmed != "") {
+                      return "";
+                    }
+                    final m = valueType.inRangeInt("Length", valueTrimmed.length);
+                    if (m.isNotEmpty) {
+                      return m;
+                    }
+                    return "";
+                  }
+                  if (valueType.dataValueType == double) {
+                    try {
+                      final d = double.parse(valueTrimmed);
+                      return valueType.inRangeDouble("Value ", d);
+                    } catch (e) {
+                      return "That is not a ${valueType.description}";
+                    }
+                  }
+                  if (valueType.dataValueType == int) {
+                    try {
+                      final i = int.parse(valueTrimmed);
+                      return valueType.inRangeInt("Value ", i);
+                    } catch (e) {
+                      return "That is not a ${valueType.description}";
+                    }
+                  }
                   return "";
-                }
-                final m = valueType.inRangeInt("Length", valueTrimmed.length);
-                if (m.isNotEmpty) {
-                  return m;
-                }
-                return "";
-              }
-              if (valueType.dataValueType == double) {
-                try {
-                  final d = double.parse(valueTrimmed);
-                  return valueType.inRangeDouble("Value ", d);
-                } catch (e) {
-                  return "That is not a ${valueType.description}";
-                }
-              }
-              if (valueType.dataValueType == int) {
-                try {
-                  final i = int.parse(valueTrimmed);
-                  return valueType.inRangeInt("Value ", i);
-                } catch (e) {
-                  return "That is not a ${valueType.description}";
-                }
-              }
-              return "";
-            },
-          );
-          break;
-        }
-      case ActionType.link:
-        {
-          _implementLinkState(detailActionData.oldValue, detailActionData.path.last);
-          break;
-        }
-      case ActionType.addGroup:
-        {
-          Timer(const Duration(milliseconds: 1), () {
-            if (mounted) {
+                },
+              );
+              break;
+            }
+          case ActionType.addGroup:
+            {
               showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "New Group Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataGroup);
@@ -609,14 +556,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 }
                 return "";
               });
+              break;
             }
-          });
-          break;
-        }
-      case ActionType.addDetail:
-        {
-          Timer(const Duration(milliseconds: 1), () {
-            if (mounted) {
+          case ActionType.addDetail:
+            {
               showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "New Detail Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataValue);
@@ -630,14 +573,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 }
                 return "";
               });
+              break;
             }
-          });
-          break;
-        }
-      case ActionType.createFile:
-        {
-          Timer(const Duration(milliseconds: 1), () {
-            if (mounted) {
+          case ActionType.createFile:
+            {
               showFileNamePasswordDialog(context, _configData.getAppThemeData(), "New File", [
                 "Password if encryption is required:",
                 "Enter a valid file name:",
@@ -687,86 +626,125 @@ class _MyHomePageState extends State<MyHomePage> {
                 }
                 return "";
               });
+              break;
             }
-          });
-          break;
-        }
-      case ActionType.restart:
-        if (_dataWasUpdated) {
-          Timer(const Duration(milliseconds: 1), () {
-            if (mounted) {
+          case ActionType.restart:
+            if (_dataWasUpdated) {
               showModalButtonsDialog(context, _configData.getAppThemeData(), "Restart Alert", ["Restart - Discard changes", "Cancel - Don't Restart"], ["Restart", "Cancel"], Path.empty(), (p, sel) {
                 if (sel == "RESTART") {
                   _clearDataState("Application RESTART");
                 }
               });
+            } else {
+              _clearDataState("Application RESTART");
             }
-          });
-        } else {
-          _clearDataState("Application RESTART");
-        }
-        break;
-      case ActionType.reload:
-        {
-          if (_dataWasUpdated) {
-            Timer(const Duration(milliseconds: 1), () {
-              if (mounted) {
+            break;
+          case ActionType.reload:
+            {
+              if (_dataWasUpdated) {
                 showModalButtonsDialog(context, _configData.getAppThemeData(), "Reload Alert", ["Reload - Discard changes", "Cancel - Don't Reload"], ["Reload", "Cancel"], Path.empty(), (p, sel) {
                   if (sel == "RELOAD") {
                     _loadDataState();
                   }
                 });
+              } else {
+                _loadDataState();
               }
-            });
-          } else {
-            _loadDataState();
-          }
+              break;
+            }
+          default:
+            {
+              debugPrint("UNHANDLED_ACTION '${detailActionData.toString()}'");
+            }
+        }
+      }
+    });
+  }
+
+  Path _handleAction(DetailAction detailActionData) {
+    switch (detailActionData.action) {
+      case ActionType.querySelect:
+        {
+          return querySelect(detailActionData.path, detailActionData.additional);
+        }
+      case ActionType.link:
+        {
+          _implementLinkStateAsync(detailActionData.oldValue, detailActionData.path.last);
+          return Path.empty();
+        }
+      case ActionType.checkReferences:
+        {
+          setState(() {
+            _checkReferences = true;
+          });
           break;
         }
-      case ActionType.save:
+      case ActionType.clearState:
+        {
+          setState(() {
+            _applicationState.deleteAppStateConfigFile();
+            _applicationState.clear(_configData.isDesktop());
+          });
+          break;
+        }
+      case ActionType.groupSelectAll:
+        {
+          setState(() {
+            _selectedTreeNode.visitEachChildNode((sn) {
+              _pathPropertiesList.setGroupSelect(sn.path, sn.isLeaf);
+            });
+          });
+          break;
+        }
+      case ActionType.groupSelectClearAll:
+        {
+          setState(() {
+            _pathPropertiesList.clearAllGroupSelect();
+          });
+          break;
+        }
+      case ActionType.flipSorted:
+        {
+          setState(() {
+            _applicationState.flipDataSorted;
+            _reloadTreeFromMapAndCopyFlags();
+            selectNode(_selectedPath);
+          });
+          break;
+        }
+      case ActionType.clip:
+        {
+          setState(() {
+            _globalSuccessState = SuccessState(true, message: "Copied to clipboard");
+          });
+          break;
+        }
+      case ActionType.select:
+        {
+          setState(() {
+            selectNode(detailActionData.path);
+          });
+          break;
+        }
+      case ActionType.groupSelect:
+        {
+          setState(() {
+            _pathPropertiesList.setGroupSelect(detailActionData.path, detailActionData.value);
+          });
+          break;
+        }
+      case ActionType.save: // Save as it is (encrypted or un-encrypted)
         {
           _saveDataState(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
-          break;
-        }
-      case ActionType.saveAlt:
-        {
-          Timer(const Duration(milliseconds: 1), () {
-            if (mounted) {
-              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, _loadedData.hasPassword ? "Confirm Password" : "New Password", "", [], optionsDataTypeEmpty, false, true, (button, pw, type) {
-                if (button == SimpleButtonActions.ok) {
-                  if (_loadedData.hasPassword) {
-                    // Confirm PW (Save un-encrypted)
-                    logger.log("__SAVE__ Data as plain text");
-                    _loadedData.password = "";
-                  } else {
-                    // New password (Save encrypted)
-                    logger.log("__SAVE__ Data as ENCRYPTED text");
-                    _loadedData.password = pw;
-                  }
-                  _saveDataState(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
-                }
-              }, (initial, value, initialType, valueType) {
-                if (_loadedData.hasPassword) {
-                  if (_loadedData.password != value) {
-                    return "Invalid Password";
-                  }
-                } else {
-                  if (value.isEmpty) {
-                    return "Password required";
-                  }
-                  if (value.length < 5) {
-                    return "Password length";
-                  }
-                }
-                return "";
-              });
-            }
-          });
           break;
         }
       case ActionType.none:
         {
           break;
+        }
+      default:
+        {
+          _handleActionTimed(detailActionData, 115);
         }
     }
     return Path.empty();
@@ -783,7 +761,7 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       lm = "Local Save FAIL";
     }
-    final remoteSaveState = await DataContainer.toHttpPost(_configData.getPostDataFileUrl(), content, log: logger.log);
+    final remoteSaveState = await DataContainer.sendHttpPost(_configData.getPostDataFileUrl(), content, log: logger.log);
     if (remoteSaveState.isSuccess) {
       success++;
       rm = "Remote Save OK";
@@ -802,31 +780,11 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _clearDataState(String reason) async {
-    setState(() {
-      _clearData(reason);
-    });
-  }
-
-  void _clearData(String reason) async {
-    _loadedData = DataContainer.empty();
-    _isEditDataDisplay = false;
-    _initialPassword = "";
-    _search = "";
-    _lastSearch = "";
-    _dataWasUpdated = false;
-    _pathPropertiesList.clear();
-    _globalSuccessState = SuccessState(true, message: reason);
-    _currentSelectedGroupsPrefix = "";
-    _currentSelectedGroups = 0;
-    logger.log("__DATA_CLEARED__ $reason");
-  }
-
   void _loadDataState() async {
     FileDataPrefix fileDataPrefixRemote = FileDataPrefix.empty();
     FileDataPrefix fileDataPrefix = FileDataPrefix.empty();
     String fileDataContent = "";
-    String source = "Local";
+    String dataSource = "Local";
     //
     // Are we reloading the existing data? If yes is there existing data?
     //
@@ -848,13 +806,13 @@ class _MyHomePageState extends State<MyHomePage> {
     //
     // Try to load the remote data.
     //
-    final successStateRemote = await DataContainer.fromHttpGet(remotePath, timeoutMillis: _configData.getDataFetchTimeoutMillis());
+    final successStateRemote = await DataContainer.receiveHttpGet(remotePath, timeoutMillis: _configData.getDataFetchTimeoutMillis());
     if (successStateRemote.isSuccess) {
       fileDataPrefixRemote = FileDataPrefix.fromString(successStateRemote.value);
       fileDataContent = successStateRemote.value.substring(fileDataPrefixRemote.startPos);
       fileDataPrefix = fileDataPrefixRemote;
-      source = "Remote";
-      logger.log("__INFO:__ $source __TS:__ ${fileDataPrefix.timeStamp}");
+      dataSource = "Remote";
+      logger.log("__INFO:__ Remote __TS:__ ${fileDataPrefix.timeStamp}");
     } else {
       logger.log(successStateRemote.toLogString());
     }
@@ -869,8 +827,8 @@ class _MyHomePageState extends State<MyHomePage> {
       if (successStateRemote.isFail || fileDataPrefixLocal.isLaterThan(fileDataPrefixRemote)) {
         fileDataContent = successStateLocal.value.substring(fileDataPrefixLocal.startPos);
         fileDataPrefix = fileDataPrefixLocal;
-        source = "Local";
-        logger.log("__INFO:__ $source __TS:__ ${fileDataPrefix.timeStamp}");
+        dataSource = "Local";
+        logger.log("__INFO:__ Local __TS:__ ${fileDataPrefix.timeStamp}");
       }
     } else {
       logger.log(successStateLocal.toLogString());
@@ -917,21 +875,42 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
     _loadedData = data;
+
     setState(() {
       _dataWasUpdated = false;
       _checkReferences = true;
       _pathPropertiesList.clear();
       _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap, sorted: _applicationState.isDataSorted);
-      _treeNodeDataRoot.expandAll(true);
+      _treeNodeDataRoot.setExpandedSubNodes(true);
       _treeNodeDataRoot.clearFilter();
       _filteredNodeDataRoot = MyTreeNode.empty();
       _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
       _selectedPath = _selectedTreeNode.path;
-      _globalSuccessState = SuccessState(true, message: "${fileDataPrefix.encrypted ? "Encrypted" : ""} [$source] File: ${_loadedData.timeStampString}", log: logger.log);
+      _globalSuccessState = SuccessState(true, message: "${fileDataPrefix.encrypted ? "Encrypted" : ""} [$dataSource] File: ${_loadedData.timeStampString}", log: logger.log);
     });
   }
 
-  void _reloadAndCopyFlags() {
+  void _clearDataState(String reason) async {
+    setState(() {
+      _clearData(reason);
+    });
+  }
+
+  void _clearData(String reason) async {
+    _loadedData = DataContainer.empty();
+    _isEditDataDisplay = false;
+    _initialPassword = "";
+    _search = "";
+    _lastSearch = "";
+    _dataWasUpdated = false;
+    _pathPropertiesList.clear();
+    _globalSuccessState = SuccessState(true, message: reason);
+    _currentSelectedGroupsPrefix = "";
+    _currentSelectedGroups = 0;
+    logger.log("__DATA_CLEARED__ $reason");
+  }
+
+  void _reloadTreeFromMapAndCopyFlags() {
     final temp = MyTreeNode.fromMap(_loadedData.dataMap, sorted: _applicationState.isDataSorted);
     temp.visitEachSubNode((node) {
       final refNode = _treeNodeDataRoot.findByPath(node.path);
@@ -972,8 +951,8 @@ class _MyHomePageState extends State<MyHomePage> {
           _pathPropertiesList.setUpdated(path);
           _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
-          _reloadAndCopyFlags();
-          selectNode(path: path);
+          _reloadTreeFromMapAndCopyFlags();
+          selectNode(path);
           _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log: logger.log);
         });
         break;
@@ -986,8 +965,8 @@ class _MyHomePageState extends State<MyHomePage> {
           _pathPropertiesList.setUpdated(path);
           _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
-          _reloadAndCopyFlags();
-          selectNode(path: path);
+          _reloadTreeFromMapAndCopyFlags();
+          selectNode(path);
           _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log: logger.log);
         });
         break;
@@ -1054,8 +1033,8 @@ class _MyHomePageState extends State<MyHomePage> {
         var parentPath = newPath.cloneParentPath();
         _pathPropertiesList.setRenamed(newPath);
         _pathPropertiesList.setRenamed(parentPath);
-        _reloadAndCopyFlags();
-        selectNode(path: parentPath);
+        _reloadTreeFromMapAndCopyFlags();
+        selectNode(parentPath);
         _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: logger.log);
       });
     }
@@ -1091,8 +1070,8 @@ class _MyHomePageState extends State<MyHomePage> {
         _dataWasUpdated = true;
         _checkReferences = true;
         _pathPropertiesList.setUpdated(parentPath);
-        _reloadAndCopyFlags();
-        selectNode(path: parentPath);
+        _reloadTreeFromMapAndCopyFlags();
+        selectNode(parentPath);
         _globalSuccessState = SuccessState(true, message: "Removed: '${path.last}'");
       });
     }
@@ -1142,8 +1121,8 @@ class _MyHomePageState extends State<MyHomePage> {
           }
           _pathPropertiesList.setUpdated(detailActionData.path);
           _pathPropertiesList.setUpdated(detailActionData.path.cloneParentPath());
-          _reloadAndCopyFlags();
-          selectNode(path: detailActionData.path.cloneParentPath());
+          _reloadTreeFromMapAndCopyFlags();
+          selectNode(detailActionData.path.cloneParentPath());
           _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.getLastPathElement()} updated");
         } catch (e, s) {
           debugPrintStack(stackTrace: s);
@@ -1253,7 +1232,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     if (_loadedData.isNotEmpty) {
-      if (_lastSearch != _search || _filteredNodeDataRoot.isEmpty) {
+      if (_search != _lastSearch || _filteredNodeDataRoot.isEmpty) {
         _lastSearch = _search;
         _filteredNodeDataRoot = _treeNodeDataRoot.applyFilter(_search, true, (match, tolowerCase, node) {
           if (tolowerCase) {
@@ -1578,7 +1557,7 @@ class _MyHomePageState extends State<MyHomePage> {
           DetailIconButton(
             appThemeData: appThemeData,
             iconData: Icons.manage_search,
-            tooltip: 'Manage Searches',
+            tooltip: 'Previous Searches',
             onPressed: (button) async {
               await showSearchDialog(
                 context,

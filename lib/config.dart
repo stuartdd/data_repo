@@ -453,7 +453,7 @@ class ConfigData {
   Map<String, dynamic> getMinimumDataContentMap() {
     final dt = DateTime.now();
     final result = '${dt.year}-${dt.month}-${dt.day} ${dt.hour}:${dt.minute}:${dt.second}';
-    return DataContainer.convertStringToMap('{"Data":{"Info":{"Created":"$result"}}}', "");
+    return DataContainer.staticConvertStringToMap('{"Data":{"Info":{"Created":"$result"}}}', "");
   }
 
   double get iconSize {

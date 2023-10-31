@@ -29,7 +29,7 @@ class DataContainer {
   DataContainer(final String fileContents, final FileDataPrefix filePrefixData, this.remoteSourcePath, this.localSourcePath, this.fileName, final String pw, {final Function(String)? log}) {
     password = pw;
     _timeStamp = filePrefixData.timeStamp;
-    _dataMap = convertStringToMap(fileContents, pw);
+    _dataMap = staticConvertStringToMap(fileContents, pw);
     warning = "";
     visitEachSubNode((key, path, value) {
       if (key.contains('.')) {
@@ -52,10 +52,6 @@ class DataContainer {
 
   bool get hasPassword {
     return password.isNotEmpty;
-  }
-
-  Iterable<String> get keys {
-    return _dataMap.keys;
   }
 
   bool get isEmpty {
@@ -265,7 +261,7 @@ class DataContainer {
     }
   }
 
-  static Map<String, dynamic> convertStringToMap(String jsonText, String pw) {
+  static Map<String, dynamic> staticConvertStringToMap(String jsonText, String pw) {
     if (jsonText.isEmpty) {
       return <String, dynamic>{};
     }
@@ -297,7 +293,7 @@ class DataContainer {
     }
   }
 
-  static Future<SuccessState> toHttpPost(final String url, final String body, {void Function(String)? log}) async {
+  static Future<SuccessState> sendHttpPost(final String url, final String body, {void Function(String)? log}) async {
     try {
       final uri = Uri.parse(url);
       var response = await http.post(uri, headers: {"Content-Type": "application/json"}, body: body);
@@ -331,7 +327,7 @@ class DataContainer {
     }
   }
 
-  static Future<SuccessState> fromHttpGet(final String url, {final void Function(String)? log, final int timeoutMillis = 2000, final String prefix = ""}) async {
+  static Future<SuccessState> receiveHttpGet(final String url, {final void Function(String)? log, final int timeoutMillis = 2000, final String prefix = ""}) async {
     try {
       final uri = Uri.parse(url);
       final response = await http.get(uri).timeout(

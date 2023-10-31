@@ -206,9 +206,12 @@ class MyTreeNode {
     return !_required;
   }
 
-  void setRequired(bool req, {bool recursive = false}) {
+  void setRequired(bool req, {bool includeSubNodes = false}) {
     _required = req;
-    if (recursive) {
+    visitEachParentNode((pn) {
+      pn._required = req;
+    });
+    if (includeSubNodes) {
       visitEachSubNode((sn) {
         sn._required = req;
       });
@@ -279,13 +282,13 @@ class MyTreeNode {
     return c == 0;
   }
 
-  void expandAll(final bool exp) {
+  void setExpandedSubNodes(final bool exp) {
     visitEachSubNode((node) {
       node.expanded = exp;
     });
   }
 
-  void expandParent(final bool exp) {
+  void setExpandedParentNodes(final bool exp) {
     visitEachParentNode((node) {
       node.expanded = exp;
     });
