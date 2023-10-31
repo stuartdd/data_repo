@@ -280,7 +280,7 @@ class _MyHomePageState extends State<MyHomePage> {
       searchEditingController.text = st;
       _search = st;
     });
-    Timer(
+    Future.delayed(
       const Duration(milliseconds: 200),
       () {
         _selectNodeState(_selectedPath);
@@ -312,7 +312,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _handleActionTimed(DetailAction detailActionData, int ms) {
-    Timer(Duration(milliseconds: ms), () {
+    Future.delayed(Duration(milliseconds: ms), () {
       if (mounted) {
         switch (detailActionData.action) {
           case ActionType.removeItem:
@@ -600,7 +600,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   _globalSuccessState = success;
                   if (success.isFail) {
                     logger.log("__CREATE__ Failed. ${success.message}");
-                    Timer(const Duration(milliseconds: 1), () {
+                    Future.delayed(const Duration(milliseconds: 1), () {
                       if (mounted) {
                         showModalButtonsDialog(context, _configData.getAppThemeData(), "Create File Failed", ["Reason - ${success.message}", "No changes were made"], ["Acknowledge"], Path.empty(), (path, button) {
                           setState(() {});
@@ -608,7 +608,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       }
                     });
                   } else {
-                    Timer(const Duration(milliseconds: 1), () {
+                    Future.delayed(const Duration(milliseconds: 1), () {
                       if (mounted) {
                         showModalButtonsDialog(context, _configData.getAppThemeData(), "Create File:", ["Make this your NEW file", "or", "Continue with EXISTING file"], ["NEW", "EXISTING"], Path.empty(), (path, button) {
                           setState(() {

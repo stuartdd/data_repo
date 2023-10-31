@@ -176,7 +176,7 @@ class _LogContentState extends State<_LogContent> implements ScrollAble {
       return;
     }
     _waitingToScroll = true;
-    Timer(
+    Future.delayed(
       Duration(milliseconds: ms),
           () {
         scrollBottom();

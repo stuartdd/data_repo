@@ -273,10 +273,10 @@ class _DetailIconButtonState extends State<DetailIconButton> implements ManageAb
           setState(() {
             grey = true;
           });
-          Timer(const Duration(milliseconds: 5), () {
+          Future.delayed(const Duration(milliseconds: 5), () {
             if (mounted) {
               widget.onPressed(this);
-              Timer(Duration(milliseconds: 15 + widget.timerMs), () {
+              Future.delayed(Duration(milliseconds: 15 + widget.timerMs), () {
                 if (mounted) {
                   setState(() {
                     grey = false;
@@ -389,7 +389,7 @@ class _DetailTextButtonState extends State<DetailTextButton> implements ManageAb
             setState(() {
               grey = true;
             });
-            Timer(Duration(milliseconds: 15 + widget.timerMs), () {
+            Future.delayed(Duration(milliseconds: 15 + widget.timerMs), () {
               if (mounted) {
                 setState(() {
                   grey = false;

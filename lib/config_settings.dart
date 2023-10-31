@@ -149,7 +149,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
     if (countdownTimer != null) {
       countdownTimer!.cancel();
     }
-    countdownTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+    countdownTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
       SettingValidation sv = SettingValidation.ok();
       final scGet = widget.settingsControlList.getSettingControlForId("get");
       if (scGet == null) {
