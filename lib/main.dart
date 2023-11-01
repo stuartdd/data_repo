@@ -311,7 +311,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return GroupCopyMoveSummaryList(sb);
   }
 
-  void _handleActionTimed(DetailAction detailActionData, int ms) {
+  void _handleActionFuture(DetailAction detailActionData, int ms) {
     Future.delayed(Duration(milliseconds: ms), () {
       if (mounted) {
         switch (detailActionData.action) {
@@ -345,7 +345,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     logger.log("__SAVE__ Data as ENCRYPTED text");
                     _loadedData.password = pw;
                   }
-                  _saveDataState(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
+                  _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
                 }
               }, (initial, value, initialType, valueType) {
                 // Validate
@@ -596,7 +596,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 }
                 if (action == SimpleButtonActions.ok) {
                   final content = DataContainer.staticDataToStringFormattedWithTs(_configData.getMinimumDataContentMap(), password, addTimeStamp: true, isNew: true);
-                  final success = DataContainer.saveToFile(_configData.getDataFileLocalAlt(fn), content);
+                  final success = DataContainer.saveToFile(_configData.getDataFileLocalAlt(fn), content, log: logger.log);
                   _globalSuccessState = success;
                   if (success.isFail) {
                     logger.log("__CREATE__ Failed. ${success.message}");
@@ -672,6 +672,11 @@ class _MyHomePageState extends State<MyHomePage> {
           _implementLinkStateAsync(detailActionData.oldValue, detailActionData.path.last);
           return Path.empty();
         }
+      case ActionType.save: // Save as it is (encrypted or un-encrypted)
+        {
+          _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
+          return Path.empty();
+        }
       case ActionType.checkReferences:
         {
           setState(() {
@@ -733,25 +738,20 @@ class _MyHomePageState extends State<MyHomePage> {
           });
           break;
         }
-      case ActionType.save: // Save as it is (encrypted or un-encrypted)
-        {
-          _saveDataState(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
-          break;
-        }
       case ActionType.none:
         {
           break;
         }
       default:
         {
-          _handleActionTimed(detailActionData, 115);
+          _handleActionFuture(detailActionData, 115);
         }
     }
     return Path.empty();
   }
 
-  Future<void> _saveDataState(final String content) async {
-    final localSaveState = DataContainer.saveToFile(_configData.getDataFileLocal(), content);
+  Future<void> _saveDataStateAsync(final String content) async {
+    final localSaveState = DataContainer.saveToFile(_configData.getDataFileLocal(), content, log: logger.log);
     int success = 0;
     final String lm;
     final String rm;
@@ -1171,9 +1171,9 @@ class _MyHomePageState extends State<MyHomePage> {
           ["Data has been updated", "Press SAVE keep changes", "Press CANCEL remain in the App", "Press EXIT to leave without saving"],
           ["SAVE", "CANCEL", "EXIT"],
           Path.empty(),
-          (path, button) {
+          (path, button) async {
             if (button == "SAVE") {
-              _saveDataState(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
+              await _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
             }
             if (button == "CANCEL") {
               shouldExit = false;
@@ -1367,6 +1367,22 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ));
 
+      // final testA = DetailTextButtonManager(visible: true, text: "HI", enabled: true, appThemeData: appThemeData, onPressed: (p0) {
+      //   debugPrint("HIT A");
+      // },);
+      // final testB = DetailIconButtonManager(visible: true, iconData: Icons.play_arrow, enabled: true, appThemeData: appThemeData, onPressed: (p0) {
+      //   debugPrint("HIT B");
+      //   indicatorIconManager.setVisible(!indicatorIconManager.getVisible());
+      // },);
+      // final testC = DetailIconButtonManager(visible: true, iconData: Icons.backspace_outlined, enabled: true, appThemeData: appThemeData, onPressed: (p0) {
+      //   final e = indicatorIconManager.getEnabled();
+      //   debugPrint("HIT C (A=$e)");
+      //   indicatorIconManager.setEnabled(!e);
+      // },);
+      // toolBarItems.add(testC.widget);
+      // toolBarItems.add(testB.widget);
+      // toolBarItems.add(testA.widget);
+
       toolBarItems.add(DetailIconButton(
         appThemeData: appThemeData,
         iconData: Icons.file_open,
@@ -1409,7 +1425,6 @@ class _MyHomePageState extends State<MyHomePage> {
       //
       _navBarHeight = _configData.appBarHeight;
       toolBarItems.add(DetailIconButton(
-        visible: _loadedData.isNotEmpty,
         appThemeData: appThemeData,
         iconData: _isEditDataDisplay ? Icons.search : Icons.edit,
         tooltip: _isEditDataDisplay ? 'Search Mode' : "Edit Mode",
@@ -1419,15 +1434,16 @@ class _MyHomePageState extends State<MyHomePage> {
           });
         },
       ));
-      toolBarItems.add(DetailIconButton(
-        visible: _dataWasUpdated,
-        appThemeData: appThemeData,
-        iconData: Icons.save,
-        tooltip: "Save",
-        onPressed: (button) {
-          _handleAction(DetailAction(ActionType.save, false, Path.empty()));
-        },
-      ));
+      if (_dataWasUpdated) {
+        toolBarItems.add(DetailIconButton(
+          appThemeData: appThemeData,
+          iconData: Icons.save,
+          tooltip: "Save",
+          onPressed: (button) {
+            _handleAction(DetailAction(ActionType.save, false, Path.empty()));
+          },
+        ));
+      }
       if (_isEditDataDisplay) {
         toolBarItems.add(VerticalDivider(
           color: screenForeground,

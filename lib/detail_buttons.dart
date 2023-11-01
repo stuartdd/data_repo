@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:data_repo/config.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -8,11 +6,6 @@ import 'data_types.dart';
 import 'path.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
-// const _styleSmall = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.black);
-// const _styleSmallDisabled = TextStyle(fontFamily: 'Code128', fontSize: 20.0, color: Colors.grey);
-// const _inputTextStyle = TextStyle(fontFamily: 'Code128', fontSize: 30.0, color: Colors.black);
-const _trueStr = "true";
-const _falseStr = "false";
 const clickTimerMs = 250;
 
 const helpText = """# # Heading 1 (one more # for each sub heading)
@@ -45,46 +38,58 @@ mages ``![alt text](images/image.jpg "Comment")``
 [Link](https://www.markdownguide.org/basic-syntax/#images-1) ``[Link](https://www.markdownguide.org/basic-syntax/#images-1)``
 """;
 
-abstract class ManageAble {
-  void setVisible(bool x);
-  void setEnabled(bool x);
+class InterfaceNotImplementedException implements Exception {
+  final String message;
+  InterfaceNotImplementedException(this.message);
+  String error() {
+    return message;
+  }
 }
 
-EdgeInsetsGeometry _getPadding(final EdgeInsetsGeometry? pad, final double top, final double gap, final double fallbackGap) {
-  if (pad != null) {
-    return pad;
-  }
-  final g;
-  if (gap == 0) {
-    g = fallbackGap;
-  } else {
-    g = gap;
-  }
-  return EdgeInsets.fromLTRB(2, top, g, 0);
+abstract class ManageAble {
+  void setVisible(bool x);
+  bool getVisible();
+  void setEnabled(bool x);
+  bool getEnabled();
 }
 
 class IndicatorIconManager implements ManageAble {
   late final GlobalKey key;
   late final Widget widget;
-  IndicatorIconManager(List<IconData> iconData, {required double size, required Color color, EdgeInsets? padding, required int period, required int Function(int, ManageAble) getState, void Function(int, ManageAble)? onClick, bool active = true, bool visible = true}) {
+  IndicatorIconManager(List<IconData> iconData, {required double size, required Color color, EdgeInsets? padding, required int period, required int Function(int, ManageAble) getState, void Function(int, ManageAble)? onClick, bool enabled = true, bool visible = true}) {
     key = GlobalKey();
-    widget = _IndicatorIcon(key: key, iconData, size: size, color: color, period: period, getState: getState);
+    widget = _IndicatorIcon(key: key, iconData, size: size, padding: padding, color: color, period: period, getState: getState, onClick: onClick, enabled: enabled, visible: visible);
+  }
+
+  ManageAble _getInstance() {
+    final cs = key.currentState;
+    if (cs == null) {
+      throw InterfaceNotImplementedException("IndicatorIconManager: Global key returned null 'currentState'");
+    }
+    if (cs is ManageAble) {
+      return (cs as ManageAble);
+    }
+    throw InterfaceNotImplementedException("IndicatorIconManager:ManageAble Global key 'currentState' returned type:${cs.runtimeType}");
   }
 
   @override
   void setVisible(bool x) {
-    final cs = key.currentState;
-    if (cs != null && cs is ManageAble) {
-      (cs as ManageAble).setVisible(x);
-    }
+    _getInstance().setVisible(x);
   }
 
   @override
   void setEnabled(bool x) {
-    final cs = key.currentState;
-    if (cs != null && cs is ManageAble) {
-      (cs as ManageAble).setEnabled(x);
-    }
+    _getInstance().setEnabled(x);
+  }
+
+  @override
+  bool getEnabled() {
+    return _getInstance().getEnabled();
+  }
+
+  @override
+  bool getVisible() {
+    return _getInstance().getVisible();
   }
 }
 
@@ -105,51 +110,51 @@ class _IndicatorIcon extends StatefulWidget {
 }
 
 class _IndicatorIconState extends State<_IndicatorIcon> implements ManageAble {
-  late bool enabled;
-  late bool visible;
-  late Timer timer;
-  late List<Icon> icons;
-  int state = 0;
+  late bool _enabled;
+  late bool _visible;
+  late Timer _timer;
+  late List<Icon> _icons;
+  int _state = 0;
 
   @override
   initState() {
     super.initState();
-    enabled = widget.enabled;
-    visible = widget.visible;
-    icons = [];
+    _enabled = widget.enabled;
+    _visible = widget.visible;
+    _icons = [];
 
     for (var icd in widget._iconData) {
       if (widget.size > 2) {
-        icons.add(Icon(icd, color: widget.color, size: widget.size));
+        _icons.add(Icon(icd, color: widget.color, size: widget.size));
       } else {
-        icons.add(Icon(icd, color: widget.color));
+        _icons.add(Icon(icd, color: widget.color));
       }
     }
 
-    if (icons.isEmpty) {
+    if (_icons.isEmpty) {
       if (widget.size > 2) {
-        icons.add(Icon(Icons.check_box_outline_blank, color: widget.color, size: widget.size));
+        _icons.add(Icon(Icons.check_box_outline_blank, color: widget.color, size: widget.size));
       } else {
-        icons.add(Icon(Icons.check_box_outline_blank, color: widget.color));
+        _icons.add(Icon(Icons.check_box_outline_blank, color: widget.color));
       }
     }
 
-    if (icons.length == 1) {
+    if (_icons.length == 1) {
       if (widget.size > 2) {
-        icons.add(Icon(Icons.indeterminate_check_box_outlined, color: widget.color, size: widget.size));
+        _icons.add(Icon(Icons.indeterminate_check_box_outlined, color: widget.color, size: widget.size));
       } else {
-        icons.add(Icon(Icons.indeterminate_check_box_outlined, color: widget.color));
+        _icons.add(Icon(Icons.indeterminate_check_box_outlined, color: widget.color));
       }
     }
 
-    timer = Timer.periodic(Duration(milliseconds: widget.period), (timer) async {
+    _timer = Timer.periodic(Duration(milliseconds: widget.period), (timer) async {
       if (mounted) {
-        if (enabled) {
-          final st = widget.getState(state, this);
-          if (st != state) {
+        if (_enabled) {
+          final st = widget.getState(_state, this);
+          if (st != _state) {
             if (mounted) {
               setState(() {
-                state = st;
+                _state = st;
               });
             }
           }
@@ -160,13 +165,13 @@ class _IndicatorIconState extends State<_IndicatorIcon> implements ManageAble {
 
   @override
   Widget build(BuildContext context) {
-    if (visible) {
-      Widget icon = icons[state % icons.length];
+    if (_visible) {
+      Widget icon = _icons[_state % _icons.length];
       if (widget.onClick != null) {
         icon = InkWell(
           child: icon,
           onTap: () {
-            widget.onClick!(state, this);
+            widget.onClick!(_state, this);
           },
         );
       }
@@ -180,26 +185,32 @@ class _IndicatorIconState extends State<_IndicatorIcon> implements ManageAble {
 
   @override
   void setVisible(bool vi) {
-    if (mounted) {
-      setState(() {
-        visible = vi;
-      });
-    }
+    setState(() {
+      _visible = vi;
+    });
   }
 
   @override
   void setEnabled(bool en) {
-    if (mounted) {
-      setState(() {
-        enabled = en;
-      });
-    }
+    setState(() {
+      _enabled = en;
+    });
+  }
+
+  @override
+  bool getEnabled() {
+    return _enabled;
+  }
+
+  @override
+  bool getVisible() {
+    return _visible;
   }
 
   @override
   void dispose() {
-    if (timer.isActive) {
-      timer.cancel();
+    if (_timer.isActive) {
+      _timer.cancel();
     }
     super.dispose();
   }
@@ -213,20 +224,35 @@ class DetailIconButtonManager implements ManageAble {
     widget = DetailIconButton(key: key, visible: visible, enabled: enabled, timerMs: timerMs, iconData: iconData, tooltip: tooltip, appThemeData: appThemeData, padding: padding, onPressed: onPressed);
   }
 
+  ManageAble _getInstance() {
+    final cs = key.currentState;
+    if (cs == null) {
+      throw InterfaceNotImplementedException("DetailIconButtonManager: Global key returned null 'currentState'");
+    }
+    if (cs is ManageAble) {
+      return (cs as ManageAble);
+    }
+    throw InterfaceNotImplementedException("DetailIconButtonManager:ManageAble Global key 'currentState' returned type:${cs.runtimeType}");
+  }
+
   @override
   void setVisible(bool x) {
-    final cs = key.currentState;
-    if (cs != null && cs is ManageAble) {
-      (cs as ManageAble).setVisible(x);
-    }
+    _getInstance().setVisible(x);
   }
 
   @override
   void setEnabled(bool x) {
-    final cs = key.currentState;
-    if (cs != null && cs is ManageAble) {
-      (cs as ManageAble).setEnabled(x);
-    }
+    _getInstance().setEnabled(x);
+  }
+
+  @override
+  bool getEnabled() {
+    return _getInstance().getEnabled();
+  }
+
+  @override
+  bool getVisible() {
+    return _getInstance().getVisible();
   }
 }
 
@@ -246,32 +272,32 @@ class DetailIconButton extends StatefulWidget {
 }
 
 class _DetailIconButtonState extends State<DetailIconButton> implements ManageAble {
-  bool grey = false;
-  late bool enabled;
-  late bool visible;
+  bool _grey = false;
+  late bool _enabled;
+  late bool _visible;
   @override
   initState() {
     super.initState();
-    enabled = widget.enabled;
-    visible = widget.visible;
+    _enabled = widget.enabled;
+    _visible = widget.visible;
   }
 
   @override
   Widget build(BuildContext context) {
     final double iSize = widget.appThemeData.iconSize;
-    if (visible) {
+    if (_visible) {
       return IconButton(
         alignment: Alignment.center,
         padding: widget.padding ?? const EdgeInsets.all(0),
         tooltip: widget.tooltip,
         constraints: BoxConstraints.tightFor(width: iSize + widget.appThemeData.iconGap, height: iSize),
-        icon: Icon(widget.iconData, size: iSize, color: widget.appThemeData.screenForegroundColour(widget.enabled && !grey)),
+        icon: Icon(widget.iconData, size: iSize, color: widget.appThemeData.screenForegroundColour(_enabled && !_grey)),
         onPressed: () {
-          if (!enabled || grey) {
+          if (!_enabled || _grey) {
             return;
           }
           setState(() {
-            grey = true;
+            _grey = true;
           });
           Future.delayed(const Duration(milliseconds: 5), () {
             if (mounted) {
@@ -279,7 +305,7 @@ class _DetailIconButtonState extends State<DetailIconButton> implements ManageAb
               Future.delayed(Duration(milliseconds: 15 + widget.timerMs), () {
                 if (mounted) {
                   setState(() {
-                    grey = false;
+                    _grey = false;
                   });
                 }
               });
@@ -295,19 +321,29 @@ class _DetailIconButtonState extends State<DetailIconButton> implements ManageAb
   @override
   void setVisible(bool vi) {
     setState(() {
-      visible = vi;
+      _visible = vi;
     });
   }
 
   @override
   void setEnabled(bool en) {
     setState(() {
-      enabled = en;
+      _enabled = en;
     });
+  }
+
+  @override
+  bool getEnabled() {
+    return _enabled;
+  }
+
+  @override
+  bool getVisible() {
+    return _visible;
   }
 }
 
-class DetailTextButtonManager {
+class DetailTextButtonManager implements ManageAble {
   late final GlobalKey key;
   late final Widget widget;
   DetailTextButtonManager({bool visible = true, bool enabled = true, int timerMs = clickTimerMs, required String text, required AppThemeData appThemeData, required Function(ManageAble) onPressed}) {
@@ -315,20 +351,35 @@ class DetailTextButtonManager {
     widget = DetailTextButton(key: key, text: text, visible: visible, enabled: enabled, timerMs: timerMs, appThemeData: appThemeData, onPressed: onPressed);
   }
 
+  ManageAble _getInstance() {
+    final cs = key.currentState;
+    if (cs == null) {
+      throw InterfaceNotImplementedException("DetailTextButtonManager: Global key returned null 'currentState'");
+    }
+    if (cs is ManageAble) {
+      return (cs as ManageAble);
+    }
+    throw InterfaceNotImplementedException("DetailTextButtonManager:ManageAble Global key 'currentState' returned type:${cs.runtimeType}");
+  }
+
   @override
   void setVisible(bool x) {
-    final cs = key.currentState;
-    if (cs != null && cs is ManageAble) {
-      (cs as ManageAble).setVisible(x);
-    }
+    _getInstance().setVisible(x);
   }
 
   @override
   void setEnabled(bool x) {
-    final cs = key.currentState;
-    if (cs != null && cs is ManageAble) {
-      (cs as ManageAble).setEnabled(x);
-    }
+    _getInstance().setEnabled(x);
+  }
+
+  @override
+  bool getEnabled() {
+    return _getInstance().getEnabled();
+  }
+
+  @override
+  bool getVisible() {
+    return _getInstance().getVisible();
   }
 }
 
@@ -347,58 +398,41 @@ class DetailTextButton extends StatefulWidget {
 }
 
 class _DetailTextButtonState extends State<DetailTextButton> implements ManageAble {
-  bool grey = false;
-  bool enableWidget = true;
-  bool visibleButton = true;
-
-  @override
-  void setEnabled(bool en) {
-    setState(() {
-      enableWidget = en;
-      grey = !en;
-    });
-  }
-
-  @override
-  void setVisible(bool vi) {
-    setState(() {
-      visibleButton = vi;
-    });
-  }
-
+  bool _grey = false;
+  late bool _enabled;
+  late bool _visible;
   @override
   initState() {
     super.initState();
-    grey = !widget.enabled;
-    enableWidget = widget.enabled;
-    visibleButton = widget.visible;
+    _enabled = widget.enabled;
+    _visible = widget.visible;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (visibleButton) {
-      final style = BorderSide(color: widget.appThemeData.screenForegroundColour(!grey), width: 2);
+    if (_visible) {
+      final style = BorderSide(color: widget.appThemeData.screenForegroundColour(_enabled && !_grey), width: 2);
       final button = SizedBox(
         height: widget.appThemeData.buttonHeight,
         child: TextButton(
           onPressed: () {
-            if (grey || !enableWidget) {
+            if (_grey || !_enabled) {
               return;
             }
             widget.onPressed(this);
             setState(() {
-              grey = true;
+              _grey = true;
             });
             Future.delayed(Duration(milliseconds: 15 + widget.timerMs), () {
               if (mounted) {
                 setState(() {
-                  grey = false;
+                  _grey = false;
                 });
               }
             });
           },
           style: OutlinedButton.styleFrom(side: style),
-          child: Text(widget.text, style: grey ? widget.appThemeData.tsMediumDisabled : widget.appThemeData.tsMedium),
+          child: Text(widget.text, style: (_enabled && !_grey) ? widget.appThemeData.tsMedium : widget.appThemeData.tsMediumDisabled),
         ),
       );
       if (widget.gaps == 0) {
@@ -410,6 +444,30 @@ class _DetailTextButtonState extends State<DetailTextButton> implements ManageAb
     } else {
       return const SizedBox(width: 0);
     }
+  }
+
+  @override
+  void setVisible(bool vi) {
+    setState(() {
+      _visible = vi;
+    });
+  }
+
+  @override
+  void setEnabled(bool en) {
+    setState(() {
+      _enabled = en;
+    });
+  }
+
+  @override
+  bool getEnabled() {
+    return _enabled;
+  }
+
+  @override
+  bool getVisible() {
+    return _visible;
   }
 }
 
@@ -484,12 +542,6 @@ class _OptionListWidgetState extends State<OptionListWidget> {
 }
 
 Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, final bool isDarkMode, final TextEditingController controller, {final double width = 0, final double height = 0, final bool isPw = false, final String hint = "", final EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(5, 5, 0, 0), required final Function(String)? onChange, required final Function(String)? onSubmit}) {
-  final Color bc;
-  if (theme.cursorColor == null) {
-    bc = Colors.black;
-  } else {
-    bc = theme.cursorColor!;
-  }
   return SizedBox(
     height: height < 1 ? null : height,
     width: width < 1 ? null : width,

@@ -177,7 +177,7 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, final AppTheme
               onAction(SimpleButtonActions.select, summaryList.list[i].copyFromPath);
             },
             tooltip: "Go To",
-            icon: const Icon(Icons.select_all)),
+            icon: const Icon(Icons.open_in_new)),
         IconButton(
             onPressed: () {
               onAction(SimpleButtonActions.listRemove, summaryList.list[i].copyFromPath);
@@ -429,7 +429,7 @@ Future<void> showModalButtonsDialog(final BuildContext context, final AppThemeDa
   );
 }
 
-Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
+Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction , final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
   var updatedText = currentValue;
   var updatedType = currentOption;
   var shouldDisplayMarkdownHelp = false;

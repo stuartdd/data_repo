@@ -517,7 +517,7 @@ class ConfigData {
 
   SuccessState save(Function(String log) log) {
     try {
-      final sc = DataContainer.saveToFile(_fullFileName, _data.dataToStringFormatted());
+      final sc = DataContainer.saveToFile(_fullFileName, _data.dataToStringFormatted(), log: log);
       if (sc.isFail) {
         return sc;
       }

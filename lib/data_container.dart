@@ -360,13 +360,13 @@ class DataContainer {
     }
   }
 
-  static SuccessState saveToFile(final String fileName, final String contents) {
+  static SuccessState saveToFile(final String fileName, final String contents,{final void Function(String)? log}) {
     try {
       File(fileName).writeAsStringSync(contents);
-      return SuccessState(true, path: fileName, message: "Data Saved OK");
+      return SuccessState(true, path: fileName, message: "Data Saved OK", log: log);
     } catch (e, s) {
       stderr.write("DataLoad:saveToFile: $e\n$s");
-      return SuccessState(false, path: fileName, message: e.toString(), exception: e as Exception);
+      return SuccessState(false, path: fileName, message: e.toString(), exception: e as Exception, log: log);
     }
   }
 
