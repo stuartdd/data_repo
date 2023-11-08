@@ -71,7 +71,7 @@ void main() {
     expect(cfg.toString(), "Url:http://192.168.1.1:8080/files/user/stuart/loc/mydb/name/mydb.data File:test/mydb.data");
     expect(cfg.getGetDataFileUrl(), "http://192.168.1.1:8080/files/user/stuart/loc/mydb/name/mydb.data");
     expect(cfg.getDataFileLocal(), "test/mydb.data");
-    expect(cfg.getAppStateFileLocal(), "test/data/appState.json.tmp");
+    expect(cfg.getAppStateFileLocal(), "test/appState.json");
   });
 
   test('Test Screen', () async {

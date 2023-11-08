@@ -513,7 +513,12 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
           initialValue: currentValue,
           prompt: "Input: ${isRename ? "New Name" : "[type]"}",
           appThemeData: appThemeData,
-          onSubmit: (text, type) {},
+          onSubmit: (text, type) {
+            if (okButtonManager.getEnabled()) {
+              onAction(SimpleButtonActions.ok, updatedText, updatedType);
+              Navigator.of(context).pop();
+            }
+          },
           onValidate: (ix, vx, it, vt) {
             final validMsg = externalValidate(ix, vx, it, vt);
             if (validMsg.isNotEmpty) {
