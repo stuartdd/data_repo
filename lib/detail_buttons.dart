@@ -61,35 +61,49 @@ class IndicatorIconManager implements ManageAble {
     widget = _IndicatorIcon(key: key, iconData, size: size, padding: padding, color: color, period: period, getState: getState, onClick: onClick, enabled: enabled, visible: visible);
   }
 
-  ManageAble _getInstance() {
+  ManageAble? _getInstance() {
     final cs = key.currentState;
     if (cs == null) {
-      throw InterfaceNotImplementedException("IndicatorIconManager: Global key returned null 'currentState'");
+      return null;
     }
     if (cs is ManageAble) {
       return (cs as ManageAble);
     }
-    throw InterfaceNotImplementedException("IndicatorIconManager:ManageAble Global key 'currentState' returned type:${cs.runtimeType}");
+    return null;
   }
 
   @override
   void setVisible(bool x) {
-    _getInstance().setVisible(x);
+    final i = _getInstance();
+    if (i != null) {
+      i.setVisible(x);
+    }
   }
 
   @override
   void setEnabled(bool x) {
-    _getInstance().setEnabled(x);
+    final i = _getInstance();
+    if (i != null) {
+      i.setEnabled(x);
+    }
   }
 
   @override
   bool getEnabled() {
-    return _getInstance().getEnabled();
+    final i = _getInstance();
+    if (i != null) {
+      return i.getEnabled();
+    }
+    return true;
   }
 
   @override
   bool getVisible() {
-    return _getInstance().getVisible();
+    final i = _getInstance();
+    if (i != null) {
+      return i.getVisible();
+    }
+    return true;
   }
 }
 
@@ -115,6 +129,14 @@ class _IndicatorIconState extends State<_IndicatorIcon> implements ManageAble {
   late Timer _timer;
   late List<Icon> _icons;
   int _state = 0;
+
+  void _setStateMounted(final Function() f) {
+    if (mounted) {
+      setState(() {
+        f();
+      });
+    }
+  }
 
   @override
   initState() {
@@ -152,11 +174,9 @@ class _IndicatorIconState extends State<_IndicatorIcon> implements ManageAble {
         if (_enabled) {
           final st = widget.getState(_state, this);
           if (st != _state) {
-            if (mounted) {
-              setState(() {
-                _state = st;
-              });
-            }
+            _setStateMounted(() {
+              _state = st;
+            });
           }
         }
       }
@@ -185,14 +205,14 @@ class _IndicatorIconState extends State<_IndicatorIcon> implements ManageAble {
 
   @override
   void setVisible(bool vi) {
-    setState(() {
+    _setStateMounted(() {
       _visible = vi;
     });
   }
 
   @override
   void setEnabled(bool en) {
-    setState(() {
+    _setStateMounted(() {
       _enabled = en;
     });
   }
@@ -224,35 +244,49 @@ class DetailIconButtonManager implements ManageAble {
     widget = DetailIconButton(key: key, visible: visible, enabled: enabled, timerMs: timerMs, iconData: iconData, tooltip: tooltip, appThemeData: appThemeData, padding: padding, onPressed: onPressed);
   }
 
-  ManageAble _getInstance() {
+  ManageAble? _getInstance() {
     final cs = key.currentState;
     if (cs == null) {
-      throw InterfaceNotImplementedException("DetailIconButtonManager: Global key returned null 'currentState'");
+      return null;
     }
     if (cs is ManageAble) {
       return (cs as ManageAble);
     }
-    throw InterfaceNotImplementedException("DetailIconButtonManager:ManageAble Global key 'currentState' returned type:${cs.runtimeType}");
+    return null;
   }
 
   @override
   void setVisible(bool x) {
-    _getInstance().setVisible(x);
+    final i = _getInstance();
+    if (i != null) {
+      i.setVisible(x);
+    }
   }
 
   @override
   void setEnabled(bool x) {
-    _getInstance().setEnabled(x);
+    final i = _getInstance();
+    if (i != null) {
+      i.setEnabled(x);
+    }
   }
 
   @override
   bool getEnabled() {
-    return _getInstance().getEnabled();
+    final i = _getInstance();
+    if (i != null) {
+      return i.getEnabled();
+    }
+    return true;
   }
 
   @override
   bool getVisible() {
-    return _getInstance().getVisible();
+    final i = _getInstance();
+    if (i != null) {
+      return i.getVisible();
+    }
+    return true;
   }
 }
 
@@ -282,6 +316,14 @@ class _DetailIconButtonState extends State<DetailIconButton> implements ManageAb
     _visible = widget.visible;
   }
 
+  void _setStateMounted(final Function() f) {
+    if (mounted) {
+      setState(() {
+        f();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final double iSize = widget.appThemeData.iconSize;
@@ -303,11 +345,9 @@ class _DetailIconButtonState extends State<DetailIconButton> implements ManageAb
             if (mounted) {
               widget.onPressed(this);
               Future.delayed(Duration(milliseconds: 15 + widget.timerMs), () {
-                if (mounted) {
-                  setState(() {
-                    _grey = false;
-                  });
-                }
+                _setStateMounted(() {
+                  _grey = false;
+                });
               });
             }
           });
@@ -320,14 +360,14 @@ class _DetailIconButtonState extends State<DetailIconButton> implements ManageAb
 
   @override
   void setVisible(bool vi) {
-    setState(() {
+    _setStateMounted(() {
       _visible = vi;
     });
   }
 
   @override
   void setEnabled(bool en) {
-    setState(() {
+    _setStateMounted(() {
       _enabled = en;
     });
   }
@@ -351,35 +391,49 @@ class DetailTextButtonManager implements ManageAble {
     widget = DetailTextButton(key: key, text: text, visible: visible, enabled: enabled, timerMs: timerMs, appThemeData: appThemeData, onPressed: onPressed);
   }
 
-  ManageAble _getInstance() {
+  ManageAble? _getInstance() {
     final cs = key.currentState;
     if (cs == null) {
-      throw InterfaceNotImplementedException("DetailTextButtonManager: Global key returned null 'currentState'");
+      return null;
     }
     if (cs is ManageAble) {
       return (cs as ManageAble);
     }
-    throw InterfaceNotImplementedException("DetailTextButtonManager:ManageAble Global key 'currentState' returned type:${cs.runtimeType}");
+    return null;
   }
 
   @override
   void setVisible(bool x) {
-    _getInstance().setVisible(x);
+    final i = _getInstance();
+    if (i != null) {
+      i.setVisible(x);
+    }
   }
 
   @override
   void setEnabled(bool x) {
-    _getInstance().setEnabled(x);
+    final i = _getInstance();
+    if (i != null) {
+      i.setEnabled(x);
+    }
   }
 
   @override
   bool getEnabled() {
-    return _getInstance().getEnabled();
+    final i = _getInstance();
+    if (i != null) {
+      return i.getEnabled();
+    }
+    return true;
   }
 
   @override
   bool getVisible() {
-    return _getInstance().getVisible();
+    final i = _getInstance();
+    if (i != null) {
+      return i.getVisible();
+    }
+    return true;
   }
 }
 
@@ -408,6 +462,14 @@ class _DetailTextButtonState extends State<DetailTextButton> implements ManageAb
     _visible = widget.visible;
   }
 
+  void _setStateMounted(final Function() f) {
+    if (mounted) {
+      setState(() {
+        f();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_visible) {
@@ -424,11 +486,9 @@ class _DetailTextButtonState extends State<DetailTextButton> implements ManageAb
               _grey = true;
             });
             Future.delayed(Duration(milliseconds: 15 + widget.timerMs), () {
-              if (mounted) {
-                setState(() {
-                  _grey = false;
-                });
-              }
+              _setStateMounted(() {
+                _grey = false;
+              });
             });
           },
           style: OutlinedButton.styleFrom(side: style),
@@ -448,14 +508,14 @@ class _DetailTextButtonState extends State<DetailTextButton> implements ManageAb
 
   @override
   void setVisible(bool vi) {
-    setState(() {
+    _setStateMounted(() {
       _visible = vi;
     });
   }
 
   @override
   void setEnabled(bool en) {
-    setState(() {
+    _setStateMounted(() {
       _enabled = en;
     });
   }

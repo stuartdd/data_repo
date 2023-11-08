@@ -42,12 +42,16 @@ _screenSize(BuildContext context) {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
+    // Get basic startup data
     final applicationDefaultDir = await ApplicationState.getApplicationDefaultDir();
     final isDesktop = ApplicationState.appIsDesktop();
 
+    // Read the config file and ans specify app or desktop
     _configData = ConfigData(applicationDefaultDir, defaultConfigFileName, isDesktop, logger.log);
     _applicationState = ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), logger.log);
+
     if (isDesktop) {
+      // if desktop then set title, screen pos and size.
       setWindowTitle("${_configData.getTitle()}: ${_configData.getDataFileName()}");
       const WindowOptions(
         minimumSize: Size(200, 200),
@@ -68,36 +72,35 @@ class MyApp extends StatelessWidget with WindowListener {
 
   @override
   onWindowEvent(final String eventName) async {
-    switch (eventName) {
-      case 'close':
-        {
-          return;
-        }
-      case 'maximize':
-      case 'minimize':
-        {
-          _applicationState.saveScreenSizeAndPos = false;
-          break;
-        }
-      case 'unmaximize':
-        {
-          _applicationState.saveScreenSizeAndPos = true;
-          break;
-        }
-      case 'move':
-      case 'resize':
-        {
-          if (_configData.isDesktop()) {
+    if (_configData.isDesktop()) {
+      switch (eventName) {
+        case 'close':
+          {
+            return;
+          }
+        case 'maximize':
+        case 'minimize':
+          {
+            _applicationState.saveScreenSizeAndPos = false;
+            break;
+          }
+        case 'unmaximize':
+          {
+            _applicationState.saveScreenSizeAndPos = true;
+            break;
+          }
+        case 'move':
+        case 'resize':
+          {
             final info = await getWindowInfo();
             _applicationState.updateScreenPos(info.frame.left, info.frame.top, info.frame.width, info.frame.height);
+            break;
           }
-
-          break;
-        }
-      default:
-        {
-          debugPrint("Unhandled Window Event:$eventName");
-        }
+        default:
+          {
+            debugPrint("Unhandled Window Event:$eventName");
+          }
+      }
     }
     super.onWindowEvent(eventName);
   }
@@ -105,6 +108,7 @@ class MyApp extends StatelessWidget with WindowListener {
   @override
   Widget build(final BuildContext context) {
     if (_configData.isDesktop()) {
+      // if not an app, signup for windows events (onWindowEvent)
       windowManager.addListener(this);
     }
 
@@ -153,8 +157,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String _currentSelectedGroupsPrefix = "";
 
   final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: logger.log);
-  final TextEditingController searchEditingController = TextEditingController(text: "");
-  final TextEditingController passwordEditingController = TextEditingController(text: "");
+  final TextEditingController _searchEditingController = TextEditingController(text: "");
+  final TextEditingController _passwordEditingController = TextEditingController(text: "");
 
   Path querySelect(Path sel, String dir) {
     Path p = Path.empty();
@@ -234,6 +238,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  
   void _onUpdateConfig() {
     setState(() {
       if (_loadedData.isEmpty) {
@@ -277,7 +282,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void _setSearchExpressionState(final String st) {
     _lastSearch = "[$st]"; // Force search to run in build method!
     setState(() {
-      searchEditingController.text = st;
+      _searchEditingController.text = st;
       _search = st;
     });
     Future.delayed(
@@ -288,6 +293,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  
   GroupCopyMoveSummary _checkNodeForGroupSelection(final Path from, final Path to, final bool isValue, final bool groupCopy) {
     if (groupCopy) {
       return GroupCopyMoveSummary(from, _loadedData.copyInto(to, from, isValue, dryRun: true), isValue);
@@ -311,7 +317,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return GroupCopyMoveSummaryList(sb);
   }
 
-  void _handleActionFuture(DetailAction detailActionData, int ms) {
+  void _handleFutureAction(DetailAction detailActionData, int ms) {
     Future.delayed(Duration(milliseconds: ms), () {
       if (mounted) {
         switch (detailActionData.action) {
@@ -744,7 +750,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       default:
         {
-          _handleActionFuture(detailActionData, 115);
+          _handleFutureAction(detailActionData, 115);
         }
     }
     return Path.empty();
@@ -782,9 +788,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _loadDataState() async {
     FileDataPrefix fileDataPrefixRemote = FileDataPrefix.empty();
-    FileDataPrefix fileDataPrefix = FileDataPrefix.empty();
-    String fileDataContent = "";
-    String dataSource = "Local";
+    FileDataPrefix fileDataPrefixLocal = FileDataPrefix.empty();
+    FileDataPrefix fileDataPrefixFinal = FileDataPrefix.empty();
+
     //
     // Are we reloading the existing data? If yes is there existing data?
     //
@@ -806,44 +812,36 @@ class _MyHomePageState extends State<MyHomePage> {
     //
     // Try to load the remote data.
     //
-    final successStateRemote = await DataContainer.receiveHttpGet(remotePath, timeoutMillis: _configData.getDataFetchTimeoutMillis());
-    if (successStateRemote.isSuccess) {
-      fileDataPrefixRemote = FileDataPrefix.fromString(successStateRemote.value);
-      fileDataContent = successStateRemote.value.substring(fileDataPrefixRemote.startPos);
-      fileDataPrefix = fileDataPrefixRemote;
-      dataSource = "Remote";
-      logger.log("__INFO:__ Remote __TS:__ ${fileDataPrefix.timeStamp}");
+    final successReadRemote = await DataContainer.receiveHttpGet(remotePath, timeoutMillis: _configData.getDataFetchTimeoutMillis());
+    if (successReadRemote.isSuccess) {
+      fileDataPrefixRemote = FileDataPrefix.fromFileContent(successReadRemote.value.trim(), "Remote", log: logger.log);
     } else {
-      logger.log(successStateRemote.toLogString());
+      fileDataPrefixRemote = FileDataPrefix.error("Remote load failed", log: logger.log);
     }
 
     //
     // Try to load the local data.
     // If the local data is later than remote data or remote load failed, use the local data.
     //
-    final successStateLocal = DataContainer.loadFromFile(localPath);
-    if (successStateLocal.isSuccess) {
-      final fileDataPrefixLocal = FileDataPrefix.fromString(successStateLocal.value);
-      if (successStateRemote.isFail || fileDataPrefixLocal.isLaterThan(fileDataPrefixRemote)) {
-        fileDataContent = successStateLocal.value.substring(fileDataPrefixLocal.startPos);
-        fileDataPrefix = fileDataPrefixLocal;
-        dataSource = "Local";
-        logger.log("__INFO:__ Local __TS:__ ${fileDataPrefix.timeStamp}");
-      }
+    final successReadLocal = DataContainer.loadFromFile(localPath);
+    if (successReadLocal.isSuccess) {
+      fileDataPrefixLocal = FileDataPrefix.fromFileContent(successReadLocal.value.trim(), "Local", log: logger.log);
     } else {
-      logger.log(successStateLocal.toLogString());
+      fileDataPrefixLocal = FileDataPrefix.error("Local load failed", log: logger.log);
     }
+
+    fileDataPrefixFinal = fileDataPrefixLocal.selectThisOrThat(fileDataPrefixRemote, log: logger.log);
     //
     // File is now loaded!
     //
-    if (fileDataContent.isEmpty) {
+    if (fileDataPrefixFinal.error) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Data Available", log: logger.log);
+        _globalSuccessState = SuccessState(false, message: "__LOAD__ Error: ${fileDataPrefixFinal.errorReason}", log: logger.log);
       });
       return;
     }
 
-    if (fileDataPrefix.encrypted && pw.isEmpty) {
+    if (fileDataPrefixFinal.encrypted && pw.isEmpty) {
       setState(() {
         _globalSuccessState = SuccessState(false, message: "__LOAD__ No Password Provided", log: logger.log);
       });
@@ -852,7 +850,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final DataContainer data;
     try {
-      data = DataContainer(fileDataContent, fileDataPrefix, successStateRemote.path, successStateLocal.path, fileName, pw, log: logger.log);
+      data = DataContainer(fileDataPrefixFinal.content, fileDataPrefixFinal, successReadRemote.path, successReadLocal.path, fileName, pw, log: logger.log);
     } catch (r) {
       setState(() {
         if (r is Exception) {
@@ -877,7 +875,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _loadedData = data;
 
     setState(() {
-      _dataWasUpdated = false;
+      _dataWasUpdated = fileDataPrefixLocal.isNotEqual(fileDataPrefixRemote);
       _checkReferences = true;
       _pathPropertiesList.clear();
       _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap, sorted: _applicationState.isDataSorted);
@@ -886,7 +884,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _filteredNodeDataRoot = MyTreeNode.empty();
       _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
       _selectedPath = _selectedTreeNode.path;
-      _globalSuccessState = SuccessState(true, message: "${fileDataPrefix.encrypted ? "Encrypted" : ""} [$dataSource] File: ${_loadedData.timeStampString}", log: logger.log);
+      _globalSuccessState = SuccessState(true, message: "${fileDataPrefixFinal.encrypted ? "Encrypted" : ""} [${fileDataPrefixFinal.tag}] File: ${_loadedData.timeStampString}", log: logger.log);
     });
   }
 
@@ -1354,7 +1352,7 @@ class _MyHomePageState extends State<MyHomePage> {
           appThemeData.tsLarge,
           _configData.getAppThemeData().textSelectionThemeData,
           _configData.getAppThemeData().darkMode,
-          passwordEditingController,
+          _passwordEditingController,
           width: screenSize.width / 3,
           height: _configData.getAppThemeData().textInputFieldHeight,
           hint: "Password:",
@@ -1362,34 +1360,19 @@ class _MyHomePageState extends State<MyHomePage> {
           onChange: (v) {},
           onSubmit: (v) {
             _initialPassword = v;
+            _passwordEditingController.text = "";
             _loadDataState();
           },
         ),
       ));
-
-      // final testA = DetailTextButtonManager(visible: true, text: "HI", enabled: true, appThemeData: appThemeData, onPressed: (p0) {
-      //   debugPrint("HIT A");
-      // },);
-      // final testB = DetailIconButtonManager(visible: true, iconData: Icons.play_arrow, enabled: true, appThemeData: appThemeData, onPressed: (p0) {
-      //   debugPrint("HIT B");
-      //   indicatorIconManager.setVisible(!indicatorIconManager.getVisible());
-      // },);
-      // final testC = DetailIconButtonManager(visible: true, iconData: Icons.backspace_outlined, enabled: true, appThemeData: appThemeData, onPressed: (p0) {
-      //   final e = indicatorIconManager.getEnabled();
-      //   debugPrint("HIT C (A=$e)");
-      //   indicatorIconManager.setEnabled(!e);
-      // },);
-      // toolBarItems.add(testC.widget);
-      // toolBarItems.add(testB.widget);
-      // toolBarItems.add(testA.widget);
 
       toolBarItems.add(DetailIconButton(
         appThemeData: appThemeData,
         iconData: Icons.file_open,
         tooltip: 'Load Data',
         onPressed: (button) {
-          _initialPassword = passwordEditingController.text;
-          passwordEditingController.text = "";
+          _initialPassword = _passwordEditingController.text;
+          _passwordEditingController.text = "";
           _loadDataState();
         },
       ));
@@ -1548,7 +1531,7 @@ class _MyHomePageState extends State<MyHomePage> {
               appThemeData.tsMedium,
               _configData.getAppThemeData().textSelectionThemeData,
               _configData.getAppThemeData().darkMode,
-              searchEditingController,
+              _searchEditingController,
               width: screenSize.width / 3,
               height: _configData.getAppThemeData().textInputFieldHeight,
               hint: "Search:",
@@ -1565,7 +1548,7 @@ class _MyHomePageState extends State<MyHomePage> {
             iconData: Icons.search,
             tooltip: 'Search',
             onPressed: (button) {
-              _setSearchExpressionState(searchEditingController.text);
+              _setSearchExpressionState(_searchEditingController.text);
             },
           ),
         );

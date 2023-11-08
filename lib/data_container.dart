@@ -1,5 +1,3 @@
-import 'package:data_repo/main.dart';
-
 import "path.dart";
 import 'package:http/http.dart' as http;
 import 'package:http_status_code/http_status_code.dart';
@@ -9,8 +7,12 @@ import 'encrypt.dart';
 import 'data_types.dart';
 
 const timeStampPrefix = "TS:";
-const timeStampPrefixClear = "${timeStampPrefix}C:";
+const timeStampPrefixUnEnc = "${timeStampPrefix}C:";
 const timeStampPrefixEnc = "${timeStampPrefix}E:";
+const codePointFor0 = 48;
+const codePointFor9 = 57;
+const codePointForColon = 58;
+
 const JsonEncoder formattedJsonEncoder = JsonEncoder.withIndent('  ');
 
 class DataContainer {
@@ -44,10 +46,7 @@ class DataContainer {
   }
 
   String get timeStampString {
-    if (_timeStamp == -1) {
-      return "None";
-    }
-    return DateTime.fromMillisecondsSinceEpoch(_timeStamp).toString();
+    return staticTimeStampString(_timeStamp);
   }
 
   bool get hasPassword {
@@ -284,7 +283,7 @@ class DataContainer {
     String tsString = "";
     if (addTimeStamp) {
       final ts = isNew ? 0 : DateTime.timestamp().millisecondsSinceEpoch;
-      tsString = "${pw.isEmpty ? timeStampPrefixClear : timeStampPrefixEnc}$ts:";
+      tsString = "${pw.isEmpty ? timeStampPrefixUnEnc : timeStampPrefixEnc}$ts:";
     }
     if (pw.isEmpty) {
       return "$tsString${staticDataToStringFormatted(map)}";
@@ -360,7 +359,7 @@ class DataContainer {
     }
   }
 
-  static SuccessState saveToFile(final String fileName, final String contents,{final void Function(String)? log}) {
+  static SuccessState saveToFile(final String fileName, final String contents, {final void Function(String)? log}) {
     try {
       File(fileName).writeAsStringSync(contents);
       return SuccessState(true, path: fileName, message: "Data Saved OK", log: log);
@@ -385,59 +384,155 @@ class DataContainer {
 
 class FileDataPrefix {
   final bool hasData;
+  final bool error;
+  final String errorReason;
   final int timeStamp;
   final int startPos;
   final bool encrypted;
-  FileDataPrefix(this.hasData, this.timeStamp, this.startPos, this.encrypted);
+  final String content;
+  final String tag;
+  FileDataPrefix(this.hasData, this.timeStamp, this.startPos, this.encrypted, this.error, this.errorReason, this.content, this.tag);
 
-  factory FileDataPrefix.fromString(String s) {
-    bool hasTimeStampData = false;
+  @override
+  String toString() {
+    return "$hasData:$timeStamp:$startPos:$encrypted:$error${errorReason.isEmpty ? "" : ":"}$errorReason${tag.isEmpty ? "" : ":"}$tag";
+  }
+
+  String get timeStampString {
+    return staticTimeStampString(timeStamp);
+  }
+
+  factory FileDataPrefix.fromFileContent(final String content, final String tag, {Function(String log)? log}) {
+    bool hasTimeStampPrefix = false;
     bool enc = false;
     int pos = 0;
-    int ts = -1;
-    if (s.startsWith(timeStampPrefixClear)) {
-      hasTimeStampData = true;
+    int ts = 0;
+
+    if (content.isEmpty) {
+      return FileDataPrefix.error("No content", log: log);
+    }
+
+    if (content.startsWith(timeStampPrefixUnEnc)) {
+      hasTimeStampPrefix = true;
       enc = false;
-      pos = timeStampPrefixClear.length;
+      pos = timeStampPrefixUnEnc.length;
     } else {
-      if (s.startsWith(timeStampPrefixEnc)) {
-        hasTimeStampData = true;
+      if (content.startsWith(timeStampPrefixEnc)) {
+        hasTimeStampPrefix = true;
         enc = true;
         pos = timeStampPrefixEnc.length;
       }
     }
 
-    if (hasTimeStampData) {
+    if (hasTimeStampPrefix) {
       final sb = StringBuffer();
+      if (pos >= content.length) {
+        return FileDataPrefix.error("No Timestamp data", log: log);
+      }
       var p1 = pos;
-      var cp = s.codeUnits[p1];
-      while (cp >= 48 && cp <= 57) {
+      var cp = content.codeUnits[p1];
+      while (cp >= codePointFor0 && cp <= codePointFor9) {
         sb.writeCharCode(cp);
         p1++;
-        cp = s.codeUnits[p1];
+        if (p1 >= content.length) {
+          return FileDataPrefix.error("No data after Timestamp", log: log);
+        }
+        cp = content.codeUnits[p1];
+        if (cp == codePointForColon) {
+          p1++;
+          break;
+        }
       }
       try {
+        if (p1 >= content.length) {
+          return FileDataPrefix.error("No content", log: log);
+        }
         ts = int.parse(sb.toString());
-        return FileDataPrefix(true, ts, p1 + 1, enc);
+        if (log != null) {
+          log("__FILE_DATA:__ Valid TS: $tag timestamp ${staticTimeStampString(ts)}");
+        }
+        return FileDataPrefix(true, ts, p1, enc, false, "", content.substring(p1), tag);
       } catch (e) {
-        return FileDataPrefix.empty();
+        return FileDataPrefix.error("Invalid Timestamp", log: log);
       }
     }
-    return FileDataPrefix.empty();
+    return FileDataPrefix.noTimestampPrefix(content, tag, log: log);
   }
 
   factory FileDataPrefix.empty() {
-    return FileDataPrefix(false, -1, 0, false);
+    return FileDataPrefix(false, 0, 0, false, false, "", "", "empty");
   }
 
-  bool isLaterThan(FileDataPrefix other) {
-    if (timeStamp == -1) {
-      return false;
+  factory FileDataPrefix.noTimestampPrefix(final String content, final String tag, {Function(String log)? log}) {
+    if (log != null) {
+      log("__FILE_DATA:__ Warning: $tag data dose not have a timestamp");
     }
-    if (other.timeStamp == -1) {
-      return true;
+    return FileDataPrefix(false, 0, 0, false, false, "", content, tag);
+  }
+
+  factory FileDataPrefix.error(final String reason, {Function(String log)? log}) {
+    if (log != null) {
+      log("__FILE_DATA:__ Error: $reason");
     }
-    return timeStamp > other.timeStamp;
+    return FileDataPrefix(false, 0, 0, false, true, reason, "", "");
+  }
+
+  FileDataPrefix selectThisOrThat(FileDataPrefix other, {Function(String log)? log}) {
+    // return the one that is NOT in error.
+    if (error && other.error) {
+      if (log != null) {
+        log("__FILE_DATA:__ Error: Cannot select file data");
+      }
+      return FileDataPrefix.error("Cannot select file data");
+    }
+    if (other.error) {
+      if (log != null) {
+        log("__FILE_DATA:__ Selecting: $tag");
+      }
+      return this;
+    }
+    if (error) {
+      if (log != null) {
+        log("__FILE_DATA:__ Selecting: ${other.tag}");
+      }
+      return other;
+    }
+
+    // If they are equal return either!
+    if (isEqual(other)) {
+      if (log != null) {
+        log("__FILE_DATA:__ Timestamps are the same, Selecting ${other.tag}");
+      }
+      return other;
+    }
+    // Return the one with the latest timestamp
+    if (timeStamp > other.timeStamp) {
+      if (log != null) {
+        log("__FILE_DATA:__ Selecting later $tag");
+      }
+      return this;
+    }
+    if (log != null) {
+      log("__FILE_DATA:__ Selecting later ${other.tag}");
+    }
+    return other;
+  }
+
+  bool isEqual(FileDataPrefix other) {
+    return timeStamp == other.timeStamp;
+  }
+
+  bool isNotEqual(FileDataPrefix other) {
+    return timeStamp != other.timeStamp;
+  }
+}
+
+class DataContainerException implements Exception {
+  final String message;
+  DataContainerException(this.message);
+  @override
+  String toString() {
+    return "DataContainerException: $message";
   }
 }
 
@@ -453,4 +548,11 @@ class JsonException implements Exception {
     }
     return "JsonException: $message: Path:$path";
   }
+}
+
+String staticTimeStampString(final int ts) {
+  if (ts <= 0) {
+    return "None";
+  }
+  return DateTime.fromMillisecondsSinceEpoch(ts).toString();
 }

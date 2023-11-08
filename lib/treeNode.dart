@@ -208,9 +208,9 @@ class MyTreeNode {
 
   void setRequired(bool req, {bool includeSubNodes = false}) {
     _required = req;
-    visitEachParentNode((pn) {
-      pn._required = req;
-    });
+    // visitEachParentNode((pn) {
+    //   pn._required = req;
+    // });
     if (includeSubNodes) {
       visitEachSubNode((sn) {
         sn._required = req;

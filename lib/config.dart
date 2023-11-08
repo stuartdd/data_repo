@@ -512,6 +512,9 @@ class ConfigData {
     if (path.isEmpty) {
       return fileName;
     }
+    if (fileName.isEmpty) {
+      return path;
+    }
     return "$path${Platform.pathSeparator}$fileName";
   }
 

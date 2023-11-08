@@ -128,30 +128,40 @@ class LogContentManager implements ScrollAble {
     widget = _LogContent(key: key, log: log, scrollToEndOnStart: scrollToEndOnStart, appThemeData: appThemeData, onTapLink: onTapLink);
   }
 
-  ScrollAble _getInstance() {
+  ScrollAble? _getInstance() {
     final cs = key.currentState;
     if (cs == null) {
-      throw InterfaceNotImplementedException("LogContentManager: Global key returned null 'currentState'");
+      return null;
     }
     if (cs is ScrollAble) {
       return (cs as ScrollAble);
     }
-    throw InterfaceNotImplementedException("LogContentManager:ScrollAble Global key 'currentState' returned type:${cs.runtimeType}");
+    return null;
   }
 
   @override
   void scrollBottom() {
-    _getInstance().scrollBottom();
+    final i = _getInstance();
+    if (i != null) {
+      i.scrollBottom();
+    }
   }
 
   @override
   void scrollTop() {
-    _getInstance().scrollTop();
+    final i = _getInstance();
+    if (i != null) {
+      i.scrollTop();
+    }
   }
 
   @override
   bool get autoFollow {
-    return _getInstance().autoFollow;
+    final i = _getInstance();
+    if (i != null) {
+      return i.autoFollow;
+    }
+    return true;
   }
 }
 
@@ -198,10 +208,17 @@ class _LogContentState extends State<_LogContent> implements ScrollAble {
     }
   }
 
+  void _setStateMounted(final Function() f) {
+    if (mounted) {
+      setState(() {
+        f();
+      });
+    }
+  }
 
   @override
   void scrollBottom() {
-    setState(() {
+    _setStateMounted(() {
       _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       _waitingToScroll = false;
       _autoFollow = true;
@@ -210,7 +227,7 @@ class _LogContentState extends State<_LogContent> implements ScrollAble {
 
   @override
   void scrollTop() {
-    setState(() {
+    _setStateMounted(() {
       _scrollController.jumpTo(_scrollController.position.minScrollExtent);
       _autoFollow = false;
     });

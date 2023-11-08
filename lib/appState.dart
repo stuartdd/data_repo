@@ -58,17 +58,20 @@ class ApplicationScreen {
 }
 
 class ApplicationState {
+  // Data stored in the file
   final String _appStateConfigFileName;
-  final Function(String) log;
-  late final Timer? countdownTimer;
+  late final Timer? _countdownTimer;
   List<String> _lastFind; // A new list is created when a fine is added.
   ApplicationScreen screen; // A new Screen is created each time the screen is updated.
-  int _isDataSorted = 0;
-  bool _shouldWriteFile = false;
-  bool _saveScreenSizeAndPos = true;
+  int _isDataSorted = 0; // State of tree and detail sort type, none asc, dec..
+
+  // Data to manage the file.
+  bool _shouldWriteFile = false; // Used if the above data is changed
+  bool _saveScreenSizeAndPos = true; // Indicates that the state should NOT be saved (maximised or minimised)!
+  final Function(String) log;
 
   ApplicationState(this.screen, this._isDataSorted, this._lastFind, this._appStateConfigFileName, this.log) {
-    countdownTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (_shouldWriteFile) {
         writeAppStateConfigFile();
       }
@@ -87,21 +90,6 @@ class ApplicationState {
     debugPrint("Write state: $this");
   }
 
-  // Called by main to locate the user file storage location
-  //   On Android and IOS this is the only place we should store files.
-  //   On Desktop this is the current path;
-  static Future<String> getApplicationDefaultDir() async {
-    if (ApplicationState.appIsDesktop()) {
-      return Directory.current.path;
-    }
-    final directory = await getApplicationDocumentsDirectory();
-    return directory.path;
-  }
-
-  static bool appIsDesktop() {
-    return (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
-  }
-
   String activeAppStateFileName() {
     if (File(_appStateConfigFileName).existsSync()) {
       return  _appStateConfigFileName;
@@ -114,26 +102,7 @@ class ApplicationState {
     return activeAppStateFileName().isEmpty;
   }
 
-  static ApplicationState readAppStateConfigFile(final String appStateConfigFileName, final Function(String) log)  {
-    final bool isDesktop = ApplicationState.appIsDesktop();
-    late final String content;
-    try {
-      content = File(appStateConfigFileName).readAsStringSync();
-      log("__APP STATE:__ Read from $appStateConfigFileName");
-      final json = jsonDecode(content);
-      log("__APP STATE__ Parsed OK");
-      return ApplicationState.fromJson(json, appStateConfigFileName, isDesktop, log);
-    } catch (e) {
-      if (e is PathNotFoundException) {
-        log("__APP STATE:__ ${isDesktop ? "Desktop" : "Mobile"} File Not Found $appStateConfigFileName");
-      } else {
-        log("__APP STATE EXCEPTION:__ ${isDesktop ? 'Desktop' : 'Mobile'} File $appStateConfigFileName ignored");
-        log("__E:__ $e");
-      }
-      log("__APP STATE:__ Using default  ${isDesktop ? "Desktop" : "Mobile"} State");
-      return ApplicationState(ApplicationScreen.empty(isDesktop), 0, [], appStateConfigFileName, log);
-    }
-  }
+
 
   factory ApplicationState.fromJson(final dynamic map, final String fileName, final bool isDesktop, final Function(String) log) {
     dynamic lastFineMap = map["lastFind"];
@@ -169,8 +138,8 @@ class ApplicationState {
 
   void updateDividerPosState(final double d) {
     if (screen.divIsNotEqual(d)) {
-      _shouldWriteFile = true;
       screen = ApplicationScreen(screen.x, screen.y, screen.w, screen.h, ApplicationScreen._convertDiv(d), screen.isDesktop, isDefault: false);
+      _shouldWriteFile = true;
     }
   }
 
@@ -218,5 +187,41 @@ class ApplicationState {
   @override
   String toString() {
     return '{"screen":$screen,"isDataSorted":$_isDataSorted,"lastFind":${jsonEncode(_lastFind)}}';
+  }
+
+  // Called by main to locate the user file storage location
+  //   On Android and IOS this is the only place we should store files.
+  //   On Desktop this is the current path;
+  static Future<String> getApplicationDefaultDir() async {
+    if (ApplicationState.appIsDesktop()) {
+      return Directory.current.path;
+    }
+    final directory = await getApplicationDocumentsDirectory();
+    return directory.path;
+  }
+
+  static bool appIsDesktop() {
+    return (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+  }
+
+  static ApplicationState readAppStateConfigFile(final String appStateConfigFileName, final Function(String) log)  {
+    final bool isDesktop = ApplicationState.appIsDesktop();
+    late final String content;
+    try {
+      content = File(appStateConfigFileName).readAsStringSync();
+      log("__APP STATE:__ Read from $appStateConfigFileName");
+      final json = jsonDecode(content);
+      log("__APP STATE__ Parsed OK");
+      return ApplicationState.fromJson(json, appStateConfigFileName, isDesktop, log);
+    } catch (e) {
+      if (e is PathNotFoundException) {
+        log("__APP STATE:__ ${isDesktop ? "Desktop" : "Mobile"} File Not Found $appStateConfigFileName");
+      } else {
+        log("__APP STATE EXCEPTION:__ ${isDesktop ? 'Desktop' : 'Mobile'} File $appStateConfigFileName ignored");
+        log("__E:__ $e");
+      }
+      log("__APP STATE:__ Using default  ${isDesktop ? "Desktop" : "Mobile"} State");
+      return ApplicationState(ApplicationScreen.empty(isDesktop), 0, [], appStateConfigFileName, log);
+    }
   }
 }

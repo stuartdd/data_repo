@@ -57,12 +57,12 @@ void main() {
     expect(log.toString(), "ONE\n\nTWO");
     log.log("TWO");
     expect(log.length, 2);
-    expect(log.toString(), "ONE\n\nTWO");
+    expect(log.toString(), "ONE\n\n2 TWO");
     log.log("TWO");
     expect(log.length, 2);
-    expect(log.toString(), "ONE\n\nTWO");
+    expect(log.toString(), "ONE\n\n3 TWO");
     log.log("TWO");
     expect(log.length, 2);
-    expect(log.toString(), "ONE\n\nTWO");
+    expect(log.toString(), "ONE\n\n4 TWO");
   });
 }
