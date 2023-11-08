@@ -243,7 +243,7 @@ class _DetailWidgetState extends State<DetailWidget> {
               ],
             ),
           ),
-          subtitle: horizontal
+          subtitle: horizontal && !appThemeData.hideDataPath
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [widget.appThemeData.verticalGapBox(1), Text("[${widget.dataValueRow.type.displayName}] Owned By:${widget.dataValueRow.path}", style: appThemeData.tsMediumBold)],

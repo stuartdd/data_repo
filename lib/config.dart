@@ -15,7 +15,8 @@ const String defaultPrimaryColour = "blue";
 const String defaultSecondaryColour = "green";
 const String defaultHiLightColour = "yellow";
 const String defaultErrorColour = "red";
-const String defaultDarkMode = "false";
+const bool defaultDarkMode = false;
+const bool defaultHideDataPath = false;
 const String defaultUserName = "User";
 const int defaultFetchTimeoutMillis = 1000;
 const String defaultDataEmptyString = "";
@@ -48,10 +49,11 @@ final getDataUrlPath = Path.fromList(["file", "getDataUrl"]);
 final postDataUrlPath = Path.fromList(["file", "postDataUrl"]);
 final dataFileLocalNamePath = Path.fromList(["file", "datafile"]);
 final dataFileLocalDirPath = Path.fromList(["file", "datafilePath"]);
-final appStateFileNamePath = Path.fromList(["user", "appStateFile"]);
-final appStateLocalDirPath = Path.fromList(["user", "appStatePath"]);
+final appStateFileNamePath = Path.fromList(["file", "appStateFile"]);
+final appStateLocalDirPath = Path.fromList(["file", "appStatePath"]);
 final titlePath = Path.fromList(["application", "title"]);
 final appRootNodeNamePath = Path.fromList(["application", "rootNodeName"]);
+final hideDataPathPath = Path.fromList(["application", "hideDataPath"]);
 final appTextScalePath = Path.fromList(["application", "textScale"]);
 final appColoursDarkModePath = Path.fromList(["application", "darkMode"]);
 final appColoursPrimaryPath = Path.fromList(["application", "colours", "primary"]);
@@ -156,6 +158,7 @@ class AppThemeData {
   final ColorPallet error;
   final bool darkMode;
   final bool desktop;
+  final bool hideDataPath;
 
   late final double verticalGap;
   late final double iconSize;
@@ -182,7 +185,7 @@ class AppThemeData {
   late final List<Icon> treeNodeIcons;
   late final TextSelectionThemeData textSelectionThemeData;
 
-  AppThemeData._(this.primary, this.secondary, this.hiLight, this.error, String font, double scale, Color errC, this.darkMode, this.desktop) {
+  AppThemeData._(this.primary, this.secondary, this.hiLight, this.error, String font, double scale, Color errC, this.darkMode, this.desktop, this.hideDataPath) {
     tsScale = scale;
     tsLarge = TextStyle(fontSize: (25.0 * scale), color: screenForegroundColour(true));
     tsLargeDisabled = TextStyle(fontSize: (25.0 * scale), color: screenForegroundColour(false));
@@ -348,6 +351,7 @@ class ConfigData {
   ColorPallet _appColoursHiLight = ColorPallet.fromMaterialColor(Colors.yellow, 'yellow');
   ColorPallet _appColoursError = ColorPallet.fromMaterialColor(Colors.red, 'red');
   bool _darkMode = false;
+  bool _hideDataPath = false;
 
   List<String> dir(List<String> extensions, List<String> hidden) {
     final l = List<String>.empty(growable: true);
@@ -421,9 +425,10 @@ class ConfigData {
     _appColoursSecondary = validColour(_data.getStringFromJson(appColoursSecondaryPath, fallback: defaultSecondaryColour, create: true), appColoursSecondaryPath);
     _appColoursHiLight = validColour(_data.getStringFromJson(appColoursHiLightPath, fallback: defaultHiLightColour, create: true), appColoursHiLightPath);
     _appColoursError = validColour(_data.getStringFromJson(appColoursErrorPath, fallback: defaultErrorColour, create: true), appColoursErrorPath);
-    _darkMode = _data.getBoolFromJson(appColoursDarkModePath, fallback: false);
+    _darkMode = _data.getBoolFromJson(appColoursDarkModePath, fallback: defaultDarkMode);
     _textScale = _data.getNumFromJson(appTextScalePath, fallback: (_isDesktop ? defaultFontScaleDesktop : defaultFontScaleMobile)).toDouble();
     _rootNodeName = _data.getStringFromJson(appRootNodeNamePath, fallback: "?");
+    _hideDataPath = _data.getBoolFromJson(hideDataPathPath, fallback: defaultHideDataPath);
     _appThemeData = null;
     if (_onUpdate != null && callOnUpdate) {
       _onUpdate!();
@@ -431,7 +436,7 @@ class ConfigData {
   }
 
   AppThemeData getAppThemeData() {
-    _appThemeData ??= AppThemeData._(_appColoursPrimary, _appColoursSecondary, _appColoursHiLight, _appColoursError, defaultFontFamily, _textScale, Colors.red.shade500, _darkMode, _isDesktop);
+    _appThemeData ??= AppThemeData._(_appColoursPrimary, _appColoursSecondary, _appColoursHiLight, _appColoursError, defaultFontFamily, _textScale, Colors.red.shade500, _darkMode, _isDesktop, _hideDataPath);
     return _appThemeData!;
   }
 
@@ -532,6 +537,10 @@ class ConfigData {
 
   bool isDesktop() {
     return _isDesktop;
+  }
+
+  bool hideDataPath() {
+    return _hideDataPath;
   }
 
   int getDataFetchTimeoutMillis() {

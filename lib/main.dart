@@ -143,6 +143,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _search = "";
   String _lastSearch = "";
   bool _dataWasUpdated = false;
+  bool _dataRequiresSyncing = false;
   bool _checkReferences = false;
   bool _isEditDataDisplay = false;
   double _navBarHeight = 0;
@@ -776,6 +777,9 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     setState(() {
       logger.log("__SAVE:__ $lm. $rm");
+      if (success > 1) {
+        _dataRequiresSyncing = false;
+      }
       if (success > 0) {
         _dataWasUpdated = false;
         _pathPropertiesList.clear();
@@ -875,7 +879,11 @@ class _MyHomePageState extends State<MyHomePage> {
     _loadedData = data;
 
     setState(() {
-      _dataWasUpdated = fileDataPrefixLocal.isNotEqual(fileDataPrefixRemote);
+      _dataRequiresSyncing = fileDataPrefixLocal.isNotEqual(fileDataPrefixRemote);
+      if (_dataRequiresSyncing) {
+        logger.log("__FILE_DATA:__ Warning: Data requires synchronisation");
+      }
+      _dataWasUpdated = false;
       _checkReferences = true;
       _pathPropertiesList.clear();
       _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap, sorted: _applicationState.isDataSorted);
@@ -901,6 +909,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _search = "";
     _lastSearch = "";
     _dataWasUpdated = false;
+    _dataRequiresSyncing = false;
     _pathPropertiesList.clear();
     _globalSuccessState = SuccessState(true, message: reason);
     _currentSelectedGroupsPrefix = "";
@@ -1427,6 +1436,16 @@ class _MyHomePageState extends State<MyHomePage> {
           },
         ));
       }
+      if (_dataRequiresSyncing && !_dataWasUpdated) {
+        toolBarItems.add(DetailIconButton(
+          appThemeData: appThemeData,
+          iconData: Icons.sync,
+          tooltip: "Synchronise data",
+          onPressed: (button) {
+            _handleAction(DetailAction(ActionType.save, false, Path.empty()));
+          },
+        ));
+      }
       if (_isEditDataDisplay) {
         toolBarItems.add(VerticalDivider(
           color: screenForeground,
@@ -1452,7 +1471,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 MenuOptionDetails("Validate references", "Check validity of reference elements", ActionType.checkReferences, () {
                   return Icons.check_circle_outline;
                 }),
-                MenuOptionDetails("Save %{0}", "Save %{4} %{2}%{0}", ActionType.save, () {
+                MenuOptionDetails("Save (Synchronise) %{0}", "Save %{4} %{2}%{0}", ActionType.save, () {
                   return Icons.lock_open;
                 }),
                 MenuOptionDetails("Save %{1}", "Save %{4} %{2}%{1}", ActionType.saveAlt, () {
