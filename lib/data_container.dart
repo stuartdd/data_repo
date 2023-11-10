@@ -113,11 +113,19 @@ class DataContainer {
     return "";
   }
 
-  dynamic getNodeFromJson(Path path) {
+  dynamic getNodeFromJson(Path path, {Path? context}) {
     if (path.isEmpty) {
       throw JsonException(message: "getNodeFromJson: Empty Path", path);
     }
-    dynamic node = _dataMap;
+
+    dynamic node;
+    if (context != null) {
+      node = getNodeFromJson(context);
+      node ??= _dataMap;
+    } else {
+      node = _dataMap;
+    }
+
     for (var i = 0; i < path.length; i++) {
       final name = path.peek(i);
       node = node[name];
@@ -131,16 +139,16 @@ class DataContainer {
     return null;
   }
 
-  String getStringFromJsonOptional(Path path) {
-    final node = getNodeFromJson(path);
+  String getStringFromJsonOptional(Path path, {Path? context}) {
+    final node = getNodeFromJson(path, context: context);
     if (node == null) {
       return "";
     }
     return node.toString();
   }
 
-  String getStringFromJson(Path path, {String fallback = "", bool create = false}) {
-    final node = getNodeFromJson(path);
+  String getStringFromJson(Path path, {String fallback = "", bool create = false, Path? context}) {
+    final node = getNodeFromJson(path, context: context);
     if (node == null) {
       if (create) {
         setValueForJsonPath(path, fallback);
@@ -158,8 +166,8 @@ class DataContainer {
     throw JsonException(message: "getStringFromJson: Node found was NOT a String node", path);
   }
 
-  num getNumFromJson(Path path, {num? fallback}) {
-    final node = getNodeFromJson(path);
+  num getNumFromJson(Path path, {num? fallback, Path? context}) {
+    final node = getNodeFromJson(path, context: context);
     if (node == null) {
       if (fallback != null) {
         return fallback;
@@ -172,8 +180,8 @@ class DataContainer {
     throw JsonException(message: "getNumFromJson: Node found [$node] was NOT a Number node", path);
   }
 
-  bool getBoolFromJson(Path path, {bool? fallback}) {
-    final node = getNodeFromJson(path);
+  bool getBoolFromJson(Path path, {bool? fallback, Path? context}) {
+    final node = getNodeFromJson(path, context: context);
     if (node == null) {
       if (fallback != null) {
         return fallback;
@@ -186,8 +194,8 @@ class DataContainer {
     throw JsonException(message: "geBoolFromJson: Node found [$node] was NOT a bool node", path);
   }
 
-  Map<String, dynamic> getMapFromJson(Path path) {
-    final node = getNodeFromJson(path);
+  Map<String, dynamic> getMapFromJson(Path path, {Path? context}) {
+    final node = getNodeFromJson(path, context: context);
     if (node == null) {
       throw JsonException(message: "getMapFromJson: Map Node was NOT found", path);
     }

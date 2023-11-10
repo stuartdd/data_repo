@@ -52,15 +52,16 @@ final dataFileLocalDirPath = Path.fromList(["file", "datafilePath"]);
 final appStateFileNamePath = Path.fromList(["file", "appStateFile"]);
 final appStateLocalDirPath = Path.fromList(["file", "appStatePath"]);
 final titlePath = Path.fromList(["application", "title"]);
-final appRootNodeNamePath = Path.fromList(["application", "rootNodeName"]);
-final hideDataPathPath = Path.fromList(["application", "hideDataPath"]);
 final appTextScalePath = Path.fromList(["application", "textScale"]);
-final appColoursDarkModePath = Path.fromList(["application", "darkMode"]);
-final appColoursPrimaryPath = Path.fromList(["application", "colours", "primary"]);
-final appColoursSecondaryPath = Path.fromList(["application", "colours", "secondary"]);
-final appColoursHiLightPath = Path.fromList(["application", "colours", "hilight"]);
-final appColoursErrorPath = Path.fromList(["application", "colours", "error"]);
 final dataFetchTimeoutMillisPath = Path.fromList(["application", "dataFetchTimeoutMillis"]);
+
+final appColoursDarkModePath = Path.fromList(["theme", "darkMode"]);
+final appRootNodeNamePath = Path.fromList(["theme", "rootNodeName"]);
+final hideDataPathPath = Path.fromList(["theme", "hideDataPath"]);
+final appColoursPrimaryPath = Path.fromList(["theme", "colours", "primary"]);
+final appColoursSecondaryPath = Path.fromList(["theme", "colours", "secondary"]);
+final appColoursHiLightPath = Path.fromList(["theme", "colours", "hilight"]);
+final appColoursErrorPath = Path.fromList(["theme", "colours", "error"]);
 
 class ColorPallet {
   final String colorName;

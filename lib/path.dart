@@ -1,5 +1,4 @@
 const _updatedNotForUnDo = "~";
-
 class PathProperties {
   String renamedFrom = "";
   String updatedFrom = "";

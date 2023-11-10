@@ -1,16 +1,18 @@
 {
-  "application": {
-    "title": "Data Repository",
+  "theme": {
     "rootNodeName": "Home",
-    "dataFetchTimeoutMillis": 2000,
+    "darkMode": false,
+    "hideDataPath": false,
     "colours": {
       "primary": "blue",
       "secondary": "green",
       "hilight": "yellow",
       "error": "red"
-    },
-    "darkMode": false,
-    "hideDataPath": true,
+    }
+  },
+  "application": {
+    "title": "Data Repository",
+    "dataFetchTimeoutMillis": 2000,
     "textScale": 0.8
   },
   "file": {
