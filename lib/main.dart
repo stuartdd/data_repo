@@ -34,7 +34,7 @@ ScreenSize screenSize = ScreenSize();
 _screenSize(BuildContext context) {
   final pt = MediaQuery.of(context).padding.top;
   final bi = MediaQuery.of(context).viewInsets.bottom - MediaQuery.of(context).viewInsets.top;
-  final height = MediaQuery.of(context).size.height - (bi + pt) - 2;
+  final height = MediaQuery.of(context).size.height - (bi + pt) - 3; // Stops the scroll bar on RHS
   final width = MediaQuery.of(context).size.width;
   screenSize.update(width, height);
 }
