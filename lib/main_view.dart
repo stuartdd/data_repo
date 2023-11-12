@@ -150,10 +150,11 @@ const _sortIconName = ["Un-Sort", "Ascending", "Descending"];
 const _sortIcon = [Icons.sort, Icons.flight_takeoff, Icons.flight_land];
 
 Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThemeData, bool isEditDataDisplay, bool beforeDataLoaded, int sorted, final Path Function(DetailAction) dataAction) {
+  final pathParent = selectedPath.hasParent ? selectedPath.cloneParentPath() : Path.empty();
+  final pathRight = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "right"));
   final pathUp = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "up"));
   final pathDown = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "down"));
-  final pathRight = dataAction(DetailAction(ActionType.querySelect, false, selectedPath, additional: "right"));
-  final pathParent = selectedPath.hasParent ? selectedPath.cloneParentPath() : Path.empty();
+
   return Row(
     children: [
       DetailIconButton(
@@ -165,14 +166,17 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
         appThemeData: appThemeData,
       ),
       DetailIconButton(
+        key: GlobalKey(), // Ensure initState is called
+        enabled: pathParent.isNotEmpty,
         onPressed: (button) {
-          dataAction(DetailAction(ActionType.select, false, Path.empty()));
+          dataAction(DetailAction(ActionType.select, false, selectedPath.cloneFirst()));
         },
         tooltip: "Home",
         iconData: Icons.home,
         appThemeData: appThemeData,
       ),
       DetailIconButton(
+        key: GlobalKey(), // Ensure initState is called
         enabled: pathParent.isNotEmpty,
         onPressed: (button) {
           dataAction(DetailAction(ActionType.select, false, pathParent));
@@ -182,6 +186,7 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
         appThemeData: appThemeData,
       ),
       DetailIconButton(
+        key: GlobalKey(), // Ensure initState is called
         enabled: pathUp.isNotEmpty,
         onPressed: (button) {
           dataAction(DetailAction(ActionType.select, true, pathUp));
@@ -191,6 +196,7 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
         appThemeData: appThemeData,
       ),
       DetailIconButton(
+        key: GlobalKey(), // Ensure initState is called
         enabled: pathDown.isNotEmpty,
         onPressed: (button) {
           dataAction(DetailAction(ActionType.select, true, pathDown));
@@ -200,11 +206,12 @@ Widget createNodeNavButtonBar(final Path selectedPath, final AppThemeData appThe
         appThemeData: appThemeData,
       ),
       DetailIconButton(
+        key: GlobalKey(), // Ensure initState is called
         enabled: pathRight.isNotEmpty,
         onPressed: (button) {
           dataAction(DetailAction(ActionType.select, true, pathRight));
         },
-        tooltip: "Right (${pathRight.toString()})",
+        tooltip: "RightX (${pathRight.toString()})",
         iconData: Icons.subdirectory_arrow_right,
         appThemeData: appThemeData,
       ),

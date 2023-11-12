@@ -161,7 +161,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _searchEditingController = TextEditingController(text: "");
   final TextEditingController _passwordEditingController = TextEditingController(text: "");
 
-  Path querySelect(Path sel, String dir) {
+  Path _querySelect(Path sel, String dir) {
     Path p = Path.empty();
     if (sel.isEmpty) {
       return p;
@@ -672,7 +672,7 @@ class _MyHomePageState extends State<MyHomePage> {
     switch (detailActionData.action) {
       case ActionType.querySelect:
         {
-          return querySelect(detailActionData.path, detailActionData.additional);
+          return _querySelect(detailActionData.path, detailActionData.additional);
         }
       case ActionType.link:
         {

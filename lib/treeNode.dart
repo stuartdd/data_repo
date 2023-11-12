@@ -187,11 +187,11 @@ class MyTreeNode {
   int get iconIndex {
     if (canExpand) {
       if (expanded) {
-        return defaultTreeNodeIconDataBase + 1;
+        return 1;
       }
-      return defaultTreeNodeIconDataBase + 2;
+      return 2;
     }
-    return defaultTreeNodeIconDataBase;
+    return 0;
   }
 
   bool get isRoot {
@@ -208,9 +208,6 @@ class MyTreeNode {
 
   void setRequired(bool req, {bool includeSubNodes = false}) {
     _required = req;
-    // visitEachParentNode((pn) {
-    //   pn._required = req;
-    // });
     if (includeSubNodes) {
       visitEachSubNode((sn) {
         sn._required = req;
@@ -412,7 +409,7 @@ Widget? buildNodeDefault(final MyTreeNode node, final String rootNodeName, final
                   onTap: () {
                     onClick(node.path);
                   },
-                  child: appThemeData.treeNodeIcons[defaultTreeNodeIconDataHasData])
+                  child: appThemeData.treeNodeIcons.last)
               : const SizedBox(width: 0),
         ],
       ),

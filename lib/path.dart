@@ -409,6 +409,13 @@ class Path {
     return p;
   }
 
+  Path cloneFirst() {
+    if (length < 1) {
+      return Path.empty();
+    }
+    return Path([pathList[0]]);
+  }
+
   factory Path.empty() {
     return Path([]);
   }

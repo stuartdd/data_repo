@@ -25,7 +25,7 @@ enum ActionType {
   addGroup, // Add a group entry to the data at the selected group
   addDetail, // Add a detail (leaf node) at the selected group
   editItemData, // Edit the current items data (value) and type (String int double bool...)
-  renameItem,// Edit the current items name (key) and type (MarkDown, List, Reference...)
+  renameItem, // Edit the current items name (key) and type (MarkDown, List, Reference...)
   checkReferences,
   createFile,
   select,
@@ -294,14 +294,17 @@ class MenuOptionDetails {
   }
 }
 
+//
+// Passed to the _handleAction function in main.dart
+//
 class DetailAction {
   final ActionType action;
-  final bool value;
-  final Path path;
-  final String oldValue;
-  final OptionsTypeData oldValueType;
+  final bool value; // Value or group node
+  final Path path; // Path to the Tree node
+  final String oldValue; // The value as a String
+  final OptionsTypeData oldValueType; // The type details of the node
+  final String additional; // Some additional data if required
   final bool Function(String, String, String)? onCompleteActionNullable;
-  final String additional;
   DetailAction(this.action, this.value, this.path, {this.oldValue = "", this.oldValueType = optionsDataTypeEmpty, this.onCompleteActionNullable, this.additional = ""});
 
   factory DetailAction.actionOnly(ActionType action) {
