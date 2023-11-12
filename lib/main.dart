@@ -239,7 +239,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  
   void _onUpdateConfig() {
     setState(() {
       if (_loadedData.isEmpty) {
@@ -294,7 +293,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  
   GroupCopyMoveSummary _checkNodeForGroupSelection(final Path from, final Path to, final bool isValue, final bool groupCopy) {
     if (groupCopy) {
       return GroupCopyMoveSummary(from, _loadedData.copyInto(to, from, isValue, dryRun: true), isValue);
@@ -1224,6 +1222,13 @@ class _MyHomePageState extends State<MyHomePage> {
     return SuccessState(true);
   }
 
+  bool _matchSearchForFilter(String searchFor, bool tolowerCase, MyTreeNode searchThisNode) {
+    if (tolowerCase) {
+      return (searchThisNode.label.toLowerCase().contains(searchFor));
+    }
+    return (searchThisNode.label.contains(searchFor));
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppThemeData appThemeData = _configData.getAppThemeData();
@@ -1241,12 +1246,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_loadedData.isNotEmpty) {
       if (_search != _lastSearch || _filteredNodeDataRoot.isEmpty) {
         _lastSearch = _search;
-        _filteredNodeDataRoot = _treeNodeDataRoot.applyFilter(_search, true, (match, tolowerCase, node) {
-          if (tolowerCase) {
-            return (node.label.toLowerCase().contains(match));
-          }
-          return (node.label.contains(match));
-        });
+        _filteredNodeDataRoot = _treeNodeDataRoot.applyFilter(_search, true, _matchSearchForFilter);
       } else {
         _filteredNodeDataRoot = _treeNodeDataRoot.clone(requiredOnly: true);
       }
@@ -1313,6 +1313,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final DisplaySplitView displayData = createSplitView(
       _loadedData,
       _filteredNodeDataRoot,
+      _treeNodeDataRoot,
       _selectedTreeNode,
       _isEditDataDisplay,
       _configData.isDesktop(),

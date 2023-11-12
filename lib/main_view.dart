@@ -44,7 +44,8 @@ class MyTreeWidget extends StatelessWidget {
 /// Creates both Left and Right panes.
 DisplaySplitView createSplitView(
     final DataContainer data,
-    final MyTreeNode treeNodeDataRoot,
+    final MyTreeNode filteredTreeNodeDataRoot,
+    final MyTreeNode unfilteredTreeNodeDataRoot,
     final MyTreeNode selectedTreeNode,
     final bool isEditDataDisplay,
     final bool horizontal, // Display horizontal or vertical split pane
@@ -66,7 +67,7 @@ DisplaySplitView createSplitView(
     log("__DATA:__ No data loaded");
     return DisplaySplitView.error(appThemeData, ("No data has been loaded"));
   }
-  if (treeNodeDataRoot.isEmpty) {
+  if (filteredTreeNodeDataRoot.isEmpty) {
     log("__DATA:__ No data to display");
     return DisplaySplitView.error(appThemeData, ("No data to display"));
   }
@@ -79,7 +80,7 @@ DisplaySplitView createSplitView(
   final Widget detailContainer;
   final node = data.getNodeFromJson(selectedPath);
   if (node != null) {
-    detailContainer = _createDetailContainer(node, selectedPath, treeNodeDataRoot, isEditDataDisplay, isSorted, horizontal, pathPropertiesList, appThemeData, onDataAction, onResolve);
+    detailContainer = _createDetailContainer(node, selectedPath, unfilteredTreeNodeDataRoot, isEditDataDisplay, isSorted, horizontal, pathPropertiesList, appThemeData, onDataAction, onResolve);
   } else {
     log("__DATA:__ Selected Node was not found in the data");
     return DisplaySplitView.error(appThemeData, ("Selected Node was not found in the data"));
@@ -87,7 +88,7 @@ DisplaySplitView createSplitView(
 
   final scrollController = ScrollController();
   final listView = MyTreeNodeWidgetList(
-    treeNodeDataRoot,
+    filteredTreeNodeDataRoot,
     rootNodeName,
     selectedTreeNode,
     selectedPath,
