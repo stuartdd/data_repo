@@ -3,6 +3,7 @@ gitpush
 lib/build_date.dart
 .localauthentication.data
 *.data
+*.data_repo_lock*
 *.class
 *.log
 *.pyc

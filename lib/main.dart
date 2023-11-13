@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:data_repo/Isolator.dart';
 import 'package:data_repo/config_settings.dart';
 import 'package:data_repo/data_container.dart';
 import 'package:data_repo/treeNode.dart';
@@ -20,6 +21,7 @@ import 'detail_buttons.dart';
 
 late final ConfigData _configData;
 late final ApplicationState _applicationState;
+late final Isolator _isolator;
 
 final logger = Logger(100, true);
 
@@ -42,8 +44,8 @@ void main() async {
     // Get basic startup data
     final applicationDefaultDir = await ApplicationState.getApplicationDefaultDir();
     final isDesktop = ApplicationState.appIsDesktop();
-
     // Read the config file and ans specify app or desktop
+    _isolator = Isolator(applicationDefaultDir);
     _configData = ConfigData(applicationDefaultDir, defaultConfigFileName, isDesktop, logger.log);
     _applicationState = ApplicationState.fromFile(_configData.getAppStateFileLocal(), logger.log);
 
@@ -63,14 +65,18 @@ void main() async {
 
   runApp(MyApp());
 
-  Timer.periodic(const Duration(seconds: 1), (timer) {
-    if (_exitReturnCode >= 0) {
-      exit(_exitReturnCode);
-    }
-    debugPrint("Application Running RC:$_exitReturnCode");
-  });
+  if (!_isolator.locked) {
+    Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_isolator.shouldStop()) {
+        _exitReturnCode = 9;
+      }
+      if (_exitReturnCode >= 0) {
+        _isolator.close();
+        exit(_exitReturnCode);
+      }
+    });
+  }
 }
-
 
 class MyApp extends StatelessWidget with WindowListener {
   MyApp({super.key});
@@ -113,13 +119,21 @@ class MyApp extends StatelessWidget with WindowListener {
       windowManager.addListener(this);
     }
 
-    return MaterialApp(
-      title: 'data_repo',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: MyHomePage(
-        title: _configData.getTitle(),
-      ),
-    );
+    if (_isolator.locked) {
+      return MaterialApp(
+        title: 'data_repo',
+        theme: ThemeData(primarySwatch: Colors.blue),
+        home: _isolator.lockPage("${_configData.getTitle()} LOCKED"),
+      );
+    } else {
+      return MaterialApp(
+        title: 'data_repo',
+        theme: ThemeData(primarySwatch: Colors.blue),
+        home: MyHomePage(
+          title: _configData.getTitle(),
+        ),
+      );
+    }
   }
 }
 
