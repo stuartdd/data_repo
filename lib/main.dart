@@ -24,10 +24,7 @@ late final ApplicationState _applicationState;
 final logger = Logger(100, true);
 
 bool _inExitProcess = false;
-
-void closer(final int returnCode) async {
-  exit(returnCode);
-}
+int _exitReturnCode = -1;
 
 ScreenSize screenSize = ScreenSize();
 
@@ -48,7 +45,7 @@ void main() async {
 
     // Read the config file and ans specify app or desktop
     _configData = ConfigData(applicationDefaultDir, defaultConfigFileName, isDesktop, logger.log);
-    _applicationState = ApplicationState.readAppStateConfigFile(_configData.getAppStateFileLocal(), logger.log);
+    _applicationState = ApplicationState.fromFile(_configData.getAppStateFileLocal(), logger.log);
 
     if (isDesktop) {
       // if desktop then set title, screen pos and size.
@@ -61,11 +58,19 @@ void main() async {
     }
   } catch (e) {
     debugPrint(e.toString());
-    closer(1);
+    exit(1);
   }
 
   runApp(MyApp());
+
+  Timer.periodic(const Duration(seconds: 1), (timer) {
+    if (_exitReturnCode >= 0) {
+      exit(_exitReturnCode);
+    }
+    debugPrint("Application Running RC:$_exitReturnCode");
+  });
 }
+
 
 class MyApp extends StatelessWidget with WindowListener {
   MyApp({super.key});
@@ -74,10 +79,6 @@ class MyApp extends StatelessWidget with WindowListener {
   onWindowEvent(final String eventName) async {
     if (_configData.isDesktop()) {
       switch (eventName) {
-        case 'close':
-          {
-            return;
-          }
         case 'maximize':
         case 'minimize':
           {
@@ -1189,7 +1190,10 @@ class _MyHomePageState extends State<MyHomePage> {
           },
         );
       }
-      return shouldExit;
+      if (shouldExit) {
+        _exitReturnCode = 0;
+      }
+      return false;
     } finally {
       _inExitProcess = false;
     }
@@ -1345,10 +1349,7 @@ class _MyHomePageState extends State<MyHomePage> {
         iconData: Icons.close,
         tooltip: 'Exit application',
         onPressed: (button) async {
-          final close = await _handleShouldExit();
-          if (close) {
-            closer(0);
-          }
+          await _handleShouldExit();
         },
         appThemeData: appThemeData,
       ),

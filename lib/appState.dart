@@ -60,20 +60,21 @@ class ApplicationScreen {
 class ApplicationState {
   // Data stored in the file
   final String _appStateConfigFileName;
-  late final String _currentJson;
   late final Timer? _countdownTimer;
+  String _currentJson = "";
   List<String> _lastFind; // A new list is created when a fine is added.
   ApplicationScreen screen; // A new Screen is created each time the screen is updated.
   int _isDataSorted = 0; // State of tree and detail sort type, none asc, dec..
 
   // Data to manage the file.
-  bool _shouldWriteFile = false; // Used if the above data is changed
   bool _saveScreenSizeAndPos = true; // Indicates that the state should NOT be saved (maximised or minimised)!
   final Function(String) log;
 
-  ApplicationState(this.screen, this._isDataSorted, this._lastFind, this._appStateConfigFileName, this.log) {
+  ApplicationState._(this.screen, this._isDataSorted, this._lastFind, this._appStateConfigFileName, this.log) {
     _countdownTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (_shouldWriteFile) {
+      final json = toString();
+      if (json != _currentJson) {
+        _currentJson = json;
         writeAppStateConfigFile();
       }
     });
@@ -82,19 +83,19 @@ class ApplicationState {
 
   void clear(final bool isDesktop) {
     _lastFind.clear();
-    _shouldWriteFile = true;
+    _isDataSorted = 0;
+    _currentJson = "";
     screen = ApplicationScreen.empty(isDesktop);
   }
 
   void writeAppStateConfigFile() {
-    _shouldWriteFile = false;
     File(_appStateConfigFileName).writeAsStringSync(toString());
     debugPrint("Write state: $this");
   }
 
   String activeAppStateFileName() {
     if (File(_appStateConfigFileName).existsSync()) {
-      return  _appStateConfigFileName;
+      return _appStateConfigFileName;
     }
     return "";
   }
@@ -104,7 +105,26 @@ class ApplicationState {
     return activeAppStateFileName().isEmpty;
   }
 
-
+  factory ApplicationState.fromFile(final String appStateConfigFileName, final Function(String) log) {
+    final bool isDesktop = ApplicationState.appIsDesktop();
+    late final String content;
+    try {
+      content = File(appStateConfigFileName).readAsStringSync();
+      log("__APP STATE:__ Read from $appStateConfigFileName");
+      final json = jsonDecode(content);
+      log("__APP STATE__ Parsed OK");
+      return ApplicationState.fromJson(json, appStateConfigFileName, isDesktop, log);
+    } catch (e) {
+      if (e is PathNotFoundException) {
+        log("__APP STATE:__ ${isDesktop ? "Desktop" : "Mobile"} File Not Found $appStateConfigFileName");
+      } else {
+        log("__APP STATE EXCEPTION:__ ${isDesktop ? 'Desktop' : 'Mobile'} File $appStateConfigFileName ignored");
+        log("__E:__ $e");
+      }
+      log("__APP STATE:__ Using default  ${isDesktop ? "Desktop" : "Mobile"} State");
+      return ApplicationState._(ApplicationScreen.empty(isDesktop), 0, [], appStateConfigFileName, log);
+    }
+  }
 
   factory ApplicationState.fromJson(final dynamic map, final String fileName, final bool isDesktop, final Function(String) log) {
     dynamic lastFineMap = map["lastFind"];
@@ -131,7 +151,7 @@ class ApplicationState {
     if (isDataSorted is! int) {
       isDataSorted = 0;
     }
-    return ApplicationState(applicationScreen, isDataSorted, lastFindList, fileName, log);
+    return ApplicationState._(applicationScreen, isDataSorted, lastFindList, fileName, log);
   }
 
   set saveScreenSizeAndPos(bool save) {
@@ -141,14 +161,12 @@ class ApplicationState {
   void updateDividerPosState(final double d) {
     if (screen.divIsNotEqual(d)) {
       screen = ApplicationScreen(screen.x, screen.y, screen.w, screen.h, ApplicationScreen._convertDiv(d), screen.isDesktop, isDefault: false);
-      _shouldWriteFile = true;
     }
   }
 
   void updateScreenPos(final double x, y, w, h) {
     if (_saveScreenSizeAndPos && appIsDesktop() && screen.posIsNotEqual(x, y, w, h)) {
       screen = ApplicationScreen(x.round(), y.round(), w.round(), h.round(), screen._div, screen.isDesktop, isDefault: false);
-      _shouldWriteFile = true;
     }
   }
 
@@ -166,7 +184,6 @@ class ApplicationState {
         break;
       }
     }
-    _shouldWriteFile = true;
     _lastFind = newList;
   }
 
@@ -179,7 +196,6 @@ class ApplicationState {
     if (_isDataSorted > 1) {
       _isDataSorted = -1;
     }
-    _shouldWriteFile = true;
   }
 
   int get isDataSorted {
@@ -204,26 +220,5 @@ class ApplicationState {
 
   static bool appIsDesktop() {
     return (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
-  }
-
-  static ApplicationState readAppStateConfigFile(final String appStateConfigFileName, final Function(String) log)  {
-    final bool isDesktop = ApplicationState.appIsDesktop();
-    late final String content;
-    try {
-      content = File(appStateConfigFileName).readAsStringSync();
-      log("__APP STATE:__ Read from $appStateConfigFileName");
-      final json = jsonDecode(content);
-      log("__APP STATE__ Parsed OK");
-      return ApplicationState.fromJson(json, appStateConfigFileName, isDesktop, log);
-    } catch (e) {
-      if (e is PathNotFoundException) {
-        log("__APP STATE:__ ${isDesktop ? "Desktop" : "Mobile"} File Not Found $appStateConfigFileName");
-      } else {
-        log("__APP STATE EXCEPTION:__ ${isDesktop ? 'Desktop' : 'Mobile'} File $appStateConfigFileName ignored");
-        log("__E:__ $e");
-      }
-      log("__APP STATE:__ Using default  ${isDesktop ? "Desktop" : "Mobile"} State");
-      return ApplicationState(ApplicationScreen.empty(isDesktop), 0, [], appStateConfigFileName, log);
-    }
   }
 }
