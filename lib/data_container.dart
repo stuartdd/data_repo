@@ -135,6 +135,9 @@ class DataContainer {
       if (i == (path.length - 1)) {
         return node;
       }
+      if (node is! Map) {
+        return null;
+      }
     }
     return null;
   }
@@ -211,9 +214,15 @@ class DataContainer {
     }
     dynamic node = _dataMap;
     dynamic parent = _dataMap;
+    if (parent is! Map) {
+      throw JsonException(path, message: "Root Node '${path.peek(0)}' (not a Map). Cannot create");
+    }
     for (int i = 0; i < path.length; i++) {
       final name = path.peek(i);
       parent = node;
+      if (parent is! Map) {
+        throw JsonException(path, message: "Existing Node '${path.peek(i-1)}' (not a Map). Cannot create");
+      }
       node = parent[name];
       if (node == null) {
         parent[name] = {};

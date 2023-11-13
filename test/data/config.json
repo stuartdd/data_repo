@@ -51,7 +51,6 @@
             "prefix": "INFO",
             "active": true
         },
-        "theme": "dark",
         "data": {
             "pwHints": "Hint",
             "assets": "Assets",

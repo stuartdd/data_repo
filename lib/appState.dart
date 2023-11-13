@@ -60,6 +60,7 @@ class ApplicationScreen {
 class ApplicationState {
   // Data stored in the file
   final String _appStateConfigFileName;
+  late final String _currentJson;
   late final Timer? _countdownTimer;
   List<String> _lastFind; // A new list is created when a fine is added.
   ApplicationScreen screen; // A new Screen is created each time the screen is updated.
@@ -76,6 +77,7 @@ class ApplicationState {
         writeAppStateConfigFile();
       }
     });
+    _currentJson = toString();
   }
 
   void clear(final bool isDesktop) {
