@@ -33,11 +33,9 @@ void main() {
 
   test('Test ApplicationScreen', () async {
     ApplicationScreen xx = const ApplicationScreen(1, 2, 3, 4, 432, false);
-    expect(xx.isDefault, false);
     expect(xx.isDesktop, false);
 
-    ApplicationScreen as = const ApplicationScreen(1, 2, 3, 4, 432, true, isDefault: true);
-    expect(as.isDefault, true);
+    ApplicationScreen as = const ApplicationScreen(1, 2, 3, 4, 432, true);
     expect(as.isDesktop, true);
 
 
@@ -102,17 +100,14 @@ void main() {
     eventLog.clear();
     var as = ApplicationScreen.fromJson(json_tools.jsonDecode('{"g":10,"y":20,"w":30,"h":40,"divPos":100}'), true, log);
     expect(eventLog.toString().contains("Failed to parse Application State 'screen'"), true);
-    expect(as.isDefault, true);
 
     eventLog.clear();
     as = ApplicationScreen.fromJson(json_tools.jsonDecode('{"x":10,"y":20,"w":30,"h":40,"xxx":100}'), true, log);
     expect(eventLog.toString().contains("Failed to parse Application State 'screen'"), true);
-    expect(as.isDefault, true);
 
     eventLog.clear();
     as = ApplicationScreen.fromJson(json_tools.jsonDecode('{"x":10,"y":20,"w":30,"h":40,"divPos":100.9}'), true, log);
     expect(eventLog.toString().contains("Failed to parse Application State 'screen'"), true);
-    expect(as.isDefault, true);
    });
 
   test('Test Application State', () async {
@@ -138,23 +133,17 @@ void main() {
     var m1 = json_tools.jsonDecode('{"screen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"lasFind":["Last1","Last2","Last3"]}');
     var as =  ApplicationState.fromJson(m1, "test/data/as.tmp", true, log);
     expect(eventLog.toString().contains("Failed to find Application State 'lastFind'"), true);
-    expect(eventLog.toString().contains("Using default Desktop Screen"), false);
-    expect(as.screen.isDefault, false);
 
     eventLog.clear();
     m1 = json_tools.jsonDecode('{"sceen":{"x":10,"y":20,"w":30,"h":40,"divPos":100},"isDataSorted":0,"lastFind":["Last1","Last2","Last3"]}');
     as =  ApplicationState.fromJson(m1, "test/data/as.tmp", false, log);
     expect(eventLog.toString().contains("Failed to find Application State 'screen'"), true);
-    expect(eventLog.toString().contains("Using default Mobile Screen"), true);
-    expect(as.screen.isDefault, true);
     expect(as.screen.isDesktop, false);
 
     eventLog.clear();
     m1 = json_tools.jsonDecode('{"screen":{"x":10,"y":20,"w":30,"h":40,"xxx":100},"isDataSorted":0,"lastFind":["Last1","Last2","Last3"]}');
     as =  ApplicationState.fromJson(m1, "test/data/as.tmp", true, log);
     expect(eventLog.toString().contains("Failed to parse Application State 'screen'"), true);
-    expect(eventLog.toString().contains("Using default Desktop Screen"), true);
-    expect(as.screen.isDefault, true);
     expect(as.screen.isDesktop, true);
   });
 }

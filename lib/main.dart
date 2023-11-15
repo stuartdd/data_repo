@@ -605,7 +605,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.addGroup:
             {
-              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "New Group Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
+              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "New Group Owned by: ${_selectedPath.last}", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataGroup);
                 }
@@ -622,7 +622,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.addDetail:
             {
-              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "New Detail Name", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
+              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "New Detail Name Owned by: ${_selectedPath.last}", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataValue);
                 }
@@ -1661,11 +1661,11 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
 
-    final positionedTop = _navBarHeight + 10 * _configData.scale;
+    final positionedTop = _navBarHeight + _configData.appBarIconTop;
     final positionedLeft = screenSize.width - (_configData.iconSize + _configData.iconGap);
 
     final settings = Positioned(
-        left: positionedLeft,
+        left: positionedLeft - (_configData.iconSize + _configData.iconGap),
         top: positionedTop,
         child: DetailIconButton(
           iconData: Icons.settings,
@@ -1702,7 +1702,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ));
 
     final showAbout = Positioned(
-      left: positionedLeft - _configData.iconSize,
+      left: positionedLeft,
       top: positionedTop,
       child: DetailIconButton(
         iconData: Icons.info_outline,

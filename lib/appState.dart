@@ -21,8 +21,8 @@ import 'dart:convert';
 import 'dart:io';
 
 const double _divScale = 1000;
-const _desktopDefault = ApplicationScreen(100, 100, 500, 500, 400, true, isDefault: true);
-const _mobileDefault = ApplicationScreen(0, 0, -1, -1, 400, false, isDefault: true);
+const _desktopDefault = ApplicationScreen(100, 100, 500, 500, 400, true);
+const _mobileDefault = ApplicationScreen(0, 0, -1, -1, 400, false);
 
 class ApplicationScreen {
   final int x;
@@ -30,14 +30,14 @@ class ApplicationScreen {
   final int w;
   final int h;
   final int _div;
-  final bool isDefault;
+
   final bool isDesktop;
 
   static int _convertDiv(double div) {
     return (div * _divScale).round();
   }
 
-  const ApplicationScreen(this.x, this.y, this.w, this.h, this._div, this.isDesktop, {this.isDefault = false});
+  const ApplicationScreen(this.x, this.y, this.w, this.h, this._div, this.isDesktop);
 
   factory ApplicationScreen.empty(bool isDesktop) {
     if (isDesktop) {
@@ -76,7 +76,6 @@ class ApplicationScreen {
 class ApplicationState {
   // Data stored in the file
   final String _appStateConfigFileName;
-  late final Timer? _countdownTimer;
   String _currentJson = "";
   List<String> _lastFind; // A new list is created when a fine is added.
   ApplicationScreen screen; // A new Screen is created each time the screen is updated.
@@ -87,7 +86,7 @@ class ApplicationState {
   final Function(String) log;
 
   ApplicationState._(this.screen, this._isDataSorted, this._lastFind, this._appStateConfigFileName, this.log) {
-    _countdownTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+   Timer.periodic(const Duration(seconds: 5), (timer) {
       final json = toString();
       if (json != _currentJson) {
         _currentJson = json;
@@ -160,9 +159,6 @@ class ApplicationState {
     } else {
       applicationScreen = ApplicationScreen.fromJson(applicationScreenMap, isDesktop, log);
     }
-    if (applicationScreen.isDefault) {
-      log("__APP STATE:__ Using default ${isDesktop ? "Desktop" : "Mobile"} Screen");
-    }
     dynamic isDataSorted = map['isDataSorted'];
     if (isDataSorted is! int) {
       isDataSorted = 0;
@@ -176,13 +172,13 @@ class ApplicationState {
 
   void updateDividerPosState(final double d) {
     if (screen.divIsNotEqual(d)) {
-      screen = ApplicationScreen(screen.x, screen.y, screen.w, screen.h, ApplicationScreen._convertDiv(d), screen.isDesktop, isDefault: false);
+      screen = ApplicationScreen(screen.x, screen.y, screen.w, screen.h, ApplicationScreen._convertDiv(d), screen.isDesktop);
     }
   }
 
   void updateScreenPos(final double x, y, w, h) {
     if (_saveScreenSizeAndPos && appIsDesktop() && screen.posIsNotEqual(x, y, w, h)) {
-      screen = ApplicationScreen(x.round(), y.round(), w.round(), h.round(), screen._div, screen.isDesktop, isDefault: false);
+      screen = ApplicationScreen(x.round(), y.round(), w.round(), h.round(), screen._div, screen.isDesktop);
     }
   }
 

@@ -20,8 +20,6 @@ import 'data_types.dart';
 import 'path.dart';
 import 'detail_buttons.dart';
 
-const inputTextTitleStyleHeight = 35.0;
-
 Future<void> showOptionsDialog(final BuildContext context, final AppThemeData appThemeData, final Path path, final List<MenuOptionDetails> menuOptionsList, final List<String> sub, final Function(ActionType, Path) onSelect) async {
   return showDialog<void>(
     context: context,
@@ -321,7 +319,7 @@ Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        actionsPadding: EdgeInsets.fromLTRB(appThemeData.buttonGap(3), 0, 0, appThemeData.buttonGap(1)),
+        actionsPadding: EdgeInsets.fromLTRB(appThemeData.buttonGap * 3, 0, 0, appThemeData.buttonGap),
         insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         backgroundColor: appThemeData.dialogBackgroundColor,
         title: Text('Choose File', style: appThemeData.tsMedium),

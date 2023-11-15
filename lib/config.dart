@@ -225,7 +225,7 @@ class AppThemeData {
   late final double iconSize;
   late final double iconGap;
   late final double buttonHeight;
-  late final double _buttonGap;
+  late final double buttonGap;
   late final double textInputFieldHeight;
 
   late final TextStyle tsLarge;
@@ -246,29 +246,29 @@ class AppThemeData {
   late final List<Icon> treeNodeIcons;
   late final TextSelectionThemeData textSelectionThemeData;
 
-  AppThemeData._(this.primary, this.secondary, this.hiLight, this.error, String font, double scale, Color errC, this.darkMode, this.desktop, this.hideDataPath) {
-    tsScale = scale;
-    tsLarge = TextStyle(fontSize: (25.0 * scale), color: screenForegroundColour(true));
-    tsLargeDisabled = TextStyle(fontSize: (25.0 * scale), color: screenForegroundColour(false));
-    tsLargeItalic = TextStyle(fontSize: (25.0 * scale), fontStyle: FontStyle.italic, color: screenForegroundColour(true));
-    tsLargeError = TextStyle(fontSize: (25.0 * scale), color: errC);
-    tsMedium = TextStyle(fontSize: (20.0 * scale), color: screenForegroundColour(true));
-    tsMediumBold = TextStyle(fontSize: (20.0 * scale), fontWeight: FontWeight.bold, color: screenForegroundColour(true));
-    tsMediumDisabled = TextStyle(fontSize: (20.0 * scale), color: screenForegroundColour(false));
-    tsMediumError = TextStyle(fontSize: (20.0 * scale), color: errC);
-    tsSmall = TextStyle(fontSize: (15.0 * scale), color: screenForegroundColour(true));
-    tsSmallDisabled = TextStyle(fontSize: (15.0 * scale), color: screenForegroundColour(false));
-    tsSmallError = TextStyle(fontSize: (15.0 * scale), color: errC);
-    tsTreeViewLabel = TextStyle(fontSize: (25.0 * scale), color: screenForegroundColour(true));
-    tsTreeViewParentLabel = TextStyle(fontSize: (30.0 * scale), fontWeight: FontWeight.w600, color: screenForegroundColour(true));
-    treeNodeHeight = defaultTreeNodeHeight * (scale * 1.5);
+  AppThemeData._(this.primary, this.secondary, this.hiLight, this.error, String font, double textScale, Color errC, this.darkMode, this.desktop, this.hideDataPath) {
+    tsScale = textScale;
+    tsLarge = TextStyle(fontSize: (25.0 * textScale), color: screenForegroundColour(true));
+    tsLargeDisabled = TextStyle(fontSize: (25.0 * textScale), color: screenForegroundColour(false));
+    tsLargeItalic = TextStyle(fontSize: (25.0 * textScale), fontStyle: FontStyle.italic, color: screenForegroundColour(true));
+    tsLargeError = TextStyle(fontSize: (25.0 * textScale), color: errC);
+    tsMedium = TextStyle(fontSize: (20.0 * textScale), color: screenForegroundColour(true));
+    tsMediumBold = TextStyle(fontSize: (20.0 * textScale), fontWeight: FontWeight.bold, color: screenForegroundColour(true));
+    tsMediumDisabled = TextStyle(fontSize: (20.0 * textScale), color: screenForegroundColour(false));
+    tsMediumError = TextStyle(fontSize: (20.0 * textScale), color: errC);
+    tsSmall = TextStyle(fontSize: (15.0 * textScale), color: screenForegroundColour(true));
+    tsSmallDisabled = TextStyle(fontSize: (15.0 * textScale), color: screenForegroundColour(false));
+    tsSmallError = TextStyle(fontSize: (15.0 * textScale), color: errC);
+    tsTreeViewLabel = TextStyle(fontSize: (25.0 * textScale), color: screenForegroundColour(true));
+    tsTreeViewParentLabel = TextStyle(fontSize: (30.0 * textScale), fontWeight: FontWeight.w600, color: screenForegroundColour(true));
+    treeNodeHeight = defaultTreeNodeHeight * (textScale * 1.5);
     treeNodeIcons = List.empty(growable: true);
-    iconSize = defaultIconSize * scale;
-    iconGap = defaultIconGap * scale;
-    buttonHeight = defaultButtonHeight * scale;
-    _buttonGap = defaultButtonGap * scale;
-    verticalGap = defaultVerticalGap * scale;
-    textInputFieldHeight = defaultTextInputFieldHeight * scale;
+    iconSize = defaultIconSize * textScale;
+    iconGap = defaultIconGap * textScale;
+    buttonHeight = defaultButtonHeight * textScale;
+    buttonGap = defaultButtonGap * textScale;
+    verticalGap = defaultVerticalGap * textScale;
+    textInputFieldHeight = defaultTextInputFieldHeight * textScale;
     for (int i = 0; i < defaultTreeNodeIconData.length; i++) {
       treeNodeIcons.add(Icon(
         defaultTreeNodeIconData[i],
@@ -332,12 +332,8 @@ class AppThemeData {
     return error.med;
   }
 
-  double buttonGap(int count) {
-    return _buttonGap * count;
-  }
-
   Widget buttonGapBox(int count) {
-    return SizedBox(width: _buttonGap * count);
+    return SizedBox(width: buttonGap * count);
   }
 
   Widget iconGapBox(int count) {
@@ -541,6 +537,10 @@ class ConfigData {
 
   double get appBarHeight {
     return defaultAppBarHeight * _textScale;
+  }
+
+  double get appBarIconTop {
+    return (appBarHeight - iconSize) / 2.0;
   }
 
   double get appButtonHeight {

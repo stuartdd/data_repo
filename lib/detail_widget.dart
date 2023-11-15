@@ -282,7 +282,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             DetailTextButton(
               appThemeData: widget.appThemeData,
               visible: widget.isEditDataDisplay,
-              text: 'Edit Details',
+              text: 'Properties',
               onPressed: (button) {
                 widget.dataAction(DetailAction(ActionType.renameItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
               },
@@ -380,7 +380,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                 DetailTextButton(
                   appThemeData: widget.appThemeData,
                   visible: widget.isEditDataDisplay,
-                  text: 'Edit item details',
+                  text: 'Properties',
                   onPressed: (button) {
                     widget.dataAction(DetailAction(ActionType.renameItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
                   },
