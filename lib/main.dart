@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:data_repo/Isolator.dart';
+import 'package:data_repo/build_date.dart';
 import 'package:data_repo/config_settings.dart';
 import 'package:data_repo/data_container.dart';
 import 'package:data_repo/treeNode.dart';
@@ -51,7 +52,7 @@ void main() async {
 
     if (isDesktop) {
       // if desktop then set title, screen pos and size.
-      setWindowTitle("${_configData.getTitle()}: ${_configData.getDataFileName()}");
+      setWindowTitle("${_configData.title}: ${_configData.getDataFileName()}");
       const WindowOptions(
         minimumSize: Size(200, 200),
         titleBarStyle: TitleBarStyle.normal,
@@ -123,14 +124,14 @@ class MyApp extends StatelessWidget with WindowListener {
       return MaterialApp(
         title: 'data_repo',
         theme: ThemeData(primarySwatch: Colors.blue),
-        home: _isolator.lockPage("${_configData.getTitle()} LOCKED"),
+        home: _isolator.lockPage("${_configData.title} LOCKED"),
       );
     } else {
       return MaterialApp(
         title: 'data_repo',
         theme: ThemeData(primarySwatch: Colors.blue),
         home: MyHomePage(
-          title: _configData.getTitle(),
+          title: _configData.title,
         ),
       );
     }
@@ -257,9 +258,9 @@ class _MyHomePageState extends State<MyHomePage> {
   void _onUpdateConfig() {
     setState(() {
       if (_loadedData.isEmpty) {
-        setWindowTitle("${_configData.getTitle()}: ${_configData.getDataFileName()}");
+        setWindowTitle("${_configData.title}: ${_configData.getDataFileName()}");
       } else {
-        setWindowTitle("${_configData.getTitle()}: ${_loadedData.fileName}");
+        setWindowTitle("${_configData.title}: ${_loadedData.fileName}");
       }
       if (_loadedData.isNotEmpty && (_configData.getDataFileLocal() != _loadedData.localSourcePath || _configData.getGetDataFileUrl() != _loadedData.remoteSourcePath)) {
         Future.delayed(
@@ -272,7 +273,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   _clearData("Config updated - RESTART");
                   logger.log("__RESTART__ Local file ${_configData.getDataFileLocal()}");
                   logger.log("__RESTART__ Remote file ${_configData.getGetDataFileUrl()}");
-                  setWindowTitle("${_configData.getTitle()}: ${_configData.getDataFileName()}");
+                  setWindowTitle("${_configData.title}: ${_configData.getDataFileName()}");
                 });
               } else {
                 logger.log("__CONFIG__ CONTINUE option chosen");
@@ -335,6 +336,31 @@ class _MyHomePageState extends State<MyHomePage> {
     Future.delayed(Duration(milliseconds: ms), () {
       if (mounted) {
         switch (detailActionData.action) {
+          case ActionType.about:
+            {
+              final aboutData = AboutData(
+                "Data Repo",
+                "Stuart Davies",
+                _configData.authorEmail,
+                _configData.buildDate,
+                _configData.buildLocalPath,
+                _configData.repoName,
+                "Dart+Flutter",
+                "GNU GENERAL PUBLIC LICENSE|Version 3|29 June 2007",
+                "Manage structured data stored secularly in a local 'ReST' style web application.|Data can be stored using 64bit AES encryption.|A fallback copy is retained for when the server is not available.",
+              );
+
+              showMyAboutDialog(
+                context,
+                _configData.getAppThemeData().secondary.lightest,
+                screenSize,
+                aboutData.getMD(),
+                (dialogAction) {
+                  _handleAction(dialogAction);
+                },
+              );
+              break;
+            }
           case ActionType.removeItem:
             {
               showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState);
@@ -1619,9 +1645,12 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
 
+    final positionedTop = _navBarHeight + 10 * _configData.scale;
+    final positionedLeft = screenSize.width - (_configData.iconSize + _configData.iconGap);
+
     final settings = Positioned(
-        left: (screenSize.width - (_configData.iconSize + _configData.iconGap + _configData.iconGap)),
-        top: _navBarHeight + 7 * _configData.scale,
+        left: positionedLeft,
+        top: positionedTop,
         child: DetailIconButton(
           iconData: Icons.settings,
           tooltip: 'Settings',
@@ -1655,6 +1684,18 @@ class _MyHomePageState extends State<MyHomePage> {
           },
           appThemeData: appThemeData,
         ));
+
+    final showAbout = Positioned(
+      left: positionedLeft - _configData.iconSize,
+      top: positionedTop,
+      child: DetailIconButton(
+        iconData: Icons.info_outline,
+        appThemeData: appThemeData,
+        onPressed: (p0) {
+          _handleAction(DetailAction.actionOnly(ActionType.about));
+        },
+      ),
+    );
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -1733,6 +1774,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ]),
               settings,
+              showAbout,
             ],
           ))),
     );

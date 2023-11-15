@@ -300,7 +300,6 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
 }
 
 Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData appThemeData, List<String> files, final Function(String) onSelect, final void Function(SimpleButtonActions) onAction) async {
-  final style = BorderSide(color: appThemeData.screenForegroundColour(true), width: 2);
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -429,7 +428,47 @@ Future<void> showModalButtonsDialog(final BuildContext context, final AppThemeDa
   );
 }
 
-Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction , final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
+Future<void> showMyAboutDialog(final BuildContext context, final Color background, final ScreenSize screenSize, final String aboutDataMd, final void Function(DetailAction) onAction) {
+  const borderStyle = BorderSide(color: Colors.black, width: 2);
+  const tsHeading = TextStyle(fontSize: (30.0), color: Colors.black, fontWeight: FontWeight.bold);
+
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: background,
+        title: const Text("About: Data Repo", style: tsHeading),
+        content: SizedBox(
+          width: screenSize.width,
+          child: markdownDisplayWidget(true, aboutDataMd, background, (text, href, title) {
+            if (href != null) {
+              onAction(DetailAction(
+                ActionType.link,
+                true,
+                Path.empty(),
+                oldValue: href,
+                oldValueType: optionTypeDataString,
+              ));
+            }
+          }),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(
+            style: OutlinedButton.styleFrom(side: borderStyle, minimumSize: const Size(200, 40)),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text("OK", style: tsHeading),
+          )
+        ],
+      );
+    },
+  );
+}
+
+Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
   var updatedText = currentValue;
   var updatedType = currentOption;
   var shouldDisplayMarkdownHelp = false;

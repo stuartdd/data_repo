@@ -21,6 +21,8 @@ const String defaultUserName = "User";
 const int defaultFetchTimeoutMillis = 1000;
 const String defaultDataEmptyString = "";
 const String defaultAppTitle = "Data Repo";
+const String defaultRepoName = "https://github.com/stuartdd/data_repo";
+const String defaultAuthorEmail = "sdd.davies@gmail.com";
 const String defaultFontFamily = "Roboto";
 const double defaultFontScaleDesktop = 1.0;
 const double defaultFontScaleMobile = 0.8;
@@ -36,7 +38,7 @@ const defaultVerticalGap = 10;
 
 const defaultConfig = """  {
         "application" : {
-            "title": "Data Repository"
+            "title": "Data Repository",
         },
         "file": {
             "postDataUrl": "http://10.0.2.2:3000/file",
@@ -51,7 +53,9 @@ final dataFileLocalNamePath = Path.fromList(["file", "datafile"]);
 final dataFileLocalDirPath = Path.fromList(["file", "datafilePath"]);
 final appStateFileNamePath = Path.fromList(["file", "appStateFile"]);
 final appStateLocalDirPath = Path.fromList(["file", "appStatePath"]);
+final repoPath = Path.fromList(["application", "repoName"]);
 final titlePath = Path.fromList(["application", "title"]);
+final authorEmailPath = Path.fromList(["application", "authorEmail"]);
 final appTextScalePath = Path.fromList(["application", "textScale"]);
 final dataFetchTimeoutMillisPath = Path.fromList(["application", "dataFetchTimeoutMillis"]);
 
@@ -62,6 +66,48 @@ final appColoursPrimaryPath = Path.fromList(["theme", "colours", "primary"]);
 final appColoursSecondaryPath = Path.fromList(["theme", "colours", "secondary"]);
 final appColoursHiLightPath = Path.fromList(["theme", "colours", "hilight"]);
 final appColoursErrorPath = Path.fromList(["theme", "colours", "error"]);
+
+class AboutData {
+  final String title;
+  final String author;
+  final String email;
+  final String buildDate;
+  final String localBuildPath;
+  final String repoName;
+  final String language;
+  final String license;
+  final String desc;
+  AboutData(this.title, this.author, this.email, this.buildDate, this.localBuildPath, this.repoName, this.language, this.license, this.desc);
+
+  String sub(String s, String t1, t2, title, bool nl) {
+    final x = s.split("|");
+    StringBuffer sb = StringBuffer();
+    if (nl) {
+      sb.writeln("$t1 $title");
+    }
+    for (var i = 0; i < x.length; i++) {
+      sb.writeln((i == 0 && !nl) ? '$t1 $title ${x[i]}' : '$t1 $t2 ${x[i]}');
+    }
+    return sb.toString();
+  }
+
+  String getMD() {
+    return """
+# __Author:__ Stuart Davies.
+## __Email:__ $email
+---
+## __Build Date:__ $buildDate
+### __Local Path:__ $localBuildPath
+---
+${sub(repoName, "##", "-", "__Repository:__", true)}
+---
+## __Language:__ $language
+${sub(license, "##", "-", "__License:__", false)}
+---
+${sub(desc, "##", "-", "__Purpose:__", true)}
+""";
+  }
+}
 
 class ColorPallet {
   final String colorName;
@@ -336,6 +382,9 @@ class ConfigData {
   late final String _appStateFileName;
   late final String _appStateLocalDir;
   late final String _title;
+  late final String _repoName;
+  late final String _authorEmail;
+
   late final int _dataFetchTimeoutMillis;
   Function()? _onUpdate;
   AppThemeData? _appThemeData;
@@ -403,7 +452,9 @@ class ConfigData {
     _appStateFileName = _data.getStringFromJson(appStateFileNamePath, fallback: defaultAppStateFileName);
 
     update();
+    _repoName = _data.getStringFromJson(repoPath, fallback: defaultRepoName);
     _title = _data.getStringFromJson(titlePath, fallback: defaultAppTitle);
+    _authorEmail = _data.getStringFromJson(authorEmailPath, fallback: defaultAuthorEmail);
     _dataFetchTimeoutMillis = _data.getNumFromJson(dataFetchTimeoutMillisPath, fallback: defaultFetchTimeoutMillis) as int;
     log("__LOCAL DATA FILE:__ ${getDataFileLocal()}");
     log("__REMOTE DATA GET:__ ${getGetDataFileUrl()}");
@@ -597,12 +648,27 @@ class ConfigData {
     return _pathFromStrings(_appStateLocalDir, _appStateFileName);
   }
 
-  String getTitle() {
-    final bd = "${buildDate.day}-${buildDate.month}-${buildDate.year} ${buildDate.hour}:${buildDate.minute}";
+  String get buildDate {
+    return "${buildDateExt.day}-${buildDateExt.month}-${buildDateExt.year} ${buildDateExt.hour}:${buildDateExt.minute}";
+  }
+
+  String get buildLocalPath {
+    return buildPathExt;
+  }
+
+  String get authorEmail {
+    return _authorEmail;
+  }
+
+  String get repoName {
+    return _repoName;
+  }
+
+  String get title {
     if (isDesktop()) {
-      return "$bd - DT:$_title";
+      return "DT:$_title";
     }
-    return "$bd - MO:$_title";
+    return "MO:$_title";
   }
 
   @override

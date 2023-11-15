@@ -12,6 +12,9 @@
   },
   "application": {
     "title": "Data Repository",
+    "title": "Data Repository",
+    "authorEmail": "sdd.davies@gmail.com",
+    "repoName": "https://github.com/stuartdd/data_repo",
     "dataFetchTimeoutMillis": 2000,
     "textScale": 0.8
   },

@@ -26,6 +26,7 @@ enum ActionType {
   addDetail, // Add a detail (leaf node) at the selected group
   editItemData, // Edit the current items data (value) and type (String int double bool...)
   renameItem, // Edit the current items name (key) and type (MarkDown, List, Reference...)
+  about, // Display About dialogue
   checkReferences,
   createFile,
   select,
@@ -330,6 +331,10 @@ class DetailAction {
       case ActionType.checkReferences:
         {
           return "CHECK_REF";
+        }
+      case ActionType.about:
+        {
+          return "ABOUT";
         }
       case ActionType.showLog:
         {

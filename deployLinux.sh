@@ -1,8 +1,8 @@
 #!/bin/bash
 
-export xxx="final DateTime buildDate = DateTime.fromMillisecondsSinceEpoch($(date "+%s000"));"
+export xxx="final DateTime buildDateExt = DateTime.fromMillisecondsSinceEpoch($(date "+%s000"));"
 echo "$xxx" > lib/build_date.dart
-export yyy="const String buildPath = '$(pwd)';"
+export yyy="const String buildPathExt = '$(pwd)';"
 echo "$yyy" >> lib/build_date.dart
 
 echo "Build date created:"
