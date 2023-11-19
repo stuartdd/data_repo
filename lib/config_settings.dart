@@ -36,7 +36,7 @@ final List<SettingDetail> _settingsData = [
   SettingDetail("rootNodeName", "Root Node Name", "Replace the root node name with this", appRootNodeNamePath, SettingDetailType.name, defaultDataEmptyString, true),
   SettingDetail("timeout", "Server Timeout Milliseconds", "The host server timeout 100..5000", dataFetchTimeoutMillisPath, SettingDetailType.int, defaultFetchTimeoutMillis.toString(), false, minValue: 100, maxValue: 5000),
   SettingDetail("", "Screen Text & Icons", "Icons/Text White or Black. Click below to change", appColoursDarkModePath, SettingDetailType.bool, "$defaultDarkMode", true, trueValue: "Currently White", falseValue: "Currently Black"),
-  SettingDetail("", "Hide Data Info", "Compact mode. Hide 'Owned By'", hideDataPathPath, SettingDetailType.bool, "$defaultHideDataPath", true, trueValue: "Currently Yes", falseValue: "Currently No"),
+  SettingDetail("", "Hide Data Info", "Compact mode. Hide 'Owned By'", hideDataPathPath, SettingDetailType.bool, "$defaultHideDataPath", false, trueValue: "Currently Yes", falseValue: "Currently No"),
   SettingDetail("", "Screen Text Scale", "Text Scale. 0.5..2.0", appTextScalePath, SettingDetailType.double, "1.0", true, minValue: 0.5, maxValue: 2.0),
   SettingDetail("", "Primary Colour", "The main colour theme", appColoursPrimaryPath, SettingDetailType.color, defaultPrimaryColour, true),
   SettingDetail("", "Preview Colour", "The Markdown 'Preview' colour", appColoursSecondaryPath, SettingDetailType.color, defaultSecondaryColour, true),
@@ -659,7 +659,7 @@ Future<void> showColorPeckerDialog(final BuildContext context, final AppThemeDat
   );
 }
 
-Future<void> showConfigDialog(final BuildContext context, ConfigData configData, ScreenSize size, String dataFileDir, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit, final String Function() canChangeConfig, final Function(String) log) async {
+Future<void> showConfigDialog(final BuildContext context, ConfigData configData, ScreenSize size, String dataFileDir, final SettingValidation Function(dynamic, SettingDetail) validate, final void Function(SettingControlList, bool) onCommit, final String Function() canChangeConfig, final Function(String) log, final Function() onClose) async {
   final settingsControlList = SettingControlList(configData.getAppThemeData().desktop, dataFileDir, configData);
   final appThemeData = configData.getAppThemeData();
   final applyButtonKey = GlobalKey();
@@ -672,6 +672,7 @@ Future<void> showConfigDialog(final BuildContext context, ConfigData configData,
       onCommit(settingsControlList, false);
       log("__CONFIG__ changes APPLIED");
       Navigator.of(context).pop();
+      onClose();
     },
   );
   final saveButtonKey = GlobalKey();
@@ -684,6 +685,7 @@ Future<void> showConfigDialog(final BuildContext context, ConfigData configData,
       onCommit(settingsControlList, true);
       log("__CONFIG__ changes SAVED");
       Navigator.of(context).pop();
+      onClose();
     },
   );
   return showDialog<void>(
@@ -755,6 +757,7 @@ Future<void> showConfigDialog(final BuildContext context, ConfigData configData,
                   onPressed: (button) {
                     settingsControlList.clear();
                     Navigator.of(context).pop();
+                    onClose();
                   },
                 ),
                 saveButton,

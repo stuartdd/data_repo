@@ -617,7 +617,7 @@ class _OptionListWidgetState extends State<OptionListWidget> {
   }
 }
 
-Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, final bool isDarkMode, final TextEditingController controller, {final double width = 0, final double height = 0, final bool isPw = false, final String hint = "", final EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(5, 5, 0, 0), required final Function(String)? onChange, required final Function(String)? onSubmit}) {
+Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, final bool isDarkMode, final TextEditingController controller, {final double width = 0, final double height = 0, final bool isPw = false, final String hint = "", final EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(5, 5, 0, 0), final FocusNode? focusNode, required final Function(String)? onChange, required final Function(String)? onSubmit}) {
   return SizedBox(
     height: height < 1 ? null : height,
     width: width < 1 ? null : width,
@@ -634,6 +634,7 @@ Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, fi
           contentPadding: padding,
         ),
         autofocus: true,
+        focusNode: focusNode,
         onSubmitted: (value) {
           if (onSubmit != null) {
             onSubmit(value);

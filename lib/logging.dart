@@ -268,7 +268,7 @@ class _LogContentState extends State<_LogContent> implements ScrollAble {
   }
 }
 
-Future<void> showLogDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final Logger log, final bool Function(String) onTapLink) async {
+Future<void> showLogDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final Logger log, final bool Function(String) onTapLink, final void Function() onClose) async {
   final logContentManager = LogContentManager(
       log: log,
       scrollToEndOnStart: true,
@@ -282,6 +282,7 @@ Future<void> showLogDialog(final BuildContext context, final AppThemeData appThe
         }
         if (ok) {
           Navigator.of(context).pop();
+          onClose();
         }
       });
 
@@ -332,6 +333,7 @@ Future<void> showLogDialog(final BuildContext context, final AppThemeData appThe
                 text: "DONE",
                 onPressed: (button) {
                   Navigator.of(context).pop();
+                  onClose();
                 },
               ),
             ],

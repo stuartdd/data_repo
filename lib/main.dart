@@ -192,6 +192,8 @@ class _MyHomePageState extends State<MyHomePage> {
   final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: logger.log);
   final TextEditingController _searchEditingController = TextEditingController(text: "");
   final TextEditingController _passwordEditingController = TextEditingController(text: "");
+  final FocusNode _passwordFocusNode = FocusNode();
+  final FocusNode _searchFocusNode = FocusNode();
 
   Path _querySelect(Path sel, String dir) {
     Path p = Path.empty();
@@ -283,18 +285,29 @@ class _MyHomePageState extends State<MyHomePage> {
           const Duration(milliseconds: 300),
           () {
             logger.log("__WARNING__ Data source has changed");
-            showModalButtonsDialog(context, _configData.getAppThemeData(), "Data source has Changed", ["If you CONTINUE:", "Saving and Reloading", "will use OLD config data", "and UNSAVED config", "changes may be lost."], ["RESTART", "CONTINUE"], Path.empty(), (path, button) {
-              if (button == "RESTART") {
-                setState(() {
-                  _clearData("Config updated - RESTART");
-                  logger.log("__RESTART__ Local file ${_configData.getDataFileLocal()}");
-                  logger.log("__RESTART__ Remote file ${_configData.getGetDataFileUrl()}");
-                  setWindowTitle("${_configData.title}: ${_configData.getDataFileName()}");
-                });
-              } else {
-                logger.log("__CONFIG__ CONTINUE option chosen");
-              }
-            });
+            showModalButtonsDialog(
+              context,
+              _configData.getAppThemeData(),
+              "Data source has Changed",
+              ["If you CONTINUE:", "Saving and Reloading", "will use OLD config data", "and UNSAVED config", "changes may be lost."],
+              ["RESTART", "CONTINUE"],
+              Path.empty(),
+              (path, button) {
+                if (button == "RESTART") {
+                  setState(() {
+                    _clearData("Config updated - RESTART");
+                    logger.log("__RESTART__ Local file ${_configData.getDataFileLocal()}");
+                    logger.log("__RESTART__ Remote file ${_configData.getGetDataFileUrl()}");
+                    setWindowTitle("${_configData.title}: ${_configData.getDataFileName()}");
+                  });
+                } else {
+                  logger.log("__CONFIG__ CONTINUE option chosen");
+                }
+              },
+              () {
+                _setFocus("_onUpdateConfig");
+              },
+            );
           },
         );
       }
@@ -374,57 +387,86 @@ class _MyHomePageState extends State<MyHomePage> {
                 (dialogAction) {
                   _handleAction(dialogAction);
                 },
+                () {
+                  _setFocus("About");
+                },
               );
               break;
             }
           case ActionType.removeItem:
             {
-              showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState);
+              showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState, () {
+                _setFocus("removeItem");
+              });
               break;
             }
           case ActionType.showLog:
             {
-              showLogDialog(context, _configData.getAppThemeData(), screenSize, logger, (dotPath) {
-                final p = Path.fromDotPath(dotPath);
-                if (p.isRational(_loadedData.dataMap)) {
-                  _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
-                  return true;
-                }
-                return false;
-              });
+              showLogDialog(
+                context,
+                _configData.getAppThemeData(),
+                screenSize,
+                logger,
+                (dotPath) {
+                  final p = Path.fromDotPath(dotPath);
+                  if (p.isRational(_loadedData.dataMap)) {
+                    _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
+                    return true;
+                  }
+                  return false;
+                },
+                () {
+                  _setFocus("Log");
+                },
+              );
               break;
             }
           case ActionType.saveAlt: // Save unencrypted as encrypted OR save encrypted as un-encrypted
             {
-              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, _loadedData.hasPassword ? "Confirm Password" : "New Password", "", [], optionsDataTypeEmpty, false, true, (button, pw, type) {
-                if (button == SimpleButtonActions.ok) {
+              showModalInputDialog(
+                context,
+                _configData.getAppThemeData(),
+                screenSize,
+                _loadedData.hasPassword ? "Confirm Password" : "New Password",
+                "",
+                [],
+                optionsDataTypeEmpty,
+                false,
+                true,
+                (button, pw, type) {
+                  if (button == SimpleButtonActions.ok) {
+                    if (_loadedData.hasPassword) {
+                      // Confirm PW (Save un-encrypted)
+                      logger.log("__SAVE__ Data as plain text");
+                      _loadedData.password = "";
+                    } else {
+                      // New password (Save encrypted)
+                      logger.log("__SAVE__ Data as ENCRYPTED text");
+                      _loadedData.password = pw;
+                    }
+                    _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
+                  }
+                },
+                (initial, value, initialType, valueType) {
+                  // Validate
                   if (_loadedData.hasPassword) {
-                    // Confirm PW (Save un-encrypted)
-                    logger.log("__SAVE__ Data as plain text");
-                    _loadedData.password = "";
+                    if (_loadedData.password != value) {
+                      return "Invalid Password";
+                    }
                   } else {
-                    // New password (Save encrypted)
-                    logger.log("__SAVE__ Data as ENCRYPTED text");
-                    _loadedData.password = pw;
+                    if (value.isEmpty) {
+                      return "Password required";
+                    }
+                    if (value.length < 5) {
+                      return "Password length";
+                    }
                   }
-                  _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
-                }
-              }, (initial, value, initialType, valueType) {
-                // Validate
-                if (_loadedData.hasPassword) {
-                  if (_loadedData.password != value) {
-                    return "Invalid Password";
-                  }
-                } else {
-                  if (value.isEmpty) {
-                    return "Password required";
-                  }
-                  if (value.length < 5) {
-                    return "Password length";
-                  }
-                }
-                return "";
-              });
+                  return "";
+                },
+                () {
+                  _setFocus("saveAlt");
+                },
+              );
               break;
             }
           case ActionType.groupCopy:
@@ -500,6 +542,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         selectNode(intoPath);
                       });
                     }
+                  },() {
+                    _setFocus("Move");
                   },
                 );
               }
@@ -528,6 +572,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   // Validate a re-name
                   //
                   return _checkRenameOk(detailActionData, value, valueType);
+                },
+                () {
+                  _setFocus("renameItem");
                 },
               );
               break;
@@ -600,6 +647,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   }
                   return "";
                 },
+                () {
+                  _setFocus("editItemData");
+                },
               );
               break;
             }
@@ -617,6 +667,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   return "Cannot contain '.";
                 }
                 return "";
+              }, () {
+                _setFocus("addGroup");
               });
               break;
             }
@@ -634,60 +686,75 @@ class _MyHomePageState extends State<MyHomePage> {
                   return "Cannot contain '.";
                 }
                 return "";
+              }, () {
+                _setFocus("addDetail");
               });
               break;
             }
           case ActionType.createFile:
             {
-              showFileNamePasswordDialog(context, _configData.getAppThemeData(), "New File", [
-                "Password if encryption is required:",
-                "Enter a valid file name:",
-                "File extension is added automatically.",
-                "Un-Encrypted extension = .json",
-                "Encrypted extension = .data",
-              ], (action, fileName, password) {
-                final fn = password.isEmpty ? "$fileName.json" : "$fileName.data";
-                if (fn.toLowerCase() == defaultConfigFileName.toLowerCase()) {
-                  return "Cannot use '$fileName'";
-                }
-                if (fn.toLowerCase() == _configData.getAppStateFileName().toLowerCase()) {
-                  return "Cannot use '$fileName'";
-                }
-                if (_configData.localFileExists(fn).isNotEmpty) {
-                  return "${password.isNotEmpty ? "Encrypted" : ""} file '$fn' Exists";
-                }
-                if (action == SimpleButtonActions.ok) {
-                  final content = DataContainer.staticDataToStringFormattedWithTs(_configData.getMinimumDataContentMap(), password, addTimeStamp: true, isNew: true);
-                  final success = DataContainer.saveToFile(_configData.getDataFileLocalAlt(fn), content, log: logger.log);
-                  _globalSuccessState = success;
-                  if (success.isFail) {
-                    logger.log("__CREATE__ Failed. ${success.message}");
-                    Future.delayed(const Duration(milliseconds: 1), () {
-                      if (mounted) {
-                        showModalButtonsDialog(context, _configData.getAppThemeData(), "Create File Failed", ["Reason - ${success.message}", "No changes were made"], ["Acknowledge"], Path.empty(), (path, button) {
-                          setState(() {});
-                        });
-                      }
-                    });
-                  } else {
-                    Future.delayed(const Duration(milliseconds: 1), () {
-                      if (mounted) {
-                        showModalButtonsDialog(context, _configData.getAppThemeData(), "Create File:", ["Make this your NEW file", "or", "Continue with EXISTING file"], ["NEW", "EXISTING"], Path.empty(), (path, button) {
-                          setState(() {
-                            if (button == "NEW") {
-                              _configData.setValueForJsonPath(dataFileLocalNamePath, fn);
-                              _configData.save(logger.log);
-                              _configData.update(callOnUpdate: true);
-                              _clearData("New Data File");
-                            }
-                          });
-                        });
-                      }
-                    });
+              showFileNamePasswordDialog(
+                context,
+                _configData.getAppThemeData(),
+                "New File",
+                [
+                  "Password if encryption is required:",
+                  "Enter a valid file name:",
+                  "File extension is added automatically.",
+                  "Un-Encrypted extension = .json",
+                  "Encrypted extension = .data",
+                ],
+                (action, fileName, password) {
+                  final fn = password.isEmpty ? "$fileName.json" : "$fileName.data";
+                  if (fn.toLowerCase() == defaultConfigFileName.toLowerCase()) {
+                    return "Cannot use '$fileName'";
                   }
-                }
-                return "";
-              });
+                  if (fn.toLowerCase() == _configData.getAppStateFileName().toLowerCase()) {
+                    return "Cannot use '$fileName'";
+                  }
+                  if (_configData.localFileExists(fn).isNotEmpty) {
+                    return "${password.isNotEmpty ? "Encrypted" : ""} file '$fn' Exists";
+                  }
+                  if (action == SimpleButtonActions.ok) {
+                    final content = DataContainer.staticDataToStringFormattedWithTs(_configData.getMinimumDataContentMap(), password, addTimeStamp: true, isNew: true);
+                    final success = DataContainer.saveToFile(_configData.getDataFileLocalAlt(fn), content, log: logger.log);
+                    _globalSuccessState = success;
+                    if (success.isFail) {
+                      logger.log("__CREATE__ Failed. ${success.message}");
+                      Future.delayed(const Duration(milliseconds: 1), () {
+                        if (mounted) {
+                          showModalButtonsDialog(context, _configData.getAppThemeData(), "Create File Failed", ["Reason - ${success.message}", "No changes were made"], ["Acknowledge"], Path.empty(), (path, button) {
+                            setState(() {});
+                          },() {
+                            _setFocus("createFile");
+                          },);
+                        }
+                      });
+                    } else {
+                      Future.delayed(const Duration(milliseconds: 1), () {
+                        if (mounted) {
+                          showModalButtonsDialog(context, _configData.getAppThemeData(), "Create File:", ["Make this your NEW file", "or", "Continue with EXISTING file"], ["NEW", "EXISTING"], Path.empty(), (path, button) {
+                            setState(() {
+                              if (button == "NEW") {
+                                _configData.setValueForJsonPath(dataFileLocalNamePath, fn);
+                                _configData.save(logger.log);
+                                _configData.update(callOnUpdate: true);
+                                _clearData("New Data File");
+                              }
+                            });
+                          },() {
+                            _setFocus("createFile");
+                          });
+                        }
+                      });
+                    }
+                  }
+                  return "";
+                },
+                () {
+                  _setFocus("createFile");
+                },
+              );
               break;
             }
           case ActionType.restart:
@@ -696,6 +763,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 if (sel == "RESTART") {
                   _clearDataState("Application RESTART");
                 }
+              },() {
+                _setFocus("restart");
               });
             } else {
               _clearDataState("Application RESTART");
@@ -708,6 +777,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   if (sel == "RELOAD") {
                     _loadDataState();
                   }
+                },() {
+                  _setFocus("reload");
                 });
               } else {
                 _loadDataState();
@@ -1243,6 +1314,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 _globalSuccessState = SuccessState(true, message: "Exit Cancelled");
               });
             }
+          },() {
+            _setFocus("Exit");
           },
         );
       }
@@ -1287,6 +1360,23 @@ class _MyHomePageState extends State<MyHomePage> {
       return (searchThisNode.label.toLowerCase().contains(searchFor));
     }
     return (searchThisNode.label.contains(searchFor));
+  }
+
+  void _setFocus(String x) {
+    if (!_isEditDataDisplay) {
+      Timer(
+        const Duration(milliseconds: 500),
+            () {
+          if (_loadedData.isEmpty) {
+            _passwordFocusNode.requestFocus();
+          } else {
+            if (_configData.isDesktop()) {
+              _searchFocusNode.requestFocus();
+            }
+          }
+        },
+      );
+    }
   }
 
   @override
@@ -1420,6 +1510,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _configData.getAppThemeData().textSelectionThemeData,
           _configData.getAppThemeData().darkMode,
           _passwordEditingController,
+          focusNode: _passwordFocusNode,
           width: screenSize.width / 3,
           height: _configData.getAppThemeData().textInputFieldHeight,
           hint: "Password:",
@@ -1466,6 +1557,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 if (action == SimpleButtonActions.ok) {
                   _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
                 }
+              },
+              () {
+                _setFocus("showLocalFilesDialog");
               },
             );
           }));
@@ -1555,13 +1649,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 _loadedData.fileName,
               ], (selectedAction, path) {
                 _handleAction(DetailAction(selectedAction, true, path));
-              });
+              },() {
+                _setFocus("Options");
+              },);
             },
             appThemeData: appThemeData,
           ),
         );
-      }
-      if (_isEditDataDisplay) {
         toolBarItems.add(VerticalDivider(
           color: screenForeground,
         ));
@@ -1609,6 +1703,7 @@ class _MyHomePageState extends State<MyHomePage> {
               _configData.getAppThemeData().textSelectionThemeData,
               _configData.getAppThemeData().darkMode,
               _searchEditingController,
+              focusNode: _searchFocusNode,
               width: screenSize.width / 3,
               height: _configData.getAppThemeData().textInputFieldHeight,
               hint: "Search:",
@@ -1643,6 +1738,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   if (selected.isNotEmpty) {
                     _setSearchExpressionState(selected);
                   }
+                },() {
+                  _setFocus("Search");
                 },
               );
             },
@@ -1660,6 +1757,8 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       }
     }
+
+    _setFocus("Build");
 
     final positionedTop = _navBarHeight + _configData.appBarIconTop;
     final positionedLeft = screenSize.width - (_configData.iconSize + _configData.iconGap);
@@ -1696,6 +1795,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 return _dataWasUpdated ? "Must Save changes first" : "";
               },
               logger.log,
+              () {
+                _setFocus("Settings");
+              },
             );
           },
           appThemeData: appThemeData,

@@ -20,7 +20,7 @@ import 'data_types.dart';
 import 'path.dart';
 import 'detail_buttons.dart';
 
-Future<void> showOptionsDialog(final BuildContext context, final AppThemeData appThemeData, final Path path, final List<MenuOptionDetails> menuOptionsList, final List<String> sub, final Function(ActionType, Path) onSelect) async {
+Future<void> showOptionsDialog(final BuildContext context, final AppThemeData appThemeData, final Path path, final List<MenuOptionDetails> menuOptionsList, final List<String> sub, final Function(ActionType, Path) onSelect, final Function() onClose) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -52,6 +52,7 @@ Future<void> showOptionsDialog(final BuildContext context, final AppThemeData ap
                           if (menuOptionsList[i].enabled) {
                             onSelect(menuOptionsList[i].action, path);
                             Navigator.of(context).pop();
+                            onClose();
                           }
                         },
                       ),
@@ -74,7 +75,7 @@ List<Widget> _stringsToTextList(final List<String> values, final int startAt, fi
   return wl;
 }
 
-Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThemeData appThemeData, final String title, final List<String> info, final String Function(SimpleButtonActions, String, String) onAction) async {
+Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThemeData appThemeData, final String title, final List<String> info, final String Function(SimpleButtonActions, String, String) onAction, final Function() onClose) async {
   debugPrint("showFileNamePasswordDialog");
   final theme = appThemeData;
   var separator = appThemeData.verticalGapBox(1);
@@ -90,6 +91,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
     onPressed: (button) {
       onAction(SimpleButtonActions.ok, fileName, password);
       Navigator.of(context).pop();
+      onClose();
     },
   );
 
@@ -161,6 +163,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
                 appThemeData: theme,
                 onPressed: (button) {
                   Navigator.of(context).pop();
+                  onClose();
                 },
               ),
               okButtonManager.widget
@@ -233,7 +236,7 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, final AppTheme
   return ListBody(children: wl);
 }
 
-Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData appThemeData, final Path into, final GroupCopyMoveSummaryList summaryList, bool copyMove, final void Function(SimpleButtonActions, Path) onActionReturn, final void Function(SimpleButtonActions, Path) onActionClose) async {
+Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData appThemeData, final Path into, final GroupCopyMoveSummaryList summaryList, bool copyMove, final void Function(SimpleButtonActions, Path) onActionReturn, final void Function(SimpleButtonActions, Path) onActionClose,final void Function() onClose) async {
   final head = copyMove ? "Copy or Move" : "Delete";
   final toFrom = copyMove ? "To" : "";
   final theme = appThemeData;
@@ -258,6 +261,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
               onActionClose(action, path);
             }
             Navigator.of(context).pop();
+            onClose();
           }),
         ),
         actions: <Widget>[
@@ -268,6 +272,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
                 text: "Cancel",
                 onPressed: (button) {
                   Navigator.of(context).pop();
+                  onClose();
                 },
               ),
               DetailTextButton(
@@ -277,6 +282,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
                 onPressed: (button) {
                   onActionReturn(SimpleButtonActions.copy, into);
                   Navigator.of(context).pop();
+                  onClose();
                 },
               ),
               DetailTextButton(
@@ -286,6 +292,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
                 onPressed: (button) {
                   onActionReturn(SimpleButtonActions.move, into);
                   Navigator.of(context).pop();
+                  onClose();
                 },
               ),
               DetailTextButton(
@@ -295,6 +302,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
                 onPressed: (button) {
                   onActionReturn(SimpleButtonActions.delete, Path.empty());
                   Navigator.of(context).pop();
+                  onClose();
                 },
               ),
               DetailTextButton(
@@ -303,6 +311,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
                 onPressed: (button) {
                   onActionReturn(SimpleButtonActions.listClear, Path.empty());
                   Navigator.of(context).pop();
+                  onClose();
                 },
               ),
             ],
@@ -313,7 +322,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
   );
 }
 
-Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData appThemeData, List<String> files, final Function(String) onSelect, final void Function(SimpleButtonActions) onAction) async {
+Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData appThemeData, List<String> files, final Function(String) onSelect, final void Function(SimpleButtonActions) onAction, final Function() onClose) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -332,6 +341,7 @@ Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData
                 onPressed: () {
                   onSelect(files[i]);
                   Navigator.of(context).pop();
+                  onClose();
                 },
               ),
               appThemeData.horizontalLine,
@@ -344,6 +354,7 @@ Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData
               onPressed: (button) {
                 onAction(SimpleButtonActions.ok);
                 Navigator.of(context).pop();
+                onClose();
               },
             )
           ]),
@@ -354,6 +365,7 @@ Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData
             text: "Cancel",
             onPressed: (button) {
               Navigator.of(context).pop();
+              onClose();
             },
           ),
         ],
@@ -362,7 +374,7 @@ Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData
   );
 }
 
-Future<void> showSearchDialog(final BuildContext context, final AppThemeData appThemeData, final List<String> prevList, final Function(String) onSelect) async {
+Future<void> showSearchDialog(final BuildContext context, final AppThemeData appThemeData, final List<String> prevList, final Function(String) onSelect, final Function() onClose) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -381,6 +393,7 @@ Future<void> showSearchDialog(final BuildContext context, final AppThemeData app
                   onPressed: () {
                     onSelect(prevList[i]);
                     Navigator.of(context).pop();
+                    onClose();
                   },
                 ),
                 appThemeData.horizontalLine,
@@ -395,6 +408,7 @@ Future<void> showSearchDialog(final BuildContext context, final AppThemeData app
             onPressed: (button) {
               onSelect("");
               Navigator.of(context).pop();
+              onClose();
             },
           ),
         ],
@@ -403,7 +417,7 @@ Future<void> showSearchDialog(final BuildContext context, final AppThemeData app
   );
 }
 
-Future<void> showModalButtonsDialog(final BuildContext context, final AppThemeData appThemeData, final String title, final List<String> texts, final List<String> buttons, final Path path, final void Function(Path, String) onResponse) async {
+Future<void> showModalButtonsDialog(final BuildContext context, final AppThemeData appThemeData, final String title, final List<String> texts, final List<String> buttons, final Path path, final void Function(Path, String) onResponse, final Function() onClose) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -431,6 +445,7 @@ Future<void> showModalButtonsDialog(final BuildContext context, final AppThemeDa
                   onPressed: (button) {
                     onResponse(path, buttons[i].toUpperCase());
                     Navigator.of(context).pop();
+                    onClose();
                   },
                 ),
               ],
@@ -442,7 +457,7 @@ Future<void> showModalButtonsDialog(final BuildContext context, final AppThemeDa
   );
 }
 
-Future<void> showMyAboutDialog(final BuildContext context, final Color background, final ScreenSize screenSize, final String aboutDataMd, final void Function(DetailAction) onAction) {
+Future<void> showMyAboutDialog(final BuildContext context, final Color background, final ScreenSize screenSize, final String aboutDataMd, final void Function(DetailAction) onAction, final void Function() onClose) {
   const borderStyle = BorderSide(color: Colors.black, width: 2);
   const tsHeading = TextStyle(fontSize: (30.0), color: Colors.black, fontWeight: FontWeight.bold);
 
@@ -473,6 +488,7 @@ Future<void> showMyAboutDialog(final BuildContext context, final Color backgroun
             style: OutlinedButton.styleFrom(side: borderStyle, minimumSize: const Size(200, 40)),
             onPressed: () {
               Navigator.of(context).pop();
+              onClose();
             },
             child: const Text("OK", style: tsHeading),
           )
@@ -482,7 +498,7 @@ Future<void> showMyAboutDialog(final BuildContext context, final Color backgroun
   );
 }
 
-Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate) async {
+Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate, final Function() onClose) async {
   var updatedText = currentValue;
   var updatedType = currentOption;
   var shouldDisplayMarkdownHelp = false;
@@ -495,6 +511,7 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
     onPressed: (button) {
       onAction(SimpleButtonActions.ok, updatedText, updatedType);
       Navigator.of(context).pop();
+      onClose();
     },
   );
 
@@ -503,6 +520,7 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
     appThemeData: appThemeData,
     onPressed: (button) {
       Navigator.of(context).pop();
+      onClose();
     },
   );
 
@@ -570,6 +588,7 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
             if (okButtonManager.getEnabled()) {
               onAction(SimpleButtonActions.ok, updatedText, updatedType);
               Navigator.of(context).pop();
+              onClose();
             }
           },
           onValidate: (ix, vx, it, vt) {
