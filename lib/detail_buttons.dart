@@ -617,7 +617,7 @@ class _OptionListWidgetState extends State<OptionListWidget> {
   }
 }
 
-Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, final bool isDarkMode, final TextEditingController controller, {final double width = 0, final double height = 0, final bool isPw = false, final String hint = "", final EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(5, 5, 0, 0), final FocusNode? focusNode, required final Function(String)? onChange, required final Function(String)? onSubmit}) {
+Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, final bool isDarkMode, final TextEditingController controller, {final double width = 0, final double height = 0, final bool isPw = false, final String hint = "", final EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(5, 5, 0, 0), final FocusNode? focusNode, final bool autoFocus = true, required final Function(String)? onChange, required final Function(String)? onSubmit}) {
   return SizedBox(
     height: height < 1 ? null : height,
     width: width < 1 ? null : width,
@@ -633,7 +633,7 @@ Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, fi
           border: const OutlineInputBorder(),
           contentPadding: padding,
         ),
-        autofocus: true,
+        autofocus: autoFocus,
         focusNode: focusNode,
         onSubmitted: (value) {
           if (onSubmit != null) {
@@ -770,12 +770,13 @@ class _MarkDownInputField extends State<MarkDownInputField> {
 }
 
 class ValidatedInputField extends StatefulWidget {
-  ValidatedInputField({super.key, this.initialValue = "", this.isPassword = false, required this.onSubmit, required this.onValidate, required this.prompt, this.options = const [], this.initialOption = optionsDataTypeEmpty, required this.appThemeData});
+  ValidatedInputField({super.key, this.initialValue = "", this.isPassword = false, this.autoFocus = true, required this.onSubmit, required this.onValidate, required this.prompt, this.options = const [], this.initialOption = optionsDataTypeEmpty, required this.appThemeData});
   final String initialValue;
   final List<OptionsTypeData> options;
   final OptionsTypeData initialOption;
   final String prompt;
   final bool isPassword;
+  final bool autoFocus;
   final void Function(String, OptionsTypeData) onSubmit;
   final String Function(String, String, OptionsTypeData, OptionsTypeData) onValidate;
   final controller = TextEditingController();
@@ -894,6 +895,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                 widget.controller,
                 height: widget.appThemeData.textInputFieldHeight,
                 isPw: widget.isPassword && obscurePw,
+                autoFocus: widget.autoFocus,
                 onSubmit: (value) {
                   current = value;
                   _validate();

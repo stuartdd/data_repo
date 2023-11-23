@@ -542,7 +542,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         selectNode(intoPath);
                       });
                     }
-                  },() {
+                  },
+                  () {
                     _setFocus("Move");
                   },
                 );
@@ -723,11 +724,20 @@ class _MyHomePageState extends State<MyHomePage> {
                       logger.log("__CREATE__ Failed. ${success.message}");
                       Future.delayed(const Duration(milliseconds: 1), () {
                         if (mounted) {
-                          showModalButtonsDialog(context, _configData.getAppThemeData(), "Create File Failed", ["Reason - ${success.message}", "No changes were made"], ["Acknowledge"], Path.empty(), (path, button) {
-                            setState(() {});
-                          },() {
-                            _setFocus("createFile");
-                          },);
+                          showModalButtonsDialog(
+                            context,
+                            _configData.getAppThemeData(),
+                            "Create File Failed",
+                            ["Reason - ${success.message}", "No changes were made"],
+                            ["Acknowledge"],
+                            Path.empty(),
+                            (path, button) {
+                              setState(() {});
+                            },
+                            () {
+                              _setFocus("createFile");
+                            },
+                          );
                         }
                       });
                     } else {
@@ -742,7 +752,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 _clearData("New Data File");
                               }
                             });
-                          },() {
+                          }, () {
                             _setFocus("createFile");
                           });
                         }
@@ -763,7 +773,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 if (sel == "RESTART") {
                   _clearDataState("Application RESTART");
                 }
-              },() {
+              }, () {
                 _setFocus("restart");
               });
             } else {
@@ -777,7 +787,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   if (sel == "RELOAD") {
                     _loadDataState();
                   }
-                },() {
+                }, () {
                   _setFocus("reload");
                 });
               } else {
@@ -1314,7 +1324,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 _globalSuccessState = SuccessState(true, message: "Exit Cancelled");
               });
             }
-          },() {
+          },
+          () {
             _setFocus("Exit");
           },
         );
@@ -1366,12 +1377,14 @@ class _MyHomePageState extends State<MyHomePage> {
     if (!_isEditDataDisplay) {
       Timer(
         const Duration(milliseconds: 500),
-            () {
-          if (_loadedData.isEmpty) {
-            _passwordFocusNode.requestFocus();
-          } else {
-            if (_configData.isDesktop()) {
-              _searchFocusNode.requestFocus();
+        () {
+          if (!Navigator.of(context).canPop()) { // Only do this is an Alert Dialogue is NOT visible
+            if (_loadedData.isEmpty) {
+              _passwordFocusNode.requestFocus();
+            } else {
+              if (_configData.isDesktop()) {
+                _searchFocusNode.requestFocus();
+              }
             }
           }
         },
@@ -1607,51 +1620,59 @@ class _MyHomePageState extends State<MyHomePage> {
             iconData: Icons.menu,
             tooltip: 'Menu',
             onPressed: (button) {
-              showOptionsDialog(context, _configData.getAppThemeData(), _selectedPath, [
-                MenuOptionDetails("Done", "", ActionType.none, () {
-                  return Icons.arrow_back;
-                }),
-                MenuOptionDetails("Add NEW Group", "Add a new group to '%{3}'", ActionType.addGroup, () {
-                  return Icons.add_box_outlined;
-                }),
-                MenuOptionDetails("Add NEW Detail", "Add a new detail to group '%{3}'", ActionType.addDetail, () {
-                  return Icons.add;
-                }),
-                MenuOptionDetails("Clear Select", "Clear ALL selected", ActionType.groupSelectClearAll, () {
-                  return Icons.deselect;
-                }),
-                MenuOptionDetails("Validate references", "Check validity of reference elements", ActionType.checkReferences, () {
-                  return Icons.check_circle_outline;
-                }),
-                MenuOptionDetails("Save (Synchronise) %{0}", "Save %{4} %{2}%{0}", ActionType.save, () {
-                  return Icons.lock_open;
-                }),
-                MenuOptionDetails("Save %{1}", "Save %{4} %{2}%{1}", ActionType.saveAlt, () {
-                  return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;
-                }),
-                MenuOptionDetails("New data file", "Create a new data file", ActionType.createFile, () {
-                  return _dataWasUpdated ? Icons.disabled_by_default_outlined : Icons.post_add;
-                }, enabled: !_dataWasUpdated),
-                MenuOptionDetails("Reload data file", "Reload %{4}", ActionType.reload, () {
-                  return Icons.refresh;
-                }),
-                MenuOptionDetails("Restart application", "Restart this application", ActionType.restart, () {
-                  return Icons.restart_alt;
-                }),
-                MenuOptionDetails("Reset Saved State", "Clears Previous searches etc.", ActionType.clearState, () {
-                  return Icons.cleaning_services;
-                }),
-              ], [
-                _loadedData.hasPassword ? 'ENCRYPTED' : 'UN-ENCRYPTED',
-                _loadedData.hasPassword ? 'UN-ENCRYPTED' : 'ENCRYPTED',
-                _configData.isDesktop() ? "to local and remote storage " : "",
-                _selectedPath.last,
-                _loadedData.fileName,
-              ], (selectedAction, path) {
-                _handleAction(DetailAction(selectedAction, true, path));
-              },() {
-                _setFocus("Options");
-              },);
+              showOptionsDialog(
+                context,
+                _configData.getAppThemeData(),
+                _selectedPath,
+                [
+                  MenuOptionDetails("Done", "", ActionType.none, () {
+                    return Icons.arrow_back;
+                  }),
+                  MenuOptionDetails("Add NEW Group", "Add a new group to '%{3}'", ActionType.addGroup, () {
+                    return Icons.add_box_outlined;
+                  }),
+                  MenuOptionDetails("Add NEW Detail", "Add a new detail to group '%{3}'", ActionType.addDetail, () {
+                    return Icons.add;
+                  }),
+                  MenuOptionDetails("Clear Select", "Clear ALL selected", ActionType.groupSelectClearAll, () {
+                    return Icons.deselect;
+                  }),
+                  MenuOptionDetails("Validate references", "Check validity of reference elements", ActionType.checkReferences, () {
+                    return Icons.check_circle_outline;
+                  }),
+                  MenuOptionDetails("Save (Synchronise) %{0}", "Save %{4} %{2}%{0}", ActionType.save, () {
+                    return Icons.lock_open;
+                  }),
+                  MenuOptionDetails("Save %{1}", "Save %{4} %{2}%{1}", ActionType.saveAlt, () {
+                    return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;
+                  }),
+                  MenuOptionDetails("New data file", "Create a new data file", ActionType.createFile, () {
+                    return _dataWasUpdated ? Icons.disabled_by_default_outlined : Icons.post_add;
+                  }, enabled: !_dataWasUpdated),
+                  MenuOptionDetails("Reload data file", "Reload %{4}", ActionType.reload, () {
+                    return Icons.refresh;
+                  }),
+                  MenuOptionDetails("Restart application", "Restart this application", ActionType.restart, () {
+                    return Icons.restart_alt;
+                  }),
+                  MenuOptionDetails("Reset Saved State", "Clears Previous searches etc.", ActionType.clearState, () {
+                    return Icons.cleaning_services;
+                  }),
+                ],
+                [
+                  _loadedData.hasPassword ? 'ENCRYPTED' : 'UN-ENCRYPTED',
+                  _loadedData.hasPassword ? 'UN-ENCRYPTED' : 'ENCRYPTED',
+                  _configData.isDesktop() ? "to local and remote storage " : "",
+                  _selectedPath.last,
+                  _loadedData.fileName,
+                ],
+                (selectedAction, path) {
+                  _handleAction(DetailAction(selectedAction, true, path));
+                },
+                () {
+                  _setFocus("Options");
+                },
+              );
             },
             appThemeData: appThemeData,
           ),
@@ -1738,7 +1759,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   if (selected.isNotEmpty) {
                     _setSearchExpressionState(selected);
                   }
-                },() {
+                },
+                () {
                   _setFocus("Search");
                 },
               );

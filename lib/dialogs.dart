@@ -76,7 +76,6 @@ List<Widget> _stringsToTextList(final List<String> values, final int startAt, fi
 }
 
 Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThemeData appThemeData, final String title, final List<String> info, final String Function(SimpleButtonActions, String, String) onAction, final Function() onClose) async {
-  debugPrint("showFileNamePasswordDialog");
   final theme = appThemeData;
   var separator = appThemeData.verticalGapBox(1);
   final content = _stringsToTextList(info, 1, separator as SizedBox, theme);
@@ -86,7 +85,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
 
   final okButtonManager = DetailTextButtonManager(
     text: "OK",
-    visible: false,
+    enabled: false,
     appThemeData: theme,
     onPressed: (button) {
       onAction(SimpleButtonActions.ok, fileName, password);
@@ -101,8 +100,8 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
     onSubmit: (vx, vt) {},
     onValidate: (ix, vx, it, vt) {
       var message = "";
-      if (vx.length < 2) {
-        message = "Must be longer than 2 characters";
+      if (vx.length < 4) {
+        message = "Must be longer than 4 characters";
       } else {
         if (vx.contains(".")) {
           message = "Don't add an extension";
