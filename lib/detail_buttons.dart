@@ -508,7 +508,7 @@ class _DetailTextButtonState extends State<DetailTextButton> implements ManageAb
             });
           },
           style: OutlinedButton.styleFrom(side: style),
-          child: Text(widget.text, style: (_enabled && !_grey) ? widget.appThemeData.tsMedium : widget.appThemeData.tsMediumDisabled),
+          child: Text(widget.text, style: (_enabled && !_grey) ? widget.appThemeData.tsMediumBold : widget.appThemeData.tsMediumDisabled),
         ),
       );
       if (widget.gaps == 0) {

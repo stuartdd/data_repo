@@ -120,9 +120,9 @@ class _DetailWidgetState extends State<DetailWidget> {
   Widget build(BuildContext context) {
     final hiLight = widget.pathPropertiesList.propertiesForPath(widget.dataValueRow.pathWithName);
     if (widget.dataValueRow.isValue) {
-      return _detailForValue(widget.appThemeData, hiLight, widget.isHorizontal);
+      return _detailForValue(widget.appThemeData, hiLight, widget.isHorizontal, widget.isEditDataDisplay);
     }
-    return _detailForMap(widget.appThemeData, hiLight, widget.isHorizontal);
+    return _detailForMap(widget.appThemeData, hiLight, widget.isHorizontal, widget.isEditDataDisplay);
   }
 
   List<Widget> _tableRowForString(final String value, final bool updated, final TextStyle ts, final Color bg, final Color fg, final double height) {
@@ -222,7 +222,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _detailForValue(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
+  Widget _detailForValue(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal, final bool isEditDataDisplay) {
     final double rm = widget.dataValueRow.type.equal(optionTypeDataMarkDown) ? 15 : 5;
     final String resolvedValue;
     final bool resolvedValueIsLink;
@@ -253,9 +253,9 @@ class _DetailWidgetState extends State<DetailWidget> {
             color: appThemeData.selectedAndHiLightColour(true, plp.renamed),
             child: Row(
               children: [
-                groupButton(plp, false, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
-                widget.appThemeData.buttonGapBox(1),
-                Text(widget.dataValueRow.displayName, style: appThemeData.tsMedium),
+                groupButton(plp, false, isEditDataDisplay, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
+                isEditDataDisplay ? widget.appThemeData.buttonGapBox(1) : const SizedBox(width: 0),
+                Text(widget.dataValueRow.displayName, style: appThemeData.tsMediumBold),
               ],
             ),
           ),
@@ -343,7 +343,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     );
   }
 
-  Widget _detailForMap(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal) {
+  Widget _detailForMap(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal, final bool isEditDataDisplay) {
     return SizedBox(
       child: Card(
           elevation: 2,
@@ -357,9 +357,9 @@ class _DetailWidgetState extends State<DetailWidget> {
                 color: appThemeData.selectedAndHiLightColour(true, plp.renamed),
                 child: Row(
                   children: [
-                    groupButton(plp, false, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
-                    widget.appThemeData.buttonGapBox(1),
-                    Text(widget.dataValueRow.name, style: appThemeData.tsMedium),
+                    groupButton(plp, false, isEditDataDisplay, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
+                    isEditDataDisplay ? widget.appThemeData.buttonGapBox(1) : const SizedBox(width: 0),
+                    Text(widget.dataValueRow.name, style: appThemeData.tsLargeBold),
                   ],
                 ),
               ),
@@ -401,15 +401,18 @@ class _DetailWidgetState extends State<DetailWidget> {
   }
 }
 
-Widget groupButton(PathProperties plp, bool value, Path path, AppThemeData appThemeData, final Path Function(DetailAction) dataAction) {
+Widget groupButton(final PathProperties plp, final bool value, final bool isEditDataDisplay, final Path path, final AppThemeData appThemeData, final Path Function(DetailAction) dataAction) {
   final c = appThemeData.screenForegroundColour(true);
   final size = appThemeData.iconSize;
-  return InkWell(
-    child: plp.groupSelect ? Icon(Icons.radio_button_checked, color: c, size: size) : Icon(Icons.radio_button_unchecked, color: c, size: size),
-    onTap: () {
-      dataAction(DetailAction(ActionType.groupSelect, value, path));
-    },
-  );
+  if (isEditDataDisplay) {
+    return InkWell(
+      child: plp.groupSelect ? Icon(Icons.radio_button_checked, color: c, size: size) : Icon(Icons.radio_button_unchecked, color: c, size: size),
+      onTap: () {
+        dataAction(DetailAction(ActionType.groupSelect, value, path));
+      },
+    );
+  }
+  return const SizedBox(width: 0);
 }
 
 bool isLinkString(String test) {

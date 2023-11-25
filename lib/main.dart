@@ -1565,6 +1565,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 } else {
                   logger.log("__CONFIG__ File name not updated. No change");
                 }
+                _initialPassword = _passwordEditingController.text;
+                _passwordEditingController.text = "";
+                _loadDataState();
               },
               (action) {
                 if (action == SimpleButtonActions.ok) {
@@ -1597,6 +1600,7 @@ class _MyHomePageState extends State<MyHomePage> {
           iconData: Icons.save,
           tooltip: "Save",
           onPressed: (button) {
+            _isEditDataDisplay = false;
             _handleAction(DetailAction(ActionType.save, false, Path.empty()));
           },
         ));

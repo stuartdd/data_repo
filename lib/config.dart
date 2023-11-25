@@ -229,6 +229,7 @@ class AppThemeData {
   late final double textInputFieldHeight;
 
   late final TextStyle tsLarge;
+  late final TextStyle tsLargeBold;
   late final TextStyle tsLargeDisabled;
   late final TextStyle tsLargeItalic;
   late final TextStyle tsMedium;
@@ -249,6 +250,7 @@ class AppThemeData {
   AppThemeData._(this.primary, this.secondary, this.hiLight, this.error, String font, double textScale, Color errC, this.darkMode, this.desktop, this.hideDataPath) {
     tsScale = textScale;
     tsLarge = TextStyle(fontSize: (25.0 * textScale), color: screenForegroundColour(true));
+    tsLargeBold = TextStyle(fontSize: (25.0 * textScale), fontWeight: FontWeight.bold, color: screenForegroundColour(true));
     tsLargeDisabled = TextStyle(fontSize: (25.0 * textScale), color: screenForegroundColour(false));
     tsLargeItalic = TextStyle(fontSize: (25.0 * textScale), fontStyle: FontStyle.italic, color: screenForegroundColour(true));
     tsLargeError = TextStyle(fontSize: (25.0 * textScale), color: errC);
