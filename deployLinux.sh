@@ -32,7 +32,7 @@ then
     export localDir=$(pwd)
     echo "Full localDir: $localDir"
 
-    export outDir=~/flutter/apps/data_repo
+    export outDir=~/development/apps/data_repo
     if [ ! -d $outDir ]; then
         echo "Output path not found:$outDir"
         exit 1

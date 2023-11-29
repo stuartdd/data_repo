@@ -21,7 +21,6 @@ import 'package:flutter/services.dart';
 import 'path.dart';
 import 'data_types.dart';
 import 'detail_buttons.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 
 class DataValueDisplayRow {
   final String _name;
@@ -244,6 +243,7 @@ class _DetailWidgetState extends State<DetailWidget> {
       resolvedValueIsLink = isLinkString(resolvedValue);
     }
     return Card(
+      shape: appThemeData.rectangleBorderShape,
       key: UniqueKey(),
       color: appThemeData.detailBackgroundColor,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -346,6 +346,7 @@ class _DetailWidgetState extends State<DetailWidget> {
   Widget _detailForMap(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal, final bool isEditDataDisplay) {
     return SizedBox(
       child: Card(
+          shape: appThemeData.rectangleBorderShape,
           elevation: 2,
           margin: const EdgeInsets.all(2),
           key: UniqueKey(),

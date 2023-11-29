@@ -20,18 +20,27 @@ import 'data_types.dart';
 import 'path.dart';
 import 'detail_buttons.dart';
 
-Future<void> showOptionsDialog(final BuildContext context, final AppThemeData appThemeData, final Path path, final List<MenuOptionDetails> menuOptionsList, final List<String> sub, final Function(ActionType, Path) onSelect, final Function() onClose) async {
+Future<void> showOptionsDialog(
+    final BuildContext context,
+    final AppThemeData appThemeData,
+    final Path path,
+    final List<MenuOptionDetails> menuOptionsList,
+    final List<String> sub,
+    final Function(ActionType, Path) onSelect,
+    final Function() onClose) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return Dialog(
+        shape: appThemeData.rectangleBorderShape,
         backgroundColor: appThemeData.dialogBackgroundColor,
         child: ListView(
           children: [
             for (int i = 0; i < menuOptionsList.length; i++) ...[
               menuOptionsList[i].enabled
                   ? Card(
+                      shape: appThemeData.rectangleBorderShape,
                       elevation: 2,
                       margin: const EdgeInsets.all(2),
                       color: appThemeData.detailBackgroundColor,
@@ -41,13 +50,20 @@ Future<void> showOptionsDialog(final BuildContext context, final AppThemeData ap
                           color: appThemeData.dialogBackgroundColor,
                           child: Row(
                             children: [
-                              Icon(menuOptionsList[i].icon, size: appThemeData.iconSize, color: appThemeData.screenForegroundColour(true)),
+                              Icon(menuOptionsList[i].icon,
+                                  size: appThemeData.iconSize,
+                                  color: appThemeData
+                                      .screenForegroundColour(true)),
                               appThemeData.iconGapBox(1),
-                              Text(menuOptionsList[i].s1(sub), style: appThemeData.tsLarge),
+                              Text(menuOptionsList[i].s1(sub),
+                                  style: appThemeData.tsLarge),
                             ],
                           ),
                         ),
-                        subtitle: menuOptionsList[i].hasSubText ? Text(menuOptionsList[i].s2(sub), style: appThemeData.tsMedium) : null,
+                        subtitle: menuOptionsList[i].hasSubText
+                            ? Text(menuOptionsList[i].s2(sub),
+                                style: appThemeData.tsMedium)
+                            : null,
                         onTap: () {
                           if (menuOptionsList[i].enabled) {
                             onSelect(menuOptionsList[i].action, path);
@@ -66,7 +82,8 @@ Future<void> showOptionsDialog(final BuildContext context, final AppThemeData ap
   );
 }
 
-List<Widget> _stringsToTextList(final List<String> values, final int startAt, final Widget separator, final AppThemeData theme) {
+List<Widget> _stringsToTextList(final List<String> values, final int startAt,
+    final Widget separator, final AppThemeData theme) {
   final wl = <Widget>[];
   for (int i = startAt; i < values.length; i++) {
     wl.add(Text(values[i], style: theme.tsMedium));
@@ -75,7 +92,13 @@ List<Widget> _stringsToTextList(final List<String> values, final int startAt, fi
   return wl;
 }
 
-Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThemeData appThemeData, final String title, final List<String> info, final String Function(SimpleButtonActions, String, String) onAction, final Function() onClose) async {
+Future<void> showFileNamePasswordDialog(
+    final BuildContext context,
+    final AppThemeData appThemeData,
+    final String title,
+    final List<String> info,
+    final String Function(SimpleButtonActions, String, String) onAction,
+    final Function() onClose) async {
   final theme = appThemeData;
   var separator = appThemeData.verticalGapBox(1);
   final content = _stringsToTextList(info, 1, separator as SizedBox, theme);
@@ -100,8 +123,8 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
     onSubmit: (vx, vt) {},
     onValidate: (ix, vx, it, vt) {
       var message = "";
-      if (vx.length < 4) {
-        message = "Must be longer than 4 characters";
+      if (vx.length < 2) {
+        message = "Must be longer than 2 characters";
       } else {
         if (vx.contains(".")) {
           message = "Don't add an extension";
@@ -147,6 +170,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
+        shape: appThemeData.rectangleBorderShape,
         insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         backgroundColor: theme.dialogBackgroundColor,
         // title: Text("Copy or Move TO:\n'$into'", style: theme.tsMedium),
@@ -174,7 +198,13 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
   );
 }
 
-Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, final AppThemeData appThemeData, Path into, final String head, final bool copyMove, final void Function(SimpleButtonActions, Path) onAction) {
+Widget _copyMoveSummaryList(
+    GroupCopyMoveSummaryList summaryList,
+    final AppThemeData appThemeData,
+    Path into,
+    final String head,
+    final bool copyMove,
+    final void Function(SimpleButtonActions, Path) onAction) {
   final wl = <Widget>[];
   final tab = appThemeData.textSize("Group: ", appThemeData.tsMedium);
   wl.add(Text("Selected Data:", style: appThemeData.tsMediumBold));
@@ -190,28 +220,34 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, final AppTheme
       children: [
         IconButton(
             onPressed: () {
-              onAction(SimpleButtonActions.select, summaryList.list[i].copyFromPath);
+              onAction(
+                  SimpleButtonActions.select, summaryList.list[i].copyFromPath);
             },
             tooltip: "Go To",
             icon: const Icon(Icons.open_in_new)),
         IconButton(
             onPressed: () {
-              onAction(SimpleButtonActions.listRemove, summaryList.list[i].copyFromPath);
+              onAction(SimpleButtonActions.listRemove,
+                  summaryList.list[i].copyFromPath);
             },
             tooltip: "Delete from this list",
             icon: const Icon(Icons.delete)),
-        summary.isError ? Text(summary.error, style: appThemeData.tsMediumError) : Text("OK: Can $head", style: appThemeData.tsMedium),
+        summary.isError
+            ? Text(summary.error, style: appThemeData.tsMediumError)
+            : Text("OK: Can $head", style: appThemeData.tsMedium),
       ],
     );
     final r2 = Row(
       children: [
-        SizedBox(width: tab.width, child: Text(tag, style: appThemeData.tsMedium)),
+        SizedBox(
+            width: tab.width, child: Text(tag, style: appThemeData.tsMedium)),
         Text(summary.name, style: appThemeData.tsMediumBold),
       ],
     );
     final r3 = Row(
       children: [
-        SizedBox(width: tab.width, child: Text("In:", style: appThemeData.tsMedium)),
+        SizedBox(
+            width: tab.width, child: Text("In:", style: appThemeData.tsMedium)),
         Text(summary.parent, style: appThemeData.tsMediumBold),
       ],
     );
@@ -221,7 +257,9 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, final AppTheme
     if (copyMove) {
       final r4 = Row(
         children: [
-          SizedBox(width: tab.width, child: Text("To:", style: appThemeData.tsMedium)),
+          SizedBox(
+              width: tab.width,
+              child: Text("To:", style: appThemeData.tsMedium)),
           Text(into.toString(), style: appThemeData.tsMediumBold),
         ],
       );
@@ -235,25 +273,37 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, final AppTheme
   return ListBody(children: wl);
 }
 
-Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData appThemeData, final Path into, final GroupCopyMoveSummaryList summaryList, bool copyMove, final void Function(SimpleButtonActions, Path) onActionReturn, final void Function(SimpleButtonActions, Path) onActionClose,final void Function() onClose) async {
+Future<void> showCopyMoveDialog(
+    final BuildContext context,
+    final AppThemeData appThemeData,
+    final Path into,
+    final GroupCopyMoveSummaryList summaryList,
+    bool copyMove,
+    final void Function(SimpleButtonActions, Path) onActionReturn,
+    final void Function(SimpleButtonActions, Path) onActionClose,
+    final void Function() onClose) async {
   final head = copyMove ? "Copy or Move" : "Delete";
   final toFrom = copyMove ? "To" : "";
   final theme = appThemeData;
   final top = Column(children: [
     Text("$head $toFrom", style: theme.tsMedium),
-    copyMove ? Text(into.toString(), style: theme.tsMedium) : const SizedBox(height: 0),
+    copyMove
+        ? Text(into.toString(), style: theme.tsMedium)
+        : const SizedBox(height: 0),
   ]);
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
+        shape: appThemeData.rectangleBorderShape,
         insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         backgroundColor: theme.dialogBackgroundColor,
         // title: Text("Copy or Move TO:\n'$into'", style: theme.tsMedium),
         title: top,
         content: SingleChildScrollView(
-          child: _copyMoveSummaryList(summaryList, theme, into, head, copyMove, (action, path) {
+          child: _copyMoveSummaryList(summaryList, theme, into, head, copyMove,
+              (action, path) {
             if (action != SimpleButtonActions.select) {
               onActionReturn(action, path);
             } else {
@@ -321,13 +371,21 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
   );
 }
 
-Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData appThemeData, List<String> files, final Function(String) onSelect, final void Function(SimpleButtonActions) onAction, final Function() onClose) async {
+Future<void> showLocalFilesDialog(
+    final BuildContext context,
+    final AppThemeData appThemeData,
+    List<String> files,
+    final Function(String) onSelect,
+    final void Function(SimpleButtonActions) onAction,
+    final Function() onClose) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
-        actionsPadding: EdgeInsets.fromLTRB(appThemeData.buttonGap * 3, 0, 0, appThemeData.buttonGap),
+        shape: appThemeData.rectangleBorderShape,
+        actionsPadding: EdgeInsets.fromLTRB(
+            appThemeData.buttonGap * 3, 0, 0, appThemeData.buttonGap),
         insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         backgroundColor: appThemeData.dialogBackgroundColor,
         title: Text('Choose File', style: appThemeData.tsMedium),
@@ -373,12 +431,18 @@ Future<void> showLocalFilesDialog(final BuildContext context, final AppThemeData
   );
 }
 
-Future<void> showSearchDialog(final BuildContext context, final AppThemeData appThemeData, final List<String> prevList, final Function(String) onSelect, final Function() onClose) async {
+Future<void> showSearchDialog(
+    final BuildContext context,
+    final AppThemeData appThemeData,
+    final List<String> prevList,
+    final Function(String) onSelect,
+    final Function() onClose) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
+        shape: appThemeData.rectangleBorderShape,
         backgroundColor: appThemeData.dialogBackgroundColor,
         insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         title: Text('Previous Searches', style: appThemeData.tsMedium),
@@ -416,12 +480,21 @@ Future<void> showSearchDialog(final BuildContext context, final AppThemeData app
   );
 }
 
-Future<void> showModalButtonsDialog(final BuildContext context, final AppThemeData appThemeData, final String title, final List<String> texts, final List<String> buttons, final Path path, final void Function(Path, String) onResponse, final Function() onClose) async {
+Future<void> showModalButtonsDialog(
+    final BuildContext context,
+    final AppThemeData appThemeData,
+    final String title,
+    final List<String> texts,
+    final List<String> buttons,
+    final Path path,
+    final void Function(Path, String) onResponse,
+    final Function() onClose) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
+        shape: appThemeData.rectangleBorderShape,
         backgroundColor: appThemeData.dialogBackgroundColor,
         insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         title: Text(title, style: appThemeData.tsMedium),
@@ -429,7 +502,13 @@ Future<void> showModalButtonsDialog(final BuildContext context, final AppThemeDa
           child: ListBody(
             children: [
               for (int i = 0; i < texts.length; i++) ...[
-                (texts[i].startsWith('#')) ? Container(alignment: Alignment.center, color: appThemeData.primary.dark, child: Text(texts[i].substring(1), style: appThemeData.tsMedium)) : Text(texts[i], style: appThemeData.tsMedium),
+                (texts[i].startsWith('#'))
+                    ? Container(
+                        alignment: Alignment.center,
+                        color: appThemeData.primary.dark,
+                        child: Text(texts[i].substring(1),
+                            style: appThemeData.tsMedium))
+                    : Text(texts[i], style: appThemeData.tsMedium),
               ]
             ],
           ),
@@ -456,20 +535,32 @@ Future<void> showModalButtonsDialog(final BuildContext context, final AppThemeDa
   );
 }
 
-Future<void> showMyAboutDialog(final BuildContext context, final Color background, final ScreenSize screenSize, final String aboutDataMd, final void Function(DetailAction) onAction, final void Function() onClose) {
-  const borderStyle = BorderSide(color: Colors.black, width: 2);
-  const tsHeading = TextStyle(fontSize: (30.0), color: Colors.black, fontWeight: FontWeight.bold);
+Future<void> showMyAboutDialog(
+    final BuildContext context,
+    final Color foreground,
+    final Color background,
+    final ScreenSize screenSize,
+    final String aboutDataMd,
+    final void Function(DetailAction) onAction,
+    final void Function() onClose) {
+  const tsHeading = TextStyle(
+      fontSize: (30.0), color: Colors.black, fontWeight: FontWeight.bold);
 
+  const borderRadius = BorderRadius.all(Radius.circular(4));
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
+        shape: const RoundedRectangleBorder(
+          borderRadius: borderRadius,
+        ),
         backgroundColor: background,
         title: const Text("About: Data Repo", style: tsHeading),
         content: SizedBox(
           width: screenSize.width,
-          child: markdownDisplayWidget(true, aboutDataMd, background, (text, href, title) {
+          child: markdownDisplayWidget(true, aboutDataMd, background,
+              (text, href, title) {
             if (href != null) {
               onAction(DetailAction(
                 ActionType.link,
@@ -484,7 +575,10 @@ Future<void> showMyAboutDialog(final BuildContext context, final Color backgroun
         actionsAlignment: MainAxisAlignment.center,
         actions: [
           TextButton(
-            style: OutlinedButton.styleFrom(side: borderStyle, minimumSize: const Size(200, 40)),
+            style: TextButton.styleFrom(shape: RoundedRectangleBorder(
+              side: BorderSide(color: foreground, width: 2),
+              borderRadius: borderRadius,
+            )),
             onPressed: () {
               Navigator.of(context).pop();
               onClose();
@@ -497,7 +591,20 @@ Future<void> showMyAboutDialog(final BuildContext context, final Color backgroun
   );
 }
 
-Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate, final Function() onClose) async {
+Future<void> showModalInputDialog(
+    final BuildContext context,
+    final AppThemeData appThemeData,
+    final ScreenSize screenSize,
+    final String title,
+    final String currentValue,
+    final List<OptionsTypeData> options,
+    final OptionsTypeData currentOption,
+    final bool isRename,
+    final bool isPassword,
+    final void Function(SimpleButtonActions, String, OptionsTypeData) onAction,
+    final String Function(String, String, OptionsTypeData, OptionsTypeData)
+        externalValidate,
+    final Function() onClose) async {
   var updatedText = currentValue;
   var updatedType = currentOption;
   var shouldDisplayMarkdownHelp = false;
@@ -529,6 +636,7 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
     builder: (BuildContext context) {
       if (currentOption == optionTypeDataMarkDown && !isRename && !isPassword) {
         return AlertDialog(
+          shape: appThemeData.rectangleBorderShape,
           backgroundColor: appThemeData.dialogBackgroundColor,
           title: Text(title, style: appThemeData.tsMedium),
           content: MarkDownInputField(
@@ -561,7 +669,8 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
               return shouldDisplayMarkdownPreview;
             },
             dataAction: (detailAction) {
-              onAction(SimpleButtonActions.link, detailAction.oldValue, optionTypeDataLink);
+              onAction(SimpleButtonActions.link, detailAction.oldValue,
+                  optionTypeDataLink);
               return Path.empty();
             },
           ),
@@ -574,6 +683,7 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
       }
 
       return AlertDialog(
+        shape: appThemeData.rectangleBorderShape,
         backgroundColor: appThemeData.dialogBackgroundColor,
         title: Text(title, style: appThemeData.tsMedium),
         content: ValidatedInputField(

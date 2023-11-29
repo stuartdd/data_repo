@@ -633,6 +633,7 @@ Future<void> showColorPeckerDialog(final BuildContext context, final AppThemeDat
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
+          shape: appThemeData.rectangleBorderShape,
           backgroundColor: appThemeData.dialogBackgroundColor,
           insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
           title: Text('Select $name Palette', style: appThemeData.tsMedium),
@@ -692,6 +693,7 @@ Future<void> showConfigDialog(final BuildContext context, ConfigData configData,
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          shape: appThemeData.rectangleBorderShape,
           backgroundColor: appThemeData.dialogBackgroundColor,
           insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
           title: Row(

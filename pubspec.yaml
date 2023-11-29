@@ -30,7 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  encrypt:
+  encrypt: ^5.0.3
   http:
   http_status_code:
   split_view:
@@ -56,7 +56,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^2.0.0
+  flutter_lints: ^3.0.0
   flutter_launcher_icons:
 
 # For information on the generic Dart part of this file, see the

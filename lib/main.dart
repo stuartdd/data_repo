@@ -17,7 +17,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:data_repo/Isolator.dart';
-import 'package:data_repo/build_date.dart';
 import 'package:data_repo/config_settings.dart';
 import 'package:data_repo/data_container.dart';
 import 'package:data_repo/treeNode.dart';
@@ -49,8 +48,11 @@ ScreenSize screenSize = ScreenSize();
 
 _screenSize(BuildContext context) {
   final pt = MediaQuery.of(context).padding.top;
-  final bi = MediaQuery.of(context).viewInsets.bottom - MediaQuery.of(context).viewInsets.top;
-  final height = MediaQuery.of(context).size.height - (bi + pt) - 3; // Stops the scroll bar on RHS
+  final bi = MediaQuery.of(context).viewInsets.bottom -
+      MediaQuery.of(context).viewInsets.top;
+  final height = MediaQuery.of(context).size.height -
+      (bi + pt) -
+      3; // Stops the scroll bar on RHS
   final width = MediaQuery.of(context).size.width;
   screenSize.update(width, height);
 }
@@ -59,12 +61,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     // Get basic startup data
-    final applicationDefaultDir = await ApplicationState.getApplicationDefaultDir();
+    final applicationDefaultDir =
+        await ApplicationState.getApplicationDefaultDir();
     final isDesktop = ApplicationState.appIsDesktop();
     // Read the config file and ans specify app or desktop
     _isolator = Isolator(applicationDefaultDir);
-    _configData = ConfigData(applicationDefaultDir, defaultConfigFileName, isDesktop, logger.log);
-    _applicationState = ApplicationState.fromFile(_configData.getAppStateFileLocal(), logger.log);
+    _configData = ConfigData(
+        applicationDefaultDir, defaultConfigFileName, isDesktop, logger.log);
+    _applicationState = ApplicationState.fromFile(
+        _configData.getAppStateFileLocal(), logger.log);
 
     if (isDesktop) {
       // if desktop then set title, screen pos and size.
@@ -73,7 +78,11 @@ void main() async {
         minimumSize: Size(200, 200),
         titleBarStyle: TitleBarStyle.normal,
       );
-      setWindowFrame(Rect.fromLTWH(_applicationState.screen.x.toDouble(), _applicationState.screen.y.toDouble(), _applicationState.screen.w.toDouble(), _applicationState.screen.h.toDouble()));
+      setWindowFrame(Rect.fromLTWH(
+          _applicationState.screen.x.toDouble(),
+          _applicationState.screen.y.toDouble(),
+          _applicationState.screen.w.toDouble(),
+          _applicationState.screen.h.toDouble()));
     }
   } catch (e) {
     debugPrint(e.toString());
@@ -117,7 +126,8 @@ class MyApp extends StatelessWidget with WindowListener {
         case 'resize':
           {
             final info = await getWindowInfo();
-            _applicationState.updateScreenPos(info.frame.left, info.frame.top, info.frame.width, info.frame.height);
+            _applicationState.updateScreenPos(info.frame.left, info.frame.top,
+                info.frame.width, info.frame.height);
             break;
           }
         default:
@@ -135,7 +145,6 @@ class MyApp extends StatelessWidget with WindowListener {
       // if not an app, signup for windows events (onWindowEvent)
       windowManager.addListener(this);
     }
-
     if (_isolator.locked) {
       return MaterialApp(
         title: 'data_repo',
@@ -189,9 +198,12 @@ class _MyHomePageState extends State<MyHomePage> {
   int _currentSelectedGroups = 0;
   String _currentSelectedGroupsPrefix = "";
 
-  final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: logger.log);
-  final TextEditingController _searchEditingController = TextEditingController(text: "");
-  final TextEditingController _passwordEditingController = TextEditingController(text: "");
+  final PathPropertiesList _pathPropertiesList =
+      PathPropertiesList(log: logger.log);
+  final TextEditingController _searchEditingController =
+      TextEditingController(text: "");
+  final TextEditingController _passwordEditingController =
+      TextEditingController(text: "");
   final FocusNode _passwordFocusNode = FocusNode();
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -224,16 +236,21 @@ class _MyHomePageState extends State<MyHomePage> {
     return p;
   }
 
-  Future<void> _implementLinkStateAsync(final String href, final String from) async {
-    var urlCanLaunch = await canLaunchUrlString(href); //canLaunch is from url_launcher package
+  Future<void> _implementLinkStateAsync(
+      final String href, final String from) async {
+    var urlCanLaunch =
+        await canLaunchUrlString(href); //canLaunch is from url_launcher package
     if (urlCanLaunch) {
-      await launchUrlString(href); //launch is from url_launcher package to launch URL
+      await launchUrlString(
+          href); //launch is from url_launcher package to launch URL
       setState(() {
-        _globalSuccessState = SuccessState(true, message: "Link launched: $from", log: logger.log);
+        _globalSuccessState = SuccessState(true,
+            message: "Link launched: $from", log: logger.log);
       });
     } else {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "Link could not be launched", log: logger.log);
+        _globalSuccessState = SuccessState(false,
+            message: "Link could not be launched", log: logger.log);
       });
     }
   }
@@ -268,7 +285,8 @@ class _MyHomePageState extends State<MyHomePage> {
           tni = 0;
         }
         final index = tni * (_configData.getAppThemeData().treeNodeHeight + 1);
-        _treeViewScrollController.animateTo(index, duration: const Duration(milliseconds: 400), curve: Curves.ease);
+        _treeViewScrollController.animateTo(index,
+            duration: const Duration(milliseconds: 400), curve: Curves.ease);
       },
     );
   }
@@ -276,11 +294,15 @@ class _MyHomePageState extends State<MyHomePage> {
   void _onUpdateConfig() {
     setState(() {
       if (_loadedData.isEmpty) {
-        setWindowTitle("${_configData.title}: ${_configData.getDataFileName()}");
+        setWindowTitle(
+            "${_configData.title}: ${_configData.getDataFileName()}");
       } else {
         setWindowTitle("${_configData.title}: ${_loadedData.fileName}");
       }
-      if (_loadedData.isNotEmpty && (_configData.getDataFileLocal() != _loadedData.localSourcePath || _configData.getGetDataFileUrl() != _loadedData.remoteSourcePath)) {
+      if (_loadedData.isNotEmpty &&
+          (_configData.getDataFileLocal() != _loadedData.localSourcePath ||
+              _configData.getGetDataFileUrl() !=
+                  _loadedData.remoteSourcePath)) {
         Future.delayed(
           const Duration(milliseconds: 300),
           () {
@@ -289,16 +311,25 @@ class _MyHomePageState extends State<MyHomePage> {
               context,
               _configData.getAppThemeData(),
               "Data source has Changed",
-              ["If you CONTINUE:", "Saving and Reloading", "will use OLD config data", "and UNSAVED config", "changes may be lost."],
+              [
+                "If you CONTINUE:",
+                "Saving and Reloading",
+                "will use OLD config data",
+                "and UNSAVED config",
+                "changes may be lost."
+              ],
               ["RESTART", "CONTINUE"],
               Path.empty(),
               (path, button) {
                 if (button == "RESTART") {
                   setState(() {
                     _clearData("Config updated - RESTART");
-                    logger.log("__RESTART__ Local file ${_configData.getDataFileLocal()}");
-                    logger.log("__RESTART__ Remote file ${_configData.getGetDataFileUrl()}");
-                    setWindowTitle("${_configData.title}: ${_configData.getDataFileName()}");
+                    logger.log(
+                        "__RESTART__ Local file ${_configData.getDataFileLocal()}");
+                    logger.log(
+                        "__RESTART__ Remote file ${_configData.getGetDataFileUrl()}");
+                    setWindowTitle(
+                        "${_configData.title}: ${_configData.getDataFileName()}");
                   });
                 } else {
                   logger.log("__CONFIG__ CONTINUE option chosen");
@@ -338,14 +369,18 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  GroupCopyMoveSummary _checkNodeForGroupSelection(final Path from, final Path to, final bool isValue, final bool groupCopy) {
+  GroupCopyMoveSummary _checkNodeForGroupSelection(final Path from,
+      final Path to, final bool isValue, final bool groupCopy) {
     if (groupCopy) {
-      return GroupCopyMoveSummary(from, _loadedData.copyInto(to, from, isValue, dryRun: true), isValue);
+      return GroupCopyMoveSummary(
+          from, _loadedData.copyInto(to, from, isValue, dryRun: true), isValue);
     }
-    return GroupCopyMoveSummary(from, _loadedData.remove(from, isValue, dryRun: true), isValue);
+    return GroupCopyMoveSummary(
+        from, _loadedData.remove(from, isValue, dryRun: true), isValue);
   }
 
-  GroupCopyMoveSummaryList _summariseGroupSelection(final PathPropertiesList pathPropertiesList, final bool groupCopy) {
+  GroupCopyMoveSummaryList _summariseGroupSelection(
+      final PathPropertiesList pathPropertiesList, final bool groupCopy) {
     final sb = List<GroupCopyMoveSummary>.empty(growable: true);
     final groups = pathPropertiesList.groupSelectsClone;
     if (groups.isEmpty) {
@@ -354,7 +389,8 @@ class _MyHomePageState extends State<MyHomePage> {
     for (var p in groups.keys) {
       final d = groups[p];
       if (d != null) {
-        final v = _checkNodeForGroupSelection(Path.fromDotPath(p), _selectedPath, d.isValue, groupCopy);
+        final v = _checkNodeForGroupSelection(
+            Path.fromDotPath(p), _selectedPath, d.isValue, groupCopy);
         sb.add(v);
       }
     }
@@ -381,6 +417,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
               showMyAboutDialog(
                 context,
+                _configData.getAppThemeData().screenForegroundColour(true),
                 _configData.getAppThemeData().secondary.lightest,
                 screenSize,
                 aboutData.getMD(),
@@ -395,7 +432,16 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.removeItem:
             {
-              showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState, () {
+              showModalButtonsDialog(
+                  context,
+                  _configData.getAppThemeData(),
+                  "Remove item",
+                  [
+                    "${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"
+                  ],
+                  ["OK", "Cancel"],
+                  detailActionData.path,
+                  _handleDeleteState, () {
                 _setFocus("removeItem");
               });
               break;
@@ -410,7 +456,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 (dotPath) {
                   final p = Path.fromDotPath(dotPath);
                   if (p.isRational(_loadedData.dataMap)) {
-                    _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
+                    _handleAction(DetailAction(
+                        ActionType.select, true, p.cloneParentPath()));
                     return true;
                   }
                   return false;
@@ -421,7 +468,8 @@ class _MyHomePageState extends State<MyHomePage> {
               );
               break;
             }
-          case ActionType.saveAlt: // Save unencrypted as encrypted OR save encrypted as un-encrypted
+          case ActionType
+                .saveAlt: // Save unencrypted as encrypted OR save encrypted as un-encrypted
             {
               showModalInputDialog(
                 context,
@@ -444,7 +492,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       logger.log("__SAVE__ Data as ENCRYPTED text");
                       _loadedData.password = pw;
                     }
-                    _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
+                    _saveDataStateAsync(_loadedData
+                        .dataToStringFormattedWithTs(_loadedData.password));
                   }
                 },
                 (initial, value, initialType, valueType) {
@@ -473,7 +522,8 @@ class _MyHomePageState extends State<MyHomePage> {
           case ActionType.groupDelete:
             {
               if (_pathPropertiesList.hasGroupSelects) {
-                final groupCopy = detailActionData.action == ActionType.groupCopy;
+                final groupCopy =
+                    detailActionData.action == ActionType.groupCopy;
                 showCopyMoveDialog(
                   context,
                   _configData.getAppThemeData(),
@@ -483,13 +533,18 @@ class _MyHomePageState extends State<MyHomePage> {
                   (action, intoPath) {
                     // onActionReturn
                     setState(() {
-                      if (action == SimpleButtonActions.copy || action == SimpleButtonActions.move || action == SimpleButtonActions.delete) {
+                      if (action == SimpleButtonActions.copy ||
+                          action == SimpleButtonActions.move ||
+                          action == SimpleButtonActions.delete) {
                         final groupMap = _pathPropertiesList.groupSelectsClone;
                         for (var k in groupMap.keys) {
                           // For copy and delete do each one in turn
-                          if (action == SimpleButtonActions.copy || action == SimpleButtonActions.move) {
+                          if (action == SimpleButtonActions.copy ||
+                              action == SimpleButtonActions.move) {
                             // for move and copy we must do a copy first
-                            final resp = _loadedData.copyInto(intoPath, Path.fromDotPath(k), groupMap[k]!.isValue, dryRun: false);
+                            final resp = _loadedData.copyInto(intoPath,
+                                Path.fromDotPath(k), groupMap[k]!.isValue,
+                                dryRun: false);
                             if (resp.isEmpty) {
                               groupMap[k]!.done = true;
                               if (action == SimpleButtonActions.copy) {
@@ -497,20 +552,25 @@ class _MyHomePageState extends State<MyHomePage> {
                                 _dataWasUpdated = true;
                                 _checkReferences = true;
                               }
-                              _pathPropertiesList.setRenamed(intoPath.cloneAppendList([Path.fromDotPath(k).last]));
+                              _pathPropertiesList.setRenamed(intoPath
+                                  .cloneAppendList([Path.fromDotPath(k).last]));
                               _pathPropertiesList.setRenamed(intoPath);
                             }
                           }
                         }
 
-                        if (action == SimpleButtonActions.move || action == SimpleButtonActions.delete) {
+                        if (action == SimpleButtonActions.move ||
+                            action == SimpleButtonActions.delete) {
                           for (var k in groupMap.keys) {
-                            final resp = _loadedData.remove(Path.fromDotPath(k), groupMap[k]!.isValue, dryRun: false);
+                            final resp = _loadedData.remove(
+                                Path.fromDotPath(k), groupMap[k]!.isValue,
+                                dryRun: false);
                             if (resp.isEmpty) {
                               groupMap[k]!.done = true;
                               _dataWasUpdated = true;
                               _checkReferences = true;
-                              _pathPropertiesList.setRenamed(intoPath.cloneParentPath());
+                              _pathPropertiesList
+                                  .setRenamed(intoPath.cloneParentPath());
                             }
                           }
                         }
@@ -588,7 +648,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 screenSize,
                 "Update Value '${detailActionData.getLastPathElement()}'",
                 detailActionData.oldValue,
-                detailActionData.oldValueType.dataValueTypeFixed ? [] : optionGroupUpdateElement,
+                detailActionData.oldValueType.dataValueTypeFixed
+                    ? []
+                    : optionGroupUpdateElement,
                 detailActionData.oldValueType,
                 false,
                 false,
@@ -597,7 +659,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     _handleEditState(detailActionData, text, type);
                   } else {
                     if (action == SimpleButtonActions.link) {
-                      _implementLinkStateAsync(text, detailActionData.path.last);
+                      _implementLinkStateAsync(
+                          text, detailActionData.path.last);
                     }
                   }
                 },
@@ -607,7 +670,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   //
                   if (valueType.dataValueType == bool) {
                     final valueTrimmedLc = valueTrimmed.toLowerCase();
-                    if (valueTrimmedLc == "yes" || valueTrimmedLc == "no" || valueTrimmedLc == "true" || valueTrimmedLc == "false") {
+                    if (valueTrimmedLc == "yes" ||
+                        valueTrimmedLc == "no" ||
+                        valueTrimmedLc == "true" ||
+                        valueTrimmedLc == "false") {
                       return "";
                     } else {
                       return "Must be 'Yes' or 'No";
@@ -618,13 +684,16 @@ class _MyHomePageState extends State<MyHomePage> {
                       if (valueTrimmed.isEmpty) {
                         return "Reference cannot be empty";
                       }
-                      final ss = _checkSingleReference(Path.fromDotPath(valueTrimmed), valueTrimmed);
+                      final ss = _checkSingleReference(
+                          Path.fromDotPath(valueTrimmed), valueTrimmed);
                       return ss.message;
                     }
-                    if (valueTrimmed == initialTrimmed && initialTrimmed != "") {
+                    if (valueTrimmed == initialTrimmed &&
+                        initialTrimmed != "") {
                       return "";
                     }
-                    final m = valueType.inRangeInt("Length", valueTrimmed.length);
+                    final m =
+                        valueType.inRangeInt("Length", valueTrimmed.length);
                     if (m.isNotEmpty) {
                       return m;
                     }
@@ -656,7 +725,16 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.addGroup:
             {
-              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "New Group Owned by: ${_selectedPath.last}", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
+              showModalInputDialog(
+                  context,
+                  _configData.getAppThemeData(),
+                  screenSize,
+                  "New Group Owned by: ${_selectedPath.last}",
+                  "",
+                  [],
+                  optionsDataTypeEmpty,
+                  false,
+                  false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataGroup);
                 }
@@ -675,7 +753,16 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.addDetail:
             {
-              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "New Detail Name Owned by: ${_selectedPath.last}", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
+              showModalInputDialog(
+                  context,
+                  _configData.getAppThemeData(),
+                  screenSize,
+                  "New Detail Name Owned by: ${_selectedPath.last}",
+                  "",
+                  [],
+                  optionsDataTypeEmpty,
+                  false,
+                  false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataValue);
                 }
@@ -706,19 +793,26 @@ class _MyHomePageState extends State<MyHomePage> {
                   "Encrypted extension = .data",
                 ],
                 (action, fileName, password) {
-                  final fn = password.isEmpty ? "$fileName.json" : "$fileName.data";
+                  final fn =
+                      password.isEmpty ? "$fileName.json" : "$fileName.data";
                   if (fn.toLowerCase() == defaultConfigFileName.toLowerCase()) {
                     return "Cannot use '$fileName'";
                   }
-                  if (fn.toLowerCase() == _configData.getAppStateFileName().toLowerCase()) {
+                  if (fn.toLowerCase() ==
+                      _configData.getAppStateFileName().toLowerCase()) {
                     return "Cannot use '$fileName'";
                   }
                   if (_configData.localFileExists(fn).isNotEmpty) {
                     return "${password.isNotEmpty ? "Encrypted" : ""} file '$fn' Exists";
                   }
                   if (action == SimpleButtonActions.ok) {
-                    final content = DataContainer.staticDataToStringFormattedWithTs(_configData.getMinimumDataContentMap(), password, addTimeStamp: true, isNew: true);
-                    final success = DataContainer.saveToFile(_configData.getDataFileLocalAlt(fn), content, log: logger.log);
+                    final content =
+                        DataContainer.staticDataToStringFormattedWithTs(
+                            _configData.getMinimumDataContentMap(), password,
+                            addTimeStamp: true, isNew: true);
+                    final success = DataContainer.saveToFile(
+                        _configData.getDataFileLocalAlt(fn), content,
+                        log: logger.log);
                     _globalSuccessState = success;
                     if (success.isFail) {
                       logger.log("__CREATE__ Failed. ${success.message}");
@@ -728,7 +822,10 @@ class _MyHomePageState extends State<MyHomePage> {
                             context,
                             _configData.getAppThemeData(),
                             "Create File Failed",
-                            ["Reason - ${success.message}", "No changes were made"],
+                            [
+                              "Reason - ${success.message}",
+                              "No changes were made"
+                            ],
                             ["Acknowledge"],
                             Path.empty(),
                             (path, button) {
@@ -743,10 +840,21 @@ class _MyHomePageState extends State<MyHomePage> {
                     } else {
                       Future.delayed(const Duration(milliseconds: 1), () {
                         if (mounted) {
-                          showModalButtonsDialog(context, _configData.getAppThemeData(), "Create File:", ["Make this your NEW file", "or", "Continue with EXISTING file"], ["NEW", "EXISTING"], Path.empty(), (path, button) {
+                          showModalButtonsDialog(
+                              context,
+                              _configData.getAppThemeData(),
+                              "Create File:",
+                              [
+                                "Make this your NEW file",
+                                "or",
+                                "Continue with EXISTING file"
+                              ],
+                              ["NEW", "EXISTING"],
+                              Path.empty(), (path, button) {
                             setState(() {
                               if (button == "NEW") {
-                                _configData.setValueForJsonPath(dataFileLocalNamePath, fn);
+                                _configData.setValueForJsonPath(
+                                    dataFileLocalNamePath, fn);
                                 _configData.save(logger.log);
                                 _configData.update(callOnUpdate: true);
                                 _clearData("New Data File");
@@ -769,7 +877,13 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.restart:
             if (_dataWasUpdated) {
-              showModalButtonsDialog(context, _configData.getAppThemeData(), "Restart Alert", ["Restart - Discard changes", "Cancel - Don't Restart"], ["Restart", "Cancel"], Path.empty(), (p, sel) {
+              showModalButtonsDialog(
+                  context,
+                  _configData.getAppThemeData(),
+                  "Restart Alert",
+                  ["Restart - Discard changes", "Cancel - Don't Restart"],
+                  ["Restart", "Cancel"],
+                  Path.empty(), (p, sel) {
                 if (sel == "RESTART") {
                   _clearDataState("Application RESTART");
                 }
@@ -783,7 +897,13 @@ class _MyHomePageState extends State<MyHomePage> {
           case ActionType.reload:
             {
               if (_dataWasUpdated) {
-                showModalButtonsDialog(context, _configData.getAppThemeData(), "Reload Alert", ["Reload - Discard changes", "Cancel - Don't Reload"], ["Reload", "Cancel"], Path.empty(), (p, sel) {
+                showModalButtonsDialog(
+                    context,
+                    _configData.getAppThemeData(),
+                    "Reload Alert",
+                    ["Reload - Discard changes", "Cancel - Don't Reload"],
+                    ["Reload", "Cancel"],
+                    Path.empty(), (p, sel) {
                   if (sel == "RELOAD") {
                     _loadDataState();
                   }
@@ -808,16 +928,19 @@ class _MyHomePageState extends State<MyHomePage> {
     switch (detailActionData.action) {
       case ActionType.querySelect:
         {
-          return _querySelect(detailActionData.path, detailActionData.additional);
+          return _querySelect(
+              detailActionData.path, detailActionData.additional);
         }
       case ActionType.link:
         {
-          _implementLinkStateAsync(detailActionData.oldValue, detailActionData.path.last);
+          _implementLinkStateAsync(
+              detailActionData.oldValue, detailActionData.path.last);
           return Path.empty();
         }
       case ActionType.save: // Save as it is (encrypted or un-encrypted)
         {
-          _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
+          _saveDataStateAsync(
+              _loadedData.dataToStringFormattedWithTs(_loadedData.password));
           return Path.empty();
         }
       case ActionType.checkReferences:
@@ -863,7 +986,8 @@ class _MyHomePageState extends State<MyHomePage> {
       case ActionType.clip:
         {
           setState(() {
-            _globalSuccessState = SuccessState(true, message: "Copied to clipboard");
+            _globalSuccessState =
+                SuccessState(true, message: "Copied to clipboard");
           });
           break;
         }
@@ -877,7 +1001,8 @@ class _MyHomePageState extends State<MyHomePage> {
       case ActionType.groupSelect:
         {
           setState(() {
-            _pathPropertiesList.setGroupSelect(detailActionData.path, detailActionData.value);
+            _pathPropertiesList.setGroupSelect(
+                detailActionData.path, detailActionData.value);
           });
           break;
         }
@@ -894,7 +1019,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _saveDataStateAsync(final String content) async {
-    final localSaveState = DataContainer.saveToFile(_configData.getDataFileLocal(), content, log: logger.log);
+    final localSaveState = DataContainer.saveToFile(
+        _configData.getDataFileLocal(), content,
+        log: logger.log);
     int success = 0;
     final String lm;
     final String rm;
@@ -904,7 +1031,9 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       lm = "Local Save FAIL";
     }
-    final remoteSaveState = await DataContainer.sendHttpPost(_configData.getPostDataFileUrl(), content, log: logger.log);
+    final remoteSaveState = await DataContainer.sendHttpPost(
+        _configData.getPostDataFileUrl(), content,
+        log: logger.log);
     if (remoteSaveState.isSuccess) {
       success++;
       rm = "Remote Save OK";
@@ -952,11 +1081,15 @@ class _MyHomePageState extends State<MyHomePage> {
     //
     // Try to load the remote data.
     //
-    final successReadRemote = await DataContainer.receiveHttpGet(remotePath, timeoutMillis: _configData.getDataFetchTimeoutMillis());
+    final successReadRemote = await DataContainer.receiveHttpGet(remotePath,
+        timeoutMillis: _configData.getDataFetchTimeoutMillis());
     if (successReadRemote.isSuccess) {
-      fileDataPrefixRemote = FileDataPrefix.fromFileContent(successReadRemote.value.trim(), "Remote", log: logger.log);
+      fileDataPrefixRemote = FileDataPrefix.fromFileContent(
+          successReadRemote.value.trim(), "Remote",
+          log: logger.log);
     } else {
-      fileDataPrefixRemote = FileDataPrefix.error("Remote load failed", log: logger.log);
+      fileDataPrefixRemote =
+          FileDataPrefix.error("Remote load failed", log: logger.log);
     }
 
     //
@@ -965,41 +1098,57 @@ class _MyHomePageState extends State<MyHomePage> {
     //
     final successReadLocal = DataContainer.loadFromFile(localPath);
     if (successReadLocal.isSuccess) {
-      fileDataPrefixLocal = FileDataPrefix.fromFileContent(successReadLocal.value.trim(), "Local", log: logger.log);
+      fileDataPrefixLocal = FileDataPrefix.fromFileContent(
+          successReadLocal.value.trim(), "Local",
+          log: logger.log);
     } else {
-      fileDataPrefixLocal = FileDataPrefix.error("Local load failed", log: logger.log);
+      fileDataPrefixLocal =
+          FileDataPrefix.error("Local load failed", log: logger.log);
     }
 
-    fileDataPrefixFinal = fileDataPrefixLocal.selectThisOrThat(fileDataPrefixRemote, log: logger.log);
+    fileDataPrefixFinal = fileDataPrefixLocal
+        .selectThisOrThat(fileDataPrefixRemote, log: logger.log);
     //
     // File is now loaded!
     //
     if (fileDataPrefixFinal.error) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "__LOAD__ Error: ${fileDataPrefixFinal.errorReason}", log: logger.log);
+        _globalSuccessState = SuccessState(false,
+            message: "__LOAD__ Error: ${fileDataPrefixFinal.errorReason}",
+            log: logger.log);
       });
       return;
     }
 
     if (fileDataPrefixFinal.encrypted && pw.isEmpty) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "__LOAD__ No Password Provided", log: logger.log);
+        _globalSuccessState = SuccessState(false,
+            message: "__LOAD__ No Password Provided", log: logger.log);
       });
       return;
     }
 
     final DataContainer data;
     try {
-      data = DataContainer(fileDataPrefixFinal.content, fileDataPrefixFinal, successReadRemote.path, successReadLocal.path, fileName, pw, log: logger.log);
+      data = DataContainer(fileDataPrefixFinal.content, fileDataPrefixFinal,
+          successReadRemote.path, successReadLocal.path, fileName, pw,
+          log: logger.log);
     } catch (r) {
       setState(() {
         if (r is Exception) {
-          _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file could not be parsed", exception: r, log: logger.log);
+          _globalSuccessState = SuccessState(false,
+              message: "__LOAD__ Data file could not be parsed",
+              exception: r,
+              log: logger.log);
         } else {
           if (pw.isEmpty) {
-            _globalSuccessState = SuccessState(false, message: "__LOAD__ $r", log: logger.log);
+            _globalSuccessState =
+                SuccessState(false, message: "__LOAD__ $r", log: logger.log);
           } else {
-            _globalSuccessState = SuccessState(false, message: "__LOAD__ ${r.runtimeType.toString()}. Please try again!", log: logger.log);
+            _globalSuccessState = SuccessState(false,
+                message:
+                    "__LOAD__ ${r.runtimeType.toString()}. Please try again!",
+                log: logger.log);
           }
         }
       });
@@ -1008,27 +1157,34 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (data.isEmpty) {
       setState(() {
-        _globalSuccessState = SuccessState(false, message: "__LOAD__ Data file does not contain any data", log: logger.log);
+        _globalSuccessState = SuccessState(false,
+            message: "__LOAD__ Data file does not contain any data",
+            log: logger.log);
       });
       return;
     }
     _loadedData = data;
 
     setState(() {
-      _dataRequiresSyncing = fileDataPrefixLocal.isNotEqual(fileDataPrefixRemote);
+      _dataRequiresSyncing =
+          fileDataPrefixLocal.isNotEqual(fileDataPrefixRemote);
       if (_dataRequiresSyncing) {
         logger.log("__FILE_DATA:__ Warning: Data requires synchronisation");
       }
       _dataWasUpdated = false;
       _checkReferences = true;
       _pathPropertiesList.clear();
-      _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap, sorted: _applicationState.isDataSorted);
+      _treeNodeDataRoot = MyTreeNode.fromMap(_loadedData.dataMap,
+          sorted: _applicationState.isDataSorted);
       _treeNodeDataRoot.setExpandedSubNodes(true);
       _treeNodeDataRoot.clearFilter();
       _filteredNodeDataRoot = MyTreeNode.empty();
       _selectedTreeNode = _treeNodeDataRoot.firstSelectableNode();
       _selectedPath = _selectedTreeNode.path;
-      _globalSuccessState = SuccessState(true, message: "${fileDataPrefixFinal.encrypted ? "Encrypted" : ""} [${fileDataPrefixFinal.tag}] File: ${_loadedData.timeStampString}", log: logger.log);
+      _globalSuccessState = SuccessState(true,
+          message:
+              "${fileDataPrefixFinal.encrypted ? "Encrypted" : ""} [${fileDataPrefixFinal.tag}] File: ${_loadedData.timeStampString}",
+          log: logger.log);
     });
   }
 
@@ -1054,7 +1210,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _reloadTreeFromMapAndCopyFlags() {
-    final temp = MyTreeNode.fromMap(_loadedData.dataMap, sorted: _applicationState.isDataSorted);
+    final temp = MyTreeNode.fromMap(_loadedData.dataMap,
+        sorted: _applicationState.isDataSorted);
     temp.visitEachSubNode((node) {
       final refNode = _treeNodeDataRoot.findByPath(node.path);
       if (refNode != null) {
@@ -1067,22 +1224,27 @@ class _MyHomePageState extends State<MyHomePage> {
     _treeNodeDataRoot = temp;
   }
 
-  void _handleAddState(final Path path, final String name, final OptionsTypeData type) async {
+  void _handleAddState(
+      final Path path, final String name, final OptionsTypeData type) async {
     if (name.length < 2) {
-      _globalSuccessState = SuccessState(false, message: "__ADD__ Name is too short");
+      _globalSuccessState =
+          SuccessState(false, message: "__ADD__ Name is too short");
       return;
     }
     final mapNodes = path.pathNodes(_loadedData.dataMap);
     if (mapNodes.error) {
-      _globalSuccessState = SuccessState(false, message: "__ADD__ Path not found");
+      _globalSuccessState =
+          SuccessState(false, message: "__ADD__ Path not found");
       return;
     }
     if (mapNodes.lastNodeIsData) {
-      _globalSuccessState = SuccessState(false, message: "__ADD__ Cannot add to a data node");
+      _globalSuccessState =
+          SuccessState(false, message: "__ADD__ Cannot add to a data node");
       return;
     }
     if (mapNodes.lastNodeAsMap!.containsKey(name)) {
-      _globalSuccessState = SuccessState(false, message: "__ADD__ Name already exists");
+      _globalSuccessState =
+          SuccessState(false, message: "__ADD__ Name already exists");
       return;
     }
     switch (type) {
@@ -1096,7 +1258,8 @@ class _MyHomePageState extends State<MyHomePage> {
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
           _reloadTreeFromMapAndCopyFlags();
           selectNode(path);
-          _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log: logger.log);
+          _globalSuccessState = SuccessState(true,
+              message: "Data node '$name' added", log: logger.log);
         });
         break;
       case optionTypeDataGroup:
@@ -1110,13 +1273,15 @@ class _MyHomePageState extends State<MyHomePage> {
           _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
           _reloadTreeFromMapAndCopyFlags();
           selectNode(path);
-          _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log: logger.log);
+          _globalSuccessState = SuccessState(true,
+              message: "Group Node '$name' added", log: logger.log);
         });
         break;
     }
   }
 
-  String _checkRenameOk(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
+  String _checkRenameOk(DetailAction detailActionData, String newNameNoSuffix,
+      OptionsTypeData newType) {
     if (detailActionData.oldValueType != newType) {
       if (detailActionData.oldValueType == optionTypeDataMarkDown) {
         if (detailActionData.additional.contains('\n')) {
@@ -1143,26 +1308,31 @@ class _MyHomePageState extends State<MyHomePage> {
     return "";
   }
 
-  void _handleRenameState(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
+  void _handleRenameState(DetailAction detailActionData, String newNameNoSuffix,
+      OptionsTypeData newType) {
     final newName = "$newNameNoSuffix${newType.nameSuffix}";
     final oldName = detailActionData.oldValue;
     if (oldName != newName) {
       setState(() {
         if (newNameNoSuffix.length < 2) {
-          _globalSuccessState = SuccessState(false, message: "__RENAME__ New Name is too short");
+          _globalSuccessState =
+              SuccessState(false, message: "__RENAME__ New Name is too short");
           return;
         }
         final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
         if (mapNodes.error) {
-          _globalSuccessState = SuccessState(false, message: "__RENAME__ Path not found");
+          _globalSuccessState =
+              SuccessState(false, message: "__RENAME__ Path not found");
           return;
         }
         if (!mapNodes.lastNodeHasParent) {
-          _globalSuccessState = SuccessState(false, message: "__RENAME__ Cannot rename root node");
+          _globalSuccessState = SuccessState(false,
+              message: "__RENAME__ Cannot rename root node");
           return;
         }
         if (mapNodes.alreadyContainsName(newName)) {
-          _globalSuccessState = SuccessState(false, message: "__RENAME__ Name already exists");
+          _globalSuccessState =
+              SuccessState(false, message: "__RENAME__ Name already exists");
           return;
         }
 
@@ -1178,7 +1348,8 @@ class _MyHomePageState extends State<MyHomePage> {
         _pathPropertiesList.setRenamed(parentPath);
         _reloadTreeFromMapAndCopyFlags();
         selectNode(parentPath);
-        _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: logger.log);
+        _globalSuccessState = SuccessState(true,
+            message: "Node '$oldName' renamed $newName", log: logger.log);
       });
     }
   }
@@ -1186,16 +1357,19 @@ class _MyHomePageState extends State<MyHomePage> {
   Path _handleDelete(final Path path) {
     final mapNodes = path.pathNodes(_loadedData.dataMap);
     if (mapNodes.error) {
-      _globalSuccessState = SuccessState(false, message: "__DELETE__ Path not found");
+      _globalSuccessState =
+          SuccessState(false, message: "__DELETE__ Path not found");
       return Path.empty();
     }
     if (!mapNodes.lastNodeHasParent) {
-      _globalSuccessState = SuccessState(false, message: "__DELETE__ Cannot delete root node");
+      _globalSuccessState =
+          SuccessState(false, message: "__DELETE__ Cannot delete root node");
       return Path.empty();
     }
     final parentPath = path.cloneParentPath();
     if (parentPath.isEmpty) {
-      _globalSuccessState = SuccessState(false, message: "__DELETE__ Parent path is empty");
+      _globalSuccessState =
+          SuccessState(false, message: "__DELETE__ Parent path is empty");
       return parentPath;
     }
     final parentNode = mapNodes.lastNodeParent;
@@ -1215,25 +1389,31 @@ class _MyHomePageState extends State<MyHomePage> {
         _pathPropertiesList.setUpdated(parentPath);
         _reloadTreeFromMapAndCopyFlags();
         selectNode(parentPath);
-        _globalSuccessState = SuccessState(true, message: "Removed: '${path.last}'");
+        _globalSuccessState =
+            SuccessState(true, message: "Removed: '${path.last}'");
       });
     }
   }
 
-  void _handleEditState(DetailAction detailActionData, String newValue, OptionsTypeData type) {
-    if (detailActionData.oldValue != newValue || detailActionData.oldValueType != type) {
+  void _handleEditState(
+      DetailAction detailActionData, String newValue, OptionsTypeData type) {
+    if (detailActionData.oldValue != newValue ||
+        detailActionData.oldValueType != type) {
       setState(() {
         final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
         if (mapNodes.error) {
-          _globalSuccessState = SuccessState(false, message: "__EDIT__ Path not found");
+          _globalSuccessState =
+              SuccessState(false, message: "__EDIT__ Path not found");
           return;
         }
         if (!mapNodes.lastNodeIsData) {
-          _globalSuccessState = SuccessState(false, message: "__EDIT__ Cannot edit a map node");
+          _globalSuccessState =
+              SuccessState(false, message: "__EDIT__ Cannot edit a map node");
           return;
         }
         if (!mapNodes.lastNodeHasParent) {
-          _globalSuccessState = SuccessState(false, message: "__EDIT__ Cannot edit a root node");
+          _globalSuccessState =
+              SuccessState(false, message: "__EDIT__ Cannot edit a root node");
           return;
         }
         final parentNode = mapNodes.lastNodeParent;
@@ -1244,7 +1424,8 @@ class _MyHomePageState extends State<MyHomePage> {
         try {
           if (type.dataValueType == bool) {
             final lvTrimLc = nvTrim.toLowerCase();
-            parentNode![key] = (lvTrimLc == "true" || lvTrimLc == "yes" || nvTrim == "1");
+            parentNode![key] =
+                (lvTrimLc == "true" || lvTrimLc == "yes" || nvTrim == "1");
           } else {
             if (type.dataValueType == double || type.dataValueType == int) {
               try {
@@ -1263,10 +1444,12 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           }
           _pathPropertiesList.setUpdated(detailActionData.path);
-          _pathPropertiesList.setUpdated(detailActionData.path.cloneParentPath());
+          _pathPropertiesList
+              .setUpdated(detailActionData.path.cloneParentPath());
           _reloadTreeFromMapAndCopyFlags();
           selectNode(detailActionData.path.cloneParentPath());
-          _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.getLastPathElement()} updated");
+          _globalSuccessState = SuccessState(true,
+              message: "Item ${detailActionData.getLastPathElement()} updated");
         } catch (e, s) {
           debugPrintStack(stackTrace: s);
         }
@@ -1275,9 +1458,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   SuccessState handleOnResolve(String value) {
-    final type = OptionsTypeData.staticFindOptionTypeFromNameAndType(null, value);
+    final type =
+        OptionsTypeData.staticFindOptionTypeFromNameAndType(null, value);
     if (type != optionTypeDataNotFound) {
-      return SuccessState(false, message: "Cannot reference '${type.displayName}' data", value: value);
+      return SuccessState(false,
+          message: "Cannot reference '${type.displayName}' data", value: value);
     }
     final p = Path.fromDotPath(value);
     if (p.isEmpty) {
@@ -1294,7 +1479,9 @@ class _MyHomePageState extends State<MyHomePage> {
       return SuccessState(true, message: "", value: value);
     }
     if (n is bool) {
-      return n ? SuccessState(true, message: "", value: "Yes") : SuccessState(true, message: "", value: "No");
+      return n
+          ? SuccessState(true, message: "", value: "Yes")
+          : SuccessState(true, message: "", value: "No");
     }
     return SuccessState(true, message: "", value: n.toString());
   }
@@ -1311,17 +1498,24 @@ class _MyHomePageState extends State<MyHomePage> {
           context,
           _configData.getAppThemeData(),
           "Alert",
-          ["Data has been updated", "Press SAVE keep changes", "Press CANCEL remain in the App", "Press EXIT to leave without saving"],
+          [
+            "Data has been updated",
+            "Press SAVE keep changes",
+            "Press CANCEL remain in the App",
+            "Press EXIT to leave without saving"
+          ],
           ["SAVE", "CANCEL", "EXIT"],
           Path.empty(),
           (path, button) async {
             if (button == "SAVE") {
-              await _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
+              await _saveDataStateAsync(_loadedData
+                  .dataToStringFormattedWithTs(_loadedData.password));
             }
             if (button == "CANCEL") {
               shouldExit = false;
               setState(() {
-                _globalSuccessState = SuccessState(true, message: "Exit Cancelled");
+                _globalSuccessState =
+                    SuccessState(true, message: "Exit Cancelled");
               });
             }
           },
@@ -1366,7 +1560,8 @@ class _MyHomePageState extends State<MyHomePage> {
     return SuccessState(true);
   }
 
-  bool _matchSearchForFilter(String searchFor, bool tolowerCase, MyTreeNode searchThisNode) {
+  bool _matchSearchForFilter(
+      String searchFor, bool tolowerCase, MyTreeNode searchThisNode) {
     if (tolowerCase) {
       return (searchThisNode.label.toLowerCase().contains(searchFor));
     }
@@ -1378,7 +1573,8 @@ class _MyHomePageState extends State<MyHomePage> {
       Timer(
         const Duration(milliseconds: 500),
         () {
-          if (!Navigator.of(context).canPop()) { // Only do this is an Alert Dialogue is NOT visible
+          if (!Navigator.of(context).canPop()) {
+            // Only do this is an Alert Dialogue is NOT visible
             if (_loadedData.isEmpty) {
               _passwordFocusNode.requestFocus();
             } else {
@@ -1409,7 +1605,8 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_loadedData.isNotEmpty) {
       if (_search != _lastSearch || _filteredNodeDataRoot.isEmpty) {
         _lastSearch = _search;
-        _filteredNodeDataRoot = _treeNodeDataRoot.applyFilter(_search, true, _matchSearchForFilter);
+        _filteredNodeDataRoot =
+            _treeNodeDataRoot.applyFilter(_search, true, _matchSearchForFilter);
       } else {
         _filteredNodeDataRoot = _treeNodeDataRoot.clone(requiredOnly: true);
       }
@@ -1547,6 +1744,34 @@ class _MyHomePageState extends State<MyHomePage> {
           _loadDataState();
         },
       ));
+
+      final fileList = _configData.dir(
+        ["data", "json"],
+        [defaultConfigFileName, _configData.getAppStateFileName()],
+        (p0) {
+          Timer(const Duration(microseconds: 200),() {
+            showModalButtonsDialog(
+              context,
+              _configData.getAppThemeData(),
+              "Configuration Error",
+              [
+                "Element: '$dataFileLocalDirPath'",
+                _configData.getDataFileDir(),
+                "Directory Does not exist",
+                "",
+                "Cannot continue"
+              ],
+              ["Exit"],
+              Path.empty(),
+                  (p0, p1) {},
+                  () {
+                _exitReturnCode = 1;
+              },
+            );
+          },);
+        },
+      );
+
       toolBarItems.add(DetailIconButton(
           appThemeData: appThemeData,
           iconData: Icons.rule_folder,
@@ -1555,10 +1780,11 @@ class _MyHomePageState extends State<MyHomePage> {
             showLocalFilesDialog(
               context,
               _configData.getAppThemeData(),
-              _configData.dir(["data", "json"], [defaultConfigFileName, _configData.getAppStateFileName()]),
+              fileList,
               (fileName) {
                 if (fileName != _configData.getDataFileName()) {
-                  _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
+                  _configData.setValueForJsonPath(
+                      dataFileLocalNamePath, fileName);
                   _configData.update(callOnUpdate: true);
                   logger.log("__CONFIG__ File name updated to:'$fileName'");
                   _configData.save(logger.log);
@@ -1571,7 +1797,8 @@ class _MyHomePageState extends State<MyHomePage> {
               },
               (action) {
                 if (action == SimpleButtonActions.ok) {
-                  _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
+                  _handleAction(
+                      DetailAction(ActionType.createFile, false, Path.empty()));
                 }
               },
               () {
@@ -1632,34 +1859,55 @@ class _MyHomePageState extends State<MyHomePage> {
                   MenuOptionDetails("Done", "", ActionType.none, () {
                     return Icons.arrow_back;
                   }),
-                  MenuOptionDetails("Add NEW Group", "Add a new group to '%{3}'", ActionType.addGroup, () {
+                  MenuOptionDetails("Add NEW Group",
+                      "Add a new group to '%{3}'", ActionType.addGroup, () {
                     return Icons.add_box_outlined;
                   }),
-                  MenuOptionDetails("Add NEW Detail", "Add a new detail to group '%{3}'", ActionType.addDetail, () {
+                  MenuOptionDetails(
+                      "Add NEW Detail",
+                      "Add a new detail to group '%{3}'",
+                      ActionType.addDetail, () {
                     return Icons.add;
                   }),
-                  MenuOptionDetails("Clear Select", "Clear ALL selected", ActionType.groupSelectClearAll, () {
+                  MenuOptionDetails("Clear Select", "Clear ALL selected",
+                      ActionType.groupSelectClearAll, () {
                     return Icons.deselect;
                   }),
-                  MenuOptionDetails("Validate references", "Check validity of reference elements", ActionType.checkReferences, () {
+                  MenuOptionDetails(
+                      "Validate references",
+                      "Check validity of reference elements",
+                      ActionType.checkReferences, () {
                     return Icons.check_circle_outline;
                   }),
-                  MenuOptionDetails("Save (Synchronise) %{0}", "Save %{4} %{2}%{0}", ActionType.save, () {
+                  MenuOptionDetails("Save (Synchronise) %{0}",
+                      "Save %{4} %{2}%{0}", ActionType.save, () {
                     return Icons.lock_open;
                   }),
-                  MenuOptionDetails("Save %{1}", "Save %{4} %{2}%{1}", ActionType.saveAlt, () {
-                    return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;
+                  MenuOptionDetails(
+                      "Save %{1}", "Save %{4} %{2}%{1}", ActionType.saveAlt,
+                      () {
+                    return _loadedData.hasPassword
+                        ? Icons.lock_open
+                        : Icons.lock;
                   }),
-                  MenuOptionDetails("New data file", "Create a new data file", ActionType.createFile, () {
-                    return _dataWasUpdated ? Icons.disabled_by_default_outlined : Icons.post_add;
+                  MenuOptionDetails("New data file", "Create a new data file",
+                      ActionType.createFile, () {
+                    return _dataWasUpdated
+                        ? Icons.disabled_by_default_outlined
+                        : Icons.post_add;
                   }, enabled: !_dataWasUpdated),
-                  MenuOptionDetails("Reload data file", "Reload %{4}", ActionType.reload, () {
+                  MenuOptionDetails(
+                      "Reload data file", "Reload %{4}", ActionType.reload, () {
                     return Icons.refresh;
                   }),
-                  MenuOptionDetails("Restart application", "Restart this application", ActionType.restart, () {
+                  MenuOptionDetails("Restart application",
+                      "Restart this application", ActionType.restart, () {
                     return Icons.restart_alt;
                   }),
-                  MenuOptionDetails("Reset Saved State", "Clears Previous searches etc.", ActionType.clearState, () {
+                  MenuOptionDetails(
+                      "Reset Saved State",
+                      "Clears Previous searches etc.",
+                      ActionType.clearState, () {
                     return Icons.cleaning_services;
                   }),
                 ],
@@ -1686,7 +1934,8 @@ class _MyHomePageState extends State<MyHomePage> {
         ));
         toolBarItems.add(DetailIconButton(
           onPressed: (button) {
-            _handleAction(DetailAction(ActionType.groupSelectAll, false, _selectedPath));
+            _handleAction(
+                DetailAction(ActionType.groupSelectAll, false, _selectedPath));
           },
           tooltip: "Invert Selection",
           iconData: Icons.select_all,
@@ -1696,7 +1945,8 @@ class _MyHomePageState extends State<MyHomePage> {
         if (canPaste) {
           toolBarItems.add(DetailIconButton(
             onPressed: (button) {
-              _handleAction(DetailAction(ActionType.groupSelectClearAll, false, _selectedPath));
+              _handleAction(DetailAction(
+                  ActionType.groupSelectClearAll, false, _selectedPath));
             },
             tooltip: "Clear ALL Selected",
             iconData: Icons.deselect,
@@ -1704,7 +1954,8 @@ class _MyHomePageState extends State<MyHomePage> {
           ));
           toolBarItems.add(DetailIconButton(
             onPressed: (button) {
-              _handleAction(DetailAction(ActionType.groupCopy, false, _selectedPath));
+              _handleAction(
+                  DetailAction(ActionType.groupCopy, false, _selectedPath));
             },
             tooltip: "Copy to ${_selectedPath.last}",
             iconData: Icons.file_copy,
@@ -1712,7 +1963,8 @@ class _MyHomePageState extends State<MyHomePage> {
           ));
           toolBarItems.add(DetailIconButton(
             onPressed: (button) {
-              _handleAction(DetailAction(ActionType.groupDelete, false, _selectedPath));
+              _handleAction(
+                  DetailAction(ActionType.groupDelete, false, _selectedPath));
             },
             tooltip: "Delete Data",
             iconData: Icons.delete,
@@ -1787,7 +2039,8 @@ class _MyHomePageState extends State<MyHomePage> {
     _setFocus("Build");
 
     final positionedTop = _navBarHeight + _configData.appBarIconTop;
-    final positionedLeft = screenSize.width - (_configData.iconSize + _configData.iconGap);
+    final positionedLeft =
+        screenSize.width - (_configData.iconSize + _configData.iconGap);
 
     final settings = Positioned(
         left: positionedLeft - (_configData.iconSize + _configData.iconGap),
@@ -1813,7 +2066,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   if (save) {
                     _globalSuccessState = _configData.save(logger.log);
                   } else {
-                    _globalSuccessState = SuccessState(true, message: "Config data NOT saved");
+                    _globalSuccessState =
+                        SuccessState(true, message: "Config data NOT saved");
                   }
                 });
               },
@@ -1884,20 +2138,33 @@ class _MyHomePageState extends State<MyHomePage> {
                             : Container(
                                 height: _navBarHeight,
                                 color: appBackgroundColor,
-                                child: createNodeNavButtonBar(_selectedPath, appThemeData, _isEditDataDisplay, _loadedData.isEmpty, _applicationState.isDataSorted, (detailActionData) {
+                                child: createNodeNavButtonBar(
+                                    _selectedPath,
+                                    appThemeData,
+                                    _isEditDataDisplay,
+                                    _loadedData.isEmpty,
+                                    _applicationState.isDataSorted,
+                                    (detailActionData) {
                                   return _handleAction(detailActionData);
                                 }),
                               ),
-                    _loadedData.isEmpty ? const SizedBox(height: 0) : _configData.getAppThemeData().horizontalLine,
+                    _loadedData.isEmpty
+                        ? const SizedBox(height: 0)
+                        : _configData.getAppThemeData().horizontalLine,
                     Container(
-                      height: screenSize.height - (_configData.appBarHeight + _configData.appBarHeight + _navBarHeight),
+                      height: screenSize.height -
+                          (_configData.appBarHeight +
+                              _configData.appBarHeight +
+                              _navBarHeight),
                       color: appBackgroundColor,
                       child: displayData.splitView,
                     ),
                     _configData.getAppThemeData().horizontalLine,
                     Container(
                       height: _configData.appBarHeight,
-                      color: _globalSuccessState.isSuccess ? appBackgroundColor : appBackgroundErrorColor,
+                      color: _globalSuccessState.isSuccess
+                          ? appBackgroundColor
+                          : appBackgroundErrorColor,
                       child: Row(
                         children: [
                           indicatorIconManager.widget,
@@ -1906,11 +2173,13 @@ class _MyHomePageState extends State<MyHomePage> {
                             iconData: Icons.view_timeline,
                             tooltip: 'Log',
                             onPressed: (button) {
-                              _handleAction(DetailAction.actionOnly(ActionType.showLog));
+                              _handleAction(
+                                  DetailAction.actionOnly(ActionType.showLog));
                             },
                           ),
                           Text(
-                            _globalSuccessState.toStatusString(_currentSelectedGroupsPrefix),
+                            _globalSuccessState
+                                .toStatusString(_currentSelectedGroupsPrefix),
                             style: appThemeData.tsMedium,
                           )
                         ],

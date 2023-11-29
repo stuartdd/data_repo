@@ -17,7 +17,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 
 import 'config.dart';
 import 'data_types.dart';
@@ -291,6 +290,7 @@ Future<void> showLogDialog(final BuildContext context, final AppThemeData appThe
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
       return AlertDialog(
+        shape: appThemeData.rectangleBorderShape,
         backgroundColor: appThemeData.dialogBackgroundColor,
         insetPadding: const EdgeInsets.all(0),
         title: Text('Event Log', style: appThemeData.tsMedium),

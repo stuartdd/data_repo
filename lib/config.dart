@@ -73,13 +73,15 @@ final repoPath = Path.fromList(["application", "repoName"]);
 final titlePath = Path.fromList(["application", "title"]);
 final authorEmailPath = Path.fromList(["application", "authorEmail"]);
 final appTextScalePath = Path.fromList(["application", "textScale"]);
-final dataFetchTimeoutMillisPath = Path.fromList(["application", "dataFetchTimeoutMillis"]);
+final dataFetchTimeoutMillisPath =
+    Path.fromList(["application", "dataFetchTimeoutMillis"]);
 
 final appColoursDarkModePath = Path.fromList(["theme", "darkMode"]);
 final appRootNodeNamePath = Path.fromList(["theme", "rootNodeName"]);
 final hideDataPathPath = Path.fromList(["theme", "hideDataPath"]);
 final appColoursPrimaryPath = Path.fromList(["theme", "colours", "primary"]);
-final appColoursSecondaryPath = Path.fromList(["theme", "colours", "secondary"]);
+final appColoursSecondaryPath =
+    Path.fromList(["theme", "colours", "secondary"]);
 final appColoursHiLightPath = Path.fromList(["theme", "colours", "hilight"]);
 final appColoursErrorPath = Path.fromList(["theme", "colours", "error"]);
 
@@ -93,7 +95,16 @@ class AboutData {
   final String language;
   final String license;
   final String desc;
-  AboutData(this.title, this.author, this.email, this.buildDate, this.localBuildPath, this.repoName, this.language, this.license, this.desc);
+  AboutData(
+      this.title,
+      this.author,
+      this.email,
+      this.buildDate,
+      this.localBuildPath,
+      this.repoName,
+      this.language,
+      this.license,
+      this.desc);
 
   String sub(String s, String t1, t2, title, bool nl) {
     final x = s.split("|");
@@ -135,7 +146,8 @@ class ColorPallet {
   final Color dark;
   final Color darkest;
 
-  const ColorPallet(this.colorName, this.lightest, this.light, this.medLight, this.med, this.medDark, this.dark, this.darkest);
+  const ColorPallet(this.colorName, this.lightest, this.light, this.medLight,
+      this.med, this.medDark, this.dark, this.darkest);
 
   bool containsColor(Color c) {
     for (int i = 0; i < 7; i++) {
@@ -173,16 +185,43 @@ class ColorPallet {
   }
 
   factory ColorPallet.fromMaterialColor(MaterialColor mc, String colorName) {
-    return ColorPallet(colorName, mc.shade200, mc.shade300, mc.shade400, mc.shade500, mc.shade600, mc.shade800, mc.shade900);
+    return ColorPallet(colorName, mc.shade200, mc.shade300, mc.shade400,
+        mc.shade500, mc.shade600, mc.shade800, mc.shade900);
   }
 }
 
-const List<String> defaultTreeNodeToolTip = ["Data only", "Collapse", "Expand", "Has Data"];
-const List<IconData> defaultTreeNodeIconData = [Icons.last_page, Icons.arrow_downward, Icons.arrow_forward, Icons.dataset];
+const List<String> defaultTreeNodeToolTip = [
+  "Data only",
+  "Collapse",
+  "Expand",
+  "Has Data"
+];
+const List<IconData> defaultTreeNodeIconData = [
+  Icons.last_page,
+  Icons.arrow_downward,
+  Icons.arrow_forward,
+  Icons.dataset
+];
 
 Map<String, ColorPallet> colourNames = <String, ColorPallet>{
-  'black': const ColorPallet("black", Colors.white, Colors.black12, Colors.black26, Colors.black38, Colors.black45, Colors.black54, Colors.black),
-  'white': const ColorPallet("white", Colors.black, Colors.black54, Colors.black45, Colors.black38, Colors.black26, Colors.black12, Colors.white),
+  'black': const ColorPallet(
+      "black",
+      Colors.white,
+      Colors.black12,
+      Colors.black26,
+      Colors.black38,
+      Colors.black45,
+      Colors.black54,
+      Colors.black),
+  'white': const ColorPallet(
+      "white",
+      Colors.black,
+      Colors.black54,
+      Colors.black45,
+      Colors.black38,
+      Colors.black26,
+      Colors.black12,
+      Colors.white),
   'red': ColorPallet.fromMaterialColor(Colors.red, "red"),
   'pink': ColorPallet.fromMaterialColor(Colors.pink, 'pink'),
   'purple': ColorPallet.fromMaterialColor(Colors.purple, 'purple'),
@@ -247,22 +286,51 @@ class AppThemeData {
   late final List<Icon> treeNodeIcons;
   late final TextSelectionThemeData textSelectionThemeData;
 
-  AppThemeData._(this.primary, this.secondary, this.hiLight, this.error, String font, double textScale, Color errC, this.darkMode, this.desktop, this.hideDataPath) {
+  AppThemeData._(
+      this.primary,
+      this.secondary,
+      this.hiLight,
+      this.error,
+      String font,
+      double textScale,
+      Color errC,
+      this.darkMode,
+      this.desktop,
+      this.hideDataPath) {
     tsScale = textScale;
-    tsLarge = TextStyle(fontSize: (25.0 * textScale), color: screenForegroundColour(true));
-    tsLargeBold = TextStyle(fontSize: (25.0 * textScale), fontWeight: FontWeight.bold, color: screenForegroundColour(true));
-    tsLargeDisabled = TextStyle(fontSize: (25.0 * textScale), color: screenForegroundColour(false));
-    tsLargeItalic = TextStyle(fontSize: (25.0 * textScale), fontStyle: FontStyle.italic, color: screenForegroundColour(true));
+    tsLarge = TextStyle(
+        fontSize: (25.0 * textScale), color: screenForegroundColour(true));
+    tsLargeBold = TextStyle(
+        fontSize: (25.0 * textScale),
+        fontWeight: FontWeight.bold,
+        color: screenForegroundColour(true));
+    tsLargeDisabled = TextStyle(
+        fontSize: (25.0 * textScale), color: screenForegroundColour(false));
+    tsLargeItalic = TextStyle(
+        fontSize: (25.0 * textScale),
+        fontStyle: FontStyle.italic,
+        color: screenForegroundColour(true));
     tsLargeError = TextStyle(fontSize: (25.0 * textScale), color: errC);
-    tsMedium = TextStyle(fontSize: (20.0 * textScale), color: screenForegroundColour(true));
-    tsMediumBold = TextStyle(fontSize: (20.0 * textScale), fontWeight: FontWeight.bold, color: screenForegroundColour(true));
-    tsMediumDisabled = TextStyle(fontSize: (20.0 * textScale), color: screenForegroundColour(false));
+    tsMedium = TextStyle(
+        fontSize: (20.0 * textScale), color: screenForegroundColour(true));
+    tsMediumBold = TextStyle(
+        fontSize: (20.0 * textScale),
+        fontWeight: FontWeight.bold,
+        color: screenForegroundColour(true));
+    tsMediumDisabled = TextStyle(
+        fontSize: (20.0 * textScale), color: screenForegroundColour(false));
     tsMediumError = TextStyle(fontSize: (20.0 * textScale), color: errC);
-    tsSmall = TextStyle(fontSize: (15.0 * textScale), color: screenForegroundColour(true));
-    tsSmallDisabled = TextStyle(fontSize: (15.0 * textScale), color: screenForegroundColour(false));
+    tsSmall = TextStyle(
+        fontSize: (15.0 * textScale), color: screenForegroundColour(true));
+    tsSmallDisabled = TextStyle(
+        fontSize: (15.0 * textScale), color: screenForegroundColour(false));
     tsSmallError = TextStyle(fontSize: (15.0 * textScale), color: errC);
-    tsTreeViewLabel = TextStyle(fontSize: (25.0 * textScale), color: screenForegroundColour(true));
-    tsTreeViewParentLabel = TextStyle(fontSize: (30.0 * textScale), fontWeight: FontWeight.w600, color: screenForegroundColour(true));
+    tsTreeViewLabel = TextStyle(
+        fontSize: (25.0 * textScale), color: screenForegroundColour(true));
+    tsTreeViewParentLabel = TextStyle(
+        fontSize: (30.0 * textScale),
+        fontWeight: FontWeight.w600,
+        color: screenForegroundColour(true));
     treeNodeHeight = defaultTreeNodeHeight * (textScale * 1.5);
     treeNodeIcons = List.empty(growable: true);
     iconSize = defaultIconSize * textScale;
@@ -292,7 +360,11 @@ class AppThemeData {
   }
 
   Size textSize(String text, TextStyle style) {
-    final TextPainter textPainter = TextPainter(text: TextSpan(text: text, style: style), maxLines: 1, textDirection: TextDirection.ltr)..layout(minWidth: 0, maxWidth: double.infinity);
+    final TextPainter textPainter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        maxLines: 1,
+        textDirection: TextDirection.ltr)
+      ..layout(minWidth: 0, maxWidth: double.infinity);
     return textPainter.size;
   }
 
@@ -316,6 +388,14 @@ class AppThemeData {
 
   ColorPallet primaryOrSecondaryPallet(bool sec) {
     return sec ? secondary : primary;
+  }
+
+  RoundedRectangleBorder get rectangleBorderShape {
+    return  RoundedRectangleBorder(borderRadius: borderRadius);
+  }
+
+  BorderRadius get borderRadius {
+    return const BorderRadius.all(Radius.circular(4));
   }
 
   Color get dialogBackgroundColor {
@@ -388,7 +468,8 @@ class AppThemeData {
 
 class ConfigData {
   final String _configFileName; // The file name for the config file
-  final String _applicationDefaultDir; // Desktop: current path, Mobile: defined by OS. Needs to be writeable.
+  final String
+      _applicationDefaultDir; // Desktop: current path, Mobile: defined by OS. Needs to be writeable.
   final bool _isDesktop;
   final Function(String) log;
   late final String _fullFileName;
@@ -407,17 +488,28 @@ class ConfigData {
   String _dataFileName = "";
   String _getDataFileUrl = "";
   String _postDataFileUrl = "";
-  String _dataFileLocalDir = ""; // Where the data file is. Desktop: defined by config. Mobile: Always _applicationDefaultDir
-  ColorPallet _appColoursPrimary = ColorPallet.fromMaterialColor(Colors.blue, 'blue');
-  ColorPallet _appColoursSecondary = ColorPallet.fromMaterialColor(Colors.green, 'green');
-  ColorPallet _appColoursHiLight = ColorPallet.fromMaterialColor(Colors.yellow, 'yellow');
-  ColorPallet _appColoursError = ColorPallet.fromMaterialColor(Colors.red, 'red');
+  String _dataFileLocalDir =
+      ""; // Where the data file is. Desktop: defined by config. Mobile: Always _applicationDefaultDir
+  ColorPallet _appColoursPrimary =
+      ColorPallet.fromMaterialColor(Colors.blue, 'blue');
+  ColorPallet _appColoursSecondary =
+      ColorPallet.fromMaterialColor(Colors.green, 'green');
+  ColorPallet _appColoursHiLight =
+      ColorPallet.fromMaterialColor(Colors.yellow, 'yellow');
+  ColorPallet _appColoursError =
+      ColorPallet.fromMaterialColor(Colors.red, 'red');
   bool _darkMode = false;
   bool _hideDataPath = false;
 
-  List<String> dir(List<String> extensions, List<String> hidden) {
+  List<String> dir(
+      List<String> extensions, List<String> hidden, Function(String) log) {
     final l = List<String>.empty(growable: true);
-    final dirList = Directory(_dataFileLocalDir).listSync(recursive: false);
+    final dir = Directory(_dataFileLocalDir);
+    if (!dir.existsSync()) {
+      log("__LIST_DIR__ Path not found:$_dataFileLocalDir");
+      return [];
+    }
+    final dirList = dir.listSync(recursive: false);
     for (var element in dirList) {
       if (element is File) {
         final fileName = File(element.path).uri.pathSegments.last;
@@ -438,7 +530,8 @@ class ConfigData {
     return l;
   }
 
-  ConfigData(this._applicationDefaultDir, this._configFileName, this._isDesktop, this.log) {
+  ConfigData(this._applicationDefaultDir, this._configFileName, this._isDesktop,
+      this.log) {
     log("__PLATFORM:__ ${_isDesktop ? 'DESKTOP' : 'MOBILE'}");
     if (!_isDesktop) {
       log("__DOCUMENTS DIR:__ $_applicationDefaultDir");
@@ -459,17 +552,21 @@ class ConfigData {
     _data = DataContainer(resp.value, FileDataPrefix.empty(), "", "", "", "");
 
     if (_isDesktop) {
-      _appStateLocalDir = _data.getStringFromJson(appStateLocalDirPath, fallback: _applicationDefaultDir);
+      _appStateLocalDir = _data.getStringFromJson(appStateLocalDirPath,
+          fallback: _applicationDefaultDir);
     } else {
       _appStateLocalDir = _applicationDefaultDir;
     }
-    _appStateFileName = _data.getStringFromJson(appStateFileNamePath, fallback: defaultAppStateFileName);
+    _appStateFileName = _data.getStringFromJson(appStateFileNamePath,
+        fallback: defaultAppStateFileName);
 
     update();
     _repoName = _data.getStringFromJson(repoPath, fallback: defaultRepoName);
     _title = _data.getStringFromJson(titlePath, fallback: defaultAppTitle);
-    _authorEmail = _data.getStringFromJson(authorEmailPath, fallback: defaultAuthorEmail);
-    _dataFetchTimeoutMillis = _data.getNumFromJson(dataFetchTimeoutMillisPath, fallback: defaultFetchTimeoutMillis) as int;
+    _authorEmail =
+        _data.getStringFromJson(authorEmailPath, fallback: defaultAuthorEmail);
+    _dataFetchTimeoutMillis = _data.getNumFromJson(dataFetchTimeoutMillisPath,
+        fallback: defaultFetchTimeoutMillis) as int;
     log("__LOCAL DATA FILE:__ ${getDataFileLocal()}");
     log("__REMOTE DATA GET:__ ${getGetDataFileUrl()}");
     log("__REMOTE DATA POST:__ ${getPostDataFileUrl()}");
@@ -477,22 +574,44 @@ class ConfigData {
   }
 
   void update({bool callOnUpdate = true}) {
-    _getDataFileUrl = _data.getStringFromJson(getDataUrlPath, fallback: defaultRemoteGetUrl, create: true);
-    _postDataFileUrl = _data.getStringFromJson(postDataUrlPath, fallback: defaultRemotePostUrl, create: true);
-    _dataFileName = _data.getStringFromJson(dataFileLocalNamePath, fallback: defaultDataFileName, create: true);
+    _getDataFileUrl = _data.getStringFromJson(getDataUrlPath,
+        fallback: defaultRemoteGetUrl, create: true);
+    _postDataFileUrl = _data.getStringFromJson(postDataUrlPath,
+        fallback: defaultRemotePostUrl, create: true);
+    _dataFileName = _data.getStringFromJson(dataFileLocalNamePath,
+        fallback: defaultDataFileName, create: true);
     if (_isDesktop) {
-      _dataFileLocalDir = _data.getStringFromJson(dataFileLocalDirPath, fallback: _applicationDefaultDir, create: true);
+      _dataFileLocalDir = _data.getStringFromJson(dataFileLocalDirPath,
+          fallback: _applicationDefaultDir, create: true);
     } else {
       _dataFileLocalDir = _applicationDefaultDir;
     }
-    _appColoursPrimary = validColour(_data.getStringFromJson(appColoursPrimaryPath, fallback: defaultPrimaryColour, create: true), appColoursPrimaryPath);
-    _appColoursSecondary = validColour(_data.getStringFromJson(appColoursSecondaryPath, fallback: defaultSecondaryColour, create: true), appColoursSecondaryPath);
-    _appColoursHiLight = validColour(_data.getStringFromJson(appColoursHiLightPath, fallback: defaultHiLightColour, create: true), appColoursHiLightPath);
-    _appColoursError = validColour(_data.getStringFromJson(appColoursErrorPath, fallback: defaultErrorColour, create: true), appColoursErrorPath);
-    _darkMode = _data.getBoolFromJson(appColoursDarkModePath, fallback: defaultDarkMode);
-    _textScale = _data.getNumFromJson(appTextScalePath, fallback: (_isDesktop ? defaultFontScaleDesktop : defaultFontScaleMobile)).toDouble();
+    _appColoursPrimary = validColour(
+        _data.getStringFromJson(appColoursPrimaryPath,
+            fallback: defaultPrimaryColour, create: true),
+        appColoursPrimaryPath);
+    _appColoursSecondary = validColour(
+        _data.getStringFromJson(appColoursSecondaryPath,
+            fallback: defaultSecondaryColour, create: true),
+        appColoursSecondaryPath);
+    _appColoursHiLight = validColour(
+        _data.getStringFromJson(appColoursHiLightPath,
+            fallback: defaultHiLightColour, create: true),
+        appColoursHiLightPath);
+    _appColoursError = validColour(
+        _data.getStringFromJson(appColoursErrorPath,
+            fallback: defaultErrorColour, create: true),
+        appColoursErrorPath);
+    _darkMode = _data.getBoolFromJson(appColoursDarkModePath,
+        fallback: defaultDarkMode);
+    _textScale = _data
+        .getNumFromJson(appTextScalePath,
+            fallback:
+                (_isDesktop ? defaultFontScaleDesktop : defaultFontScaleMobile))
+        .toDouble();
     _rootNodeName = _data.getStringFromJson(appRootNodeNamePath, fallback: "?");
-    _hideDataPath = _data.getBoolFromJson(hideDataPathPath, fallback: defaultHideDataPath);
+    _hideDataPath =
+        _data.getBoolFromJson(hideDataPathPath, fallback: defaultHideDataPath);
     _appThemeData = null;
     if (_onUpdate != null && callOnUpdate) {
       _onUpdate!();
@@ -500,7 +619,17 @@ class ConfigData {
   }
 
   AppThemeData getAppThemeData() {
-    _appThemeData ??= AppThemeData._(_appColoursPrimary, _appColoursSecondary, _appColoursHiLight, _appColoursError, defaultFontFamily, _textScale, Colors.red.shade500, _darkMode, _isDesktop, _hideDataPath);
+    _appThemeData ??= AppThemeData._(
+        _appColoursPrimary,
+        _appColoursSecondary,
+        _appColoursHiLight,
+        _appColoursError,
+        defaultFontFamily,
+        _textScale,
+        Colors.red.shade500,
+        _darkMode,
+        _isDesktop,
+        _hideDataPath);
     return _appThemeData!;
   }
 
@@ -521,8 +650,10 @@ class ConfigData {
 
   Map<String, dynamic> getMinimumDataContentMap() {
     final dt = DateTime.now();
-    final result = '${dt.year}-${dt.month}-${dt.day} ${dt.hour}:${dt.minute}:${dt.second}';
-    return DataContainer.staticConvertStringToMap('{"Data":{"Info":{"Created":"$result"}}}', "");
+    final result =
+        '${dt.year}-${dt.month}-${dt.day} ${dt.hour}:${dt.minute}:${dt.second}';
+    return DataContainer.staticConvertStringToMap(
+        '{"Data":{"Info":{"Created":"$result"}}}', "");
   }
 
   double get iconSize {
@@ -553,7 +684,8 @@ class ConfigData {
     return _data.getStringFromJsonOptional(path);
   }
 
-  String getStringFromJson(Path path, {String fallback = "", bool create = false}) {
+  String getStringFromJson(Path path,
+      {String fallback = "", bool create = false}) {
     return _data.getStringFromJson(path, fallback: fallback);
   }
 
@@ -576,7 +708,8 @@ class ConfigData {
   ColorPallet validColour(String colourName, Path path) {
     final c = colourNames[colourName];
     if (c == null) {
-      throw ColourNameException("Invalid colour name at path:${path.toString()}");
+      throw ColourNameException(
+          "Invalid colour name at path:${path.toString()}");
     }
     return c;
   }
@@ -593,13 +726,18 @@ class ConfigData {
 
   SuccessState save(Function(String log) log) {
     try {
-      final sc = DataContainer.saveToFile(_fullFileName, _data.dataToStringFormatted(), log: log);
+      final sc = DataContainer.saveToFile(
+          _fullFileName, _data.dataToStringFormatted(),
+          log: log);
       if (sc.isFail) {
         return sc;
       }
       return SuccessState(true, message: "Config File Saved", log: log);
     } catch (e) {
-      return SuccessState(false, message: "Config File Save Failed", exception: e as Exception, log: log);
+      return SuccessState(false,
+          message: "Config File Save Failed",
+          exception: e as Exception,
+          log: log);
     }
   }
 
