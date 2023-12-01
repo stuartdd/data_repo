@@ -43,6 +43,7 @@ enum ActionType {
   editItemData, // Edit the current items data (value) and type (String int double bool...)
   renameItem, // Edit the current items name (key) and type (MarkDown, List, Reference...)
   about, // Display About dialogue
+  settings, // Display settings dialogue
   checkReferences,
   createFile,
   select,
@@ -344,6 +345,10 @@ class DetailAction {
   String toString() {
     final s = "Type:'${value ? "Value" : "Map"}' Path:'$path' V1:'$oldValue' ";
     switch (action) {
+      case ActionType.settings:
+        {
+          return "SETTINGS";
+        }
       case ActionType.checkReferences:
         {
           return "CHECK_REF";

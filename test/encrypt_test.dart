@@ -35,10 +35,15 @@ void main() {
     expect(s, "This is it");
 
     // Test key > 32
-    expect(() => EncryptData.encryptAES("Hello World", '12345678901234567890123456789012a'), throwsA(isA<ArgumentError>()));
+    expect(
+        () => EncryptData.encryptAES(
+            "Hello World", '12345678901234567890123456789012a'),
+        throwsA(isA<ArgumentError>()));
     // Test key < _minKeyLen
-    expect(() => EncryptData.encryptAES("Hello World", '123'), throwsA(isA<ArgumentError>()));
+    expect(() => EncryptData.encryptAES("Hello World", '123'),
+        throwsA(isA<ArgumentError>()));
     // Test incorrect key
-    expect(() => EncryptData.decryptAES(ed, '1234|c'), throwsA(isA<ArgumentError>()));
+    expect(() => EncryptData.decryptAES(ed, '1234|c'),
+        throwsA(isA<ArgumentError>()));
   });
 }
