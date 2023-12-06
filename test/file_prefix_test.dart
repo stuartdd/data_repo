@@ -77,7 +77,7 @@ void main() {
   });
 
   test('Factory fromFileContent empty', () async {
-    final er = FileDataPrefix.fromFileContent("","");
+    final er = FileDataPrefix.fromFileContent("", "");
     expect(er.toString(), "false:0:0:false:true:No content");
   });
 
@@ -90,8 +90,8 @@ void main() {
   test('Factory fromFileContent not equal or gt no prefix', () async {
     const td1 = "TS:E:9:{}";
     const td2 = "abc";
-    final p1 = FileDataPrefix.fromFileContent(td1,"braces");
-    final p2 = FileDataPrefix.fromFileContent(td2,"abc");
+    final p1 = FileDataPrefix.fromFileContent(td1, "braces");
+    final p2 = FileDataPrefix.fromFileContent(td2, "abc");
     expect(p1.toString(), "true:9:7:true:false:braces");
     expect(p2.toString(), "false:0:0:false:false:abc");
     expect(p1.isEqual(p2), false);
@@ -115,7 +115,7 @@ void main() {
 
   test('Factory fromFileContent equal', () async {
     const td = "TS:E:9:{}";
-    final p1 = FileDataPrefix.fromFileContent("xx","xx");
+    final p1 = FileDataPrefix.fromFileContent("xx", "xx");
     final p2 = FileDataPrefix.fromFileContent(td, "braces");
     expect(p1.toString(), "false:0:0:false:false:xx");
     expect(p2.toString(), "true:9:7:true:false:braces");
@@ -127,8 +127,8 @@ void main() {
 
   test('Factory fromFileContent equal', () async {
     const td = "TS:E:9:{}";
-    final p1 = FileDataPrefix.fromFileContent(td,"braces1");
-    final p2 = FileDataPrefix.fromFileContent(td,"braces2");
+    final p1 = FileDataPrefix.fromFileContent(td, "braces1");
+    final p2 = FileDataPrefix.fromFileContent(td, "braces2");
     expect(p1.toString(), "true:9:7:true:false:braces1");
     expect(p2.toString(), "true:9:7:true:false:braces2");
     expect(p1.isEqual(p2), true);
@@ -139,7 +139,7 @@ void main() {
 
   test('Factory fromFileContent OK', () async {
     const td = "TS:E:9:{}";
-    final er = FileDataPrefix.fromFileContent(td,"braces");
+    final er = FileDataPrefix.fromFileContent(td, "braces");
     expect(er.toString(), "true:9:7:true:false:braces");
     expect(td.substring(er.startPos), "{}");
     expect(er.content, "{}");
@@ -147,43 +147,43 @@ void main() {
 
   test('Factory fromFileContent OK no : terminal', () async {
     const td = "TS:E:9g";
-    final er = FileDataPrefix.fromFileContent(td,"g");
+    final er = FileDataPrefix.fromFileContent(td, "g");
     expect(er.toString(), "true:9:6:true:false:g");
     expect(td.substring(er.startPos), "g");
   });
 
   test('Factory fromFileContent no data', () async {
-    final er = FileDataPrefix.fromFileContent("TS:E:9","err");
+    final er = FileDataPrefix.fromFileContent("TS:E:9", "err");
     expect(er.toString(), "false:0:0:false:true:No data after Timestamp");
   });
 
   test('Factory fromFileContent Invalid TS E', () async {
-    final er = FileDataPrefix.fromFileContent("TS:E: ","err");
+    final er = FileDataPrefix.fromFileContent("TS:E: ", "err");
     expect(er.toString(), "false:0:0:false:true:Invalid Timestamp");
   });
 
   test('Factory fromFileContent Invalid TS C', () async {
-    final er = FileDataPrefix.fromFileContent("TS:C: ","err");
+    final er = FileDataPrefix.fromFileContent("TS:C: ", "err");
     expect(er.toString(), "false:0:0:false:true:Invalid Timestamp");
   });
 
   test('Factory fromFileContent No TS data C', () async {
-    final er = FileDataPrefix.fromFileContent("TS:C:","err");
+    final er = FileDataPrefix.fromFileContent("TS:C:", "err");
     expect(er.toString(), "false:0:0:false:true:No Timestamp data");
   });
 
   test('Factory fromFileContent No TS data E', () async {
-    final er = FileDataPrefix.fromFileContent("TS:E:","err");
+    final er = FileDataPrefix.fromFileContent("TS:E:", "err");
     expect(er.toString(), "false:0:0:false:true:No Timestamp data");
   });
 
   test('Factory fromFileContent part prefix', () async {
-    final er = FileDataPrefix.fromFileContent("TS","TS");
+    final er = FileDataPrefix.fromFileContent("TS", "TS");
     expect(er.toString(), "false:0:0:false:false:TS");
   });
 
   test('Factory fromFileContent noPrefix', () async {
-    final er = FileDataPrefix.fromFileContent("abc","abc");
+    final er = FileDataPrefix.fromFileContent("abc", "abc");
     expect(er.toString(), "false:0:0:false:false:abc");
   });
 

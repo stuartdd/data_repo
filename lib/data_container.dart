@@ -14,6 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+import 'package:flutter/cupertino.dart';
+
 import "path.dart";
 import 'package:http/http.dart' as http;
 import 'package:http_status_code/http_status_code.dart';
@@ -30,6 +32,29 @@ const codePointFor9 = 57;
 const codePointForColon = 58;
 
 const JsonEncoder formattedJsonEncoder = JsonEncoder.withIndent('  ');
+
+class JsonException implements Exception {
+  final String message;
+  final Path? path;
+  JsonException(this.path, {required this.message});
+  @override
+  String toString() {
+    Object? message = this.message;
+    if (path == null || path!.isEmpty) {
+      return "JsonException: $message";
+    }
+    return "JsonException: $message: Path:$path";
+  }
+}
+
+class DataContainerException implements Exception {
+  final String message;
+  DataContainerException(this.message);
+  @override
+  String toString() {
+    return "DataContainerException: $message";
+  }
+}
 
 class DataContainer {
   final String remoteSourcePath;
@@ -129,22 +154,18 @@ class DataContainer {
     return "";
   }
 
-  dynamic getNodeFromJson(Path path, {Path? context}) {
+  dynamic getNodeFromJson(final Path path, {final String sub = ""}) {
     if (path.isEmpty) {
       throw JsonException(message: "getNodeFromJson: Empty Path", path);
     }
-
-    dynamic node;
-    if (context != null) {
-      node = getNodeFromJson(context);
-      node ??= _dataMap;
-    } else {
-      node = _dataMap;
-    }
-
+    dynamic node = _dataMap;
     for (var i = 0; i < path.length; i++) {
       final name = path.peek(i);
-      node = node[name];
+      if (name == Path.substituteElement && sub.isNotEmpty) {
+        node = node[sub];
+      } else {
+        node = node[name];
+      }
       if (node == null) {
         return null;
       }
@@ -158,76 +179,97 @@ class DataContainer {
     return null;
   }
 
-  String getStringFromJsonOptional(Path path, {Path? context}) {
-    final node = getNodeFromJson(path, context: context);
+  String getStringFromJsonOptional(final Path path, {final String sub1 = "", final String sub2 = ""}) {
+    var node = getNodeFromJson(path, sub: sub1);
+    if (node == null) {
+      if (sub2.isNotEmpty) {
+        node = getNodeFromJson(path, sub: sub2);
+      }
+    }
     if (node == null) {
       return "";
     }
     return node.toString();
   }
 
-  String getStringFromJson(Path path, {String fallback = "", bool create = false, Path? context}) {
-    final node = getNodeFromJson(path, context: context);
+  String getStringFromJson(final Path path, {final String fallback = "", final String sub1 = "", final String sub2 = ""}) {
+    var node = getNodeFromJson(path, sub: sub1);
     if (node == null) {
-      if (create) {
-        setValueForJsonPath(path, fallback);
-        return fallback;
-      } else {
+      if (sub2.isNotEmpty) {
+        node = getNodeFromJson(path, sub: sub2);
+      }
+      if (node == null) {
         if (fallback.isNotEmpty) {
           return fallback;
         }
+        throw JsonException(message: "getStringFromJson: Node was NOT found", path.cloneSub(sub2));
       }
-      throw JsonException(message: "getStringFromJson: String Node was NOT found", path);
     }
     if (node is String) {
       return node;
     }
-    throw JsonException(message: "getStringFromJson: Node found was NOT a String node", path);
+    throw JsonException(message: "getStringFromJson: Node found was NOT a String node", path.cloneSub(sub2));
   }
 
-  num getNumFromJson(Path path, {num? fallback, Path? context}) {
-    final node = getNodeFromJson(path, context: context);
+  num getNumFromJson(final Path path, {final num? fallback, final String sub1 = "", final String sub2 = ""}) {
+    var node = getNodeFromJson(path, sub: sub1);
     if (node == null) {
-      if (fallback != null) {
-        return fallback;
+      if (sub2.isNotEmpty) {
+        node = getNodeFromJson(path, sub: sub2);
       }
-      throw JsonException(message: "getNumFromJson: number Node was NOT found", path);
+      if (node == null) {
+        if (fallback != null) {
+          return fallback;
+        }
+        throw JsonException(message: "getNumFromJson: Node was NOT found", path.cloneSub(sub2));
+      }
     }
     if (node is num) {
       return node;
     }
-    throw JsonException(message: "getNumFromJson: Node found [$node] was NOT a Number node", path);
+    throw JsonException(message: "getNumFromJson: Node found [$node] was NOT a Number node", path.cloneSub(sub2));
   }
 
-  bool getBoolFromJson(Path path, {bool? fallback, Path? context}) {
-    final node = getNodeFromJson(path, context: context);
+  bool getBoolFromJson(final Path path, {final bool? fallback, final String sub1 = "", final String sub2 = ""}) {
+    var node = getNodeFromJson(path, sub: sub1);
     if (node == null) {
-      if (fallback != null) {
-        return fallback;
+      if (sub2.isNotEmpty) {
+        node = getNodeFromJson(path, sub: sub2);
       }
-      throw JsonException(message: "geBoolFromJson: bool Node was NOT found", path);
+      if (node == null) {
+        if (fallback != null) {
+          return fallback;
+        }
+        throw JsonException(message: "getBoolFromJson: Node was NOT found", path.cloneSub(sub2));
+      }
     }
     if (node is bool) {
       return node;
     }
-    throw JsonException(message: "geBoolFromJson: Node found [$node] was NOT a bool node", path);
+    throw JsonException(message: "geBoolFromJson: Node found [$node] was NOT a bool node", path.cloneSub(sub2));
   }
 
-  Map<String, dynamic> getMapFromJson(Path path, {Path? context}) {
-    final node = getNodeFromJson(path, context: context);
+  Map<String, dynamic> getMapFromJson(final Path path, {final String sub1 = "", final String sub2 = ""}) {
+    var node = getNodeFromJson(path, sub: sub1);
     if (node == null) {
-      throw JsonException(message: "getMapFromJson: Map Node was NOT found", path);
+      if (sub2.isNotEmpty) {
+        node = getNodeFromJson(path, sub: sub2);
+      }
+      if (node == null) {
+        throw JsonException(message: "getMapFromJson: Node was NOT found", path.cloneSub(sub2));
+      }
     }
     if (node is Map<String, dynamic>) {
       return node;
     }
-    throw JsonException(message: "getMapFromJson: Node found was NOT a Map node", path);
+    throw JsonException(message: "getMapFromJson: Node found was NOT a Map node", path.cloneSub(sub2));
   }
 
-  String setValueForJsonPath(Path path, dynamic value) {
+  String setValueForJsonPath(final Path path, final dynamic value) {
     if (path.isEmpty) {
       return "Path is empty";
     }
+    debugPrint("setValueForJsonPath $path --> $value");
     dynamic node = _dataMap;
     dynamic parent = _dataMap;
     if (parent is! Map) {
@@ -237,7 +279,7 @@ class DataContainer {
       final name = path.peek(i);
       parent = node;
       if (parent is! Map) {
-        throw JsonException(path, message: "Existing Node '${path.peek(i-1)}' (not a Map). Cannot create");
+        throw JsonException(path, message: "Existing Node '${path.peek(i - 1)}' (not a Map). Cannot create");
       }
       node = parent[name];
       if (node == null) {
@@ -557,29 +599,6 @@ class FileDataPrefix {
 
   bool isNotEqual(FileDataPrefix other) {
     return timeStamp != other.timeStamp;
-  }
-}
-
-class DataContainerException implements Exception {
-  final String message;
-  DataContainerException(this.message);
-  @override
-  String toString() {
-    return "DataContainerException: $message";
-  }
-}
-
-class JsonException implements Exception {
-  final String message;
-  final Path? path;
-  JsonException(this.path, {required this.message});
-  @override
-  String toString() {
-    Object? message = this.message;
-    if (path == null || path!.isEmpty) {
-      return "JsonException: $message";
-    }
-    return "JsonException: $message: Path:$path";
   }
 }
 

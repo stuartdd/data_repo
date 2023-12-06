@@ -1,15 +1,4 @@
 {
-  "theme": {
-    "rootNodeName": "Home",
-    "darkMode": false,
-    "hideDataPath": true,
-    "colours": {
-      "primary": "blue",
-      "secondary": "green",
-      "hilight": "yellow",
-      "error": "red"
-    }
-  },
   "application": {
     "title": "Data Repository",
     "authorEmail": "sdd.davies@gmail.com",
@@ -22,5 +11,17 @@
     "postDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
     "datafile": "test.json",
     "datafilePath": "../data_repo_server/local"
+  },
+  "theme": {
+    "default": {
+      "colours": {
+        "primary": "green"
+      },
+      "rootNodeName": "Home"
+    },
+    "test.json": {
+      "darkMode": true,
+      "rootNodeName": "bart"
+    }
   }
 }

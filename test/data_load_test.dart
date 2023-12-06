@@ -32,6 +32,30 @@ void main() {
   //     fail(r.exception.toString());
   //   }
   // });
+  test('Test data sub', () async {
+    final data = DataContainer(DataContainer.loadFromFile("test/data/dataSubTest.json").value, FileDataPrefix.empty(), "", "", "", "");
+    expect(data.getStringFromJson(Path.fromDotPath("B.DEF.B1")),"X");
+    expect(data.getStringFromJson(Path.fromDotPath("B.BY.B2")),"Y");
+
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B2"), fallback: "FB"),"FB");
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B2"), fallback: "FB", sub1: "DEF"),"FB");
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B2"), fallback: "FB", sub1: "BY"),"Y");
+
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B1"), fallback: "FB"),"FB");
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B1"), fallback: "FB", sub1: "DEF"),"X");
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B1"), fallback: "FB", sub1: "BY"),"FB");
+
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B2"), fallback: "FB", sub1: "DEF", sub2: "BY"),"Y");
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B2"), fallback: "FB", sub1: "BY", sub2: "DEF"),"Y");
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B1"), fallback: "FB", sub1: "DEF", sub2: "BY"),"X");
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B1"), fallback: "FB", sub1: "BY", sub2: "DEF"),"X");
+
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B12"), fallback: "FB", sub1: "DEF", sub2: "BY"),"A");
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B12"), fallback: "FB", sub1: "BY", sub2: "DEF"),"C");
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B11"), fallback: "FB", sub1: "DEF", sub2: "BY"),"B");
+    expect(data.getStringFromJson(Path.fromDotPath("B.*.B11"), fallback: "FB", sub1: "BY", sub2: "DEF"),"D");
+  });
+
   test('Visit each node', () async {
     final data = DataContainer(DataContainer.loadFromFile("test/data/data04.json").value, FileDataPrefix.empty(), "", "", "", "");
     final sb = StringBuffer();
@@ -39,7 +63,7 @@ void main() {
       sb.write(p);
       sb.write('|');
     });
-    expect(sb.toString(),"A|A.A1|A.A1.A11|A.A1.A11.A111|A.A1.A11.A112|A.B|A.B.B1|A.B.B1.B11|A.B.B1.B12|A.B.B2|A.B.B2.B21|A.B.B2.B21.B211|A.B.B2.B21.B212|C|");
+    expect(sb.toString(), "A|A.A1|A.A1.A11|A.A1.A11.A111|A.A1.A11.A112|A.B|A.B.B1|A.B.B1.B11|A.B.B1.B12|A.B.B2|A.B.B2.B21|A.B.B2.B21.B211|A.B.B2.B21.B212|C|");
   });
 
   test('Test Set Node', () async {
@@ -235,7 +259,7 @@ void main() {
       expect(data.getStringFromJson(Path.fromList(["nome"])), "Pizza da Mario");
       fail("Did not throw any Exception");
     } on JsonException catch (e) {
-      assertContainsAll(["String Node was NOT found: Path:nome"], e.toString());
+      assertContainsAll(["Node was NOT found: Path:nome"], e.toString());
     } on TestFailure catch (e) {
       fail("$e");
     } catch (e) {

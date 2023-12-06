@@ -33,15 +33,15 @@ final List<SettingDetail> _settingsData = [
   SettingDetail("put", "Server URL (Upload)", "Upload address of the host server", postDataUrlPath, SettingDetailType.url, defaultRemotePostUrl, true),
   SettingDetail("path", "Local Data file path", "The directory for the data file", dataFileLocalDirPath, SettingDetailType.dir, defaultDataEmptyString, false),
   SettingDetail("data", "Data file Name", "Now set from the main screen!", dataFileLocalNamePath, SettingDetailType.file, defaultDataEmptyString, true, hide: true),
-  SettingDetail("rootNodeName", "Root Node Name", "Replace the root node name with this", appRootNodeNamePath, SettingDetailType.name, defaultDataEmptyString, true),
+  SettingDetail("rootNodeName", "Root Node Name", "Replace the root node name with this", appRootNodeNamePathC, SettingDetailType.name, defaultDataEmptyString, true),
   SettingDetail("timeout", "Server Timeout Milliseconds", "The host server timeout 100..5000", dataFetchTimeoutMillisPath, SettingDetailType.int, defaultFetchTimeoutMillis.toString(), false, minValue: 100, maxValue: 5000),
-  SettingDetail("", "Screen Text & Icons", "Icons/Text White or Black. Click below to change", appColoursDarkModePath, SettingDetailType.bool, "$defaultDarkMode", true, trueValue: "Currently White", falseValue: "Currently Black"),
-  SettingDetail("", "Hide Data Info", "Compact mode. Hide 'Owned By'", hideDataPathPath, SettingDetailType.bool, "$defaultHideDataPath", false, trueValue: "Currently Hide", falseValue: "Currently Show"),
+  SettingDetail("", "Screen Text & Icons", "Icons/Text White or Black. Click below to change", appDarkModePathC, SettingDetailType.bool, "$defaultDarkMode", true, trueValue: "Currently White", falseValue: "Currently Black"),
+  SettingDetail("", "Hide Data Info", "Compact mode. Hide 'Owned By'", hideDataPathPathC, SettingDetailType.bool, "$defaultHideDataPath", false, trueValue: "Currently Hide", falseValue: "Currently Show"),
   SettingDetail("", "Screen Text Scale", "Text Scale. 0.5..2.0", appTextScalePath, SettingDetailType.double, "1.0", true, minValue: 0.5, maxValue: 2.0),
-  SettingDetail("", "Primary Colour", "The main colour theme", appColoursPrimaryPath, SettingDetailType.color, defaultPrimaryColour, true),
-  SettingDetail("", "Preview Colour", "The Markdown 'Preview' colour", appColoursSecondaryPath, SettingDetailType.color, defaultSecondaryColour, true),
-  SettingDetail("", "Help Colour", "The Markdown 'Help' colour", appColoursHiLightPath, SettingDetailType.color, defaultHiLightColour, true),
-  SettingDetail("", "Error Colour", "The Error colour theme", appColoursErrorPath, SettingDetailType.color, defaultErrorColour, true),
+  SettingDetail("", "Primary Colour", "The main colour theme", appColoursPrimaryPathC, SettingDetailType.color, defaultPrimaryColourName, true),
+  SettingDetail("", "Preview Colour", "The Markdown 'Preview' colour", appColoursSecondaryPathC, SettingDetailType.color, defaultSecondaryColourName, true),
+  SettingDetail("", "Help Colour", "The Markdown 'Help' colour", appColoursHiLightPathC, SettingDetailType.color, defaultHiLightColourName, true),
+  SettingDetail("", "Error Colour", "The Error colour theme", appColoursErrorPathC, SettingDetailType.color, defaultErrorColourName, true),
 ];
 
 class SettingValidation {
@@ -203,7 +203,6 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
       widget.settingsControlList,
       widget.hint,
       (newValue, settingDetail) {
-        debugPrint("Page:OnValidate $newValue");
         return widget.onValidate(newValue, settingDetail);
       },
     );
@@ -307,7 +306,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
     }
 
     if (type == SettingDetailType.color) {
-      final p = widget.appThemeData.getColorPalletForName(widget.settingsControl.stringValue);
+      final p = ColorPallet.forName(widget.settingsControl.stringValue, fallback: widget.settingsControl.detail.fallback);
       return Container(
         color: p.med,
         padding: const EdgeInsets.all(5.0),
@@ -315,7 +314,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
           appThemeData: widget.appThemeData,
           text: "Select Colour Palette",
           onPressed: (button) {
-            showColorPeckerDialog(context, widget.appThemeData, widget.settingsControl.detail.title, widget.width, colourNames[widget.settingsControl.stringValue], (palette, index) {
+            showColorPeckerDialog(context, widget.appThemeData, widget.settingsControl.detail.title, widget.width, ColorPallet.forName(widget.settingsControl.stringValue, fallback: widget.settingsControl.detail.fallback), (palette, index) {
               onChanged(palette.colorName);
             });
           },
@@ -387,20 +386,21 @@ class SettingDetail {
 class SettingControlList {
   late final List<SettingControl> list;
   final String dataFileDir;
+
   SettingControlList(final bool isDeskTop, this.dataFileDir, final ConfigData configData) {
     list = List<SettingControl>.empty(growable: true);
     for (var settingDetail in _settingsData) {
       if (isDeskTop || settingDetail.desktopOnly) {
         switch (settingDetail.detailType) {
           case SettingDetailType.bool:
-            list.add(SettingControl(settingDetail, configData.getBoolFromJson(settingDetail.path, fallback: _stringToBool(settingDetail.fallback)).toString()));
+            list.add(SettingControl(settingDetail, configData.getBoolFromJson(settingDetail.path, sub2: defaultThemeReplace, sub1: configData.themeContext, fallback: _stringToBool(settingDetail.fallback)).toString()));
             break;
           case SettingDetailType.double:
           case SettingDetailType.int:
-            list.add(SettingControl(settingDetail, configData.getNumFromJson(settingDetail.path, fallback: num.parse(settingDetail.fallback)).toString()));
+            list.add(SettingControl(settingDetail, configData.getNumFromJson(settingDetail.path, sub2: defaultThemeReplace, sub1: configData.themeContext, fallback: num.parse(settingDetail.fallback)).toString()));
             break;
           default:
-            list.add(SettingControl(settingDetail, configData.getStringFromJsonOptional(settingDetail.path)));
+            list.add(SettingControl(settingDetail, configData.getStringFromJsonOptional(settingDetail.path, sub2: defaultThemeReplace, sub1: configData.themeContext)));
         }
       }
     }
@@ -431,7 +431,7 @@ class SettingControlList {
           if (log != null) {
             log("__CONFIG__ Changed:'${list[i].detail.title}' From:'${list[i].oldValue}' To:'${list[i].stringValue}'");
           }
-          configData.setValueForJsonPath(sc.detail.path, sc.dynamicValue);
+          configData.setValueForJsonPath(sc.detail.path.cloneSub(configData.themeContext), sc.dynamicValue);
         }
       }
     }
@@ -479,8 +479,8 @@ class SettingControl {
     _currentValue = oldValue;
   }
 
-  String getBoolString(bool set) {
-    if (set) {
+  String getBoolString(bool trueValue) {
+    if (trueValue) {
       return detail.trueValue;
     }
     return detail.falseValue;
@@ -554,7 +554,7 @@ SettingValidation _initialValidate(String value, SettingDetail detail, SettingCo
       }
     case SettingDetailType.color:
       {
-        if (!colourNames.containsKey(value)) {
+        if (!ColorPallet.colorNameExists(value)) {
           return SettingValidation.error("Invalid Colour Name");
         }
         break;

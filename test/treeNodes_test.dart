@@ -21,9 +21,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'dart:convert' as json_tools;
 
 void main() {
-
-
-
   test('Test Sorted', () async {
     final s = json_tools.jsonDecode(DataContainer.loadFromFile("test/data/data07.json").value);
     // Test original and clone are the same.
@@ -45,9 +42,9 @@ void main() {
       sb2.write(n.pathKey);
       sb2.write(':');
     });
-    expect(sb.toString(),"C:B:BZ:ZZ:ZZ212:ZZ213:ZZ211:BY:BY12:BY11:A:AA:AAA:A112:A113:A111:");
-    expect(sb1.toString(),"A:AA:AAA:A111:A112:A113:B:BY:BY11:BY12:BZ:ZZ:ZZ211:ZZ212:ZZ213:C:");
-    expect(sb2.toString(),"C:B:BZ:ZZ:ZZ213:ZZ212:ZZ211:BY:BY12:BY11:A:AA:AAA:A113:A112:A111:");
+    expect(sb.toString(), "C:B:BZ:ZZ:ZZ212:ZZ213:ZZ211:BY:BY12:BY11:A:AA:AAA:A112:A113:A111:");
+    expect(sb1.toString(), "A:AA:AAA:A111:A112:A113:B:BY:BY11:BY12:BZ:ZZ:ZZ211:ZZ212:ZZ213:C:");
+    expect(sb2.toString(), "C:B:BZ:ZZ:ZZ213:ZZ212:ZZ211:BY:BY12:BY11:A:AA:AAA:A113:A112:A111:");
   });
 
 //  void verifyNodeProperties(final MyTreeNode tn, String dotPath, int pathLen, bool empty, canExpand, hasLeaf, hasMap, isLeaf) {

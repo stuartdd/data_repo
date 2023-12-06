@@ -31,6 +31,26 @@ void check(final PathProperties p, final bool empty, final bool chg, final bool 
 
 void main() {
   //
+
+  test('Test Path cloneSub', () async {
+    final p1 = Path.fromDotPath("A.B.C.D");
+    expect(p1.toString(), "A.B.C.D");
+    expect(p1.cloneSub(replaceElement: "A", "A").toString(), "A.B.C.D");
+    expect(p1.cloneSub(replaceElement: "A", "X").toString(), "X.B.C.D");
+    expect(p1.cloneSub(replaceElement: "D", "X").toString(), "A.B.C.X");
+    expect(p1.cloneSub(replaceElement: "B", "X").toString(), "A.X.C.D");
+    expect(p1.cloneSub(replaceElement: "B", "").toString(), "A.C.D");
+    expect(p1.cloneSub(replaceElement: "A", "").toString(), "B.C.D");
+    expect(p1.cloneSub(replaceElement: "D", "").toString(), "A.B.C");
+    expect(p1.cloneSub(replaceElement: "Z", "").toString(), "A.B.C.D");
+    expect(p1.cloneSub(replaceElement: "Z", "Y").toString(), "A.B.C.D");
+
+    final p2 = Path.fromList(["A",Path.substituteElement,"B"]);
+    expect(p2.cloneSub("Y").toString(), "A.Y.B");
+    
+    
+  });
+
   test('Test PathProperties List', () async {
     final pAB = Path.fromDotPath("A.B");
     final pXY = Path.fromDotPath("X.Y");
@@ -118,21 +138,21 @@ void main() {
     expect(ppl.isNotEmpty, false);
     expect(ppl.length, 0);
 
-    ppl.setGroupSelect(pXY,true);
-    ppl.setGroupSelect(pAB,true);
+    ppl.setGroupSelect(pXY, true);
+    ppl.setGroupSelect(pAB, true);
     expect(ppl.length, 2);
     check(ppl.propertiesForPath(pAB), false, false, false, false, true);
-    ppl.setGroupSelect(pAB,true);
+    ppl.setGroupSelect(pAB, true);
     expect(ppl.length, 1);
     check(ppl.propertiesForPath(pAB), true, false, false, false, false);
     check(ppl.propertiesForPath(pXY), false, false, false, false, true);
     expect(ppl.isEmpty, false);
     expect(ppl.isNotEmpty, true);
 
-    ppl.setGroupSelect(pAB,true);
+    ppl.setGroupSelect(pAB, true);
     expect(ppl.length, 2);
     check(ppl.propertiesForPath(pAB), false, false, false, false, true);
-    ppl.setGroupSelect(pAB,true);
+    ppl.setGroupSelect(pAB, true);
     expect(ppl.length, 1);
     check(ppl.propertiesForPath(pAB), true, false, false, false, false);
 
@@ -143,9 +163,9 @@ void main() {
 
     ppl.setUpdated(pAB);
 
-    ppl.setGroupSelect(pAB,true);
+    ppl.setGroupSelect(pAB, true);
     check(ppl.propertiesForPath(pAB), false, true, true, false, true);
-    ppl.setGroupSelect(pAB,true);
+    ppl.setGroupSelect(pAB, true);
     check(ppl.propertiesForPath(pAB), false, true, true, false, false);
 
     check(ppl.propertiesForPath(pAB), false, true, true, false, false);

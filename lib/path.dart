@@ -17,6 +17,7 @@
 
 const _updatedNotForUnDo = "~";
 
+
 class PathProperties {
   String renamedFrom = "";
   String updatedFrom = "";
@@ -354,6 +355,7 @@ class PathNodes {
 }
 
 class Path {
+  static const String substituteElement = "*";
   final List<String> pathList = List.filled(initialSize, "", growable: false);
   int _count = 0;
 
@@ -423,6 +425,21 @@ class Path {
     final p = Path.empty();
     for (int i = 0; i < _count - 1; i++) {
       p.push(pathList[i]);
+    }
+    return p;
+  }
+
+  Path cloneSub(String replace, {String replaceElement = substituteElement}) {
+    final p = Path.empty();
+    for (int i = 0; i < _count; i++) {
+      final pe = pathList[i];
+      if (pe == replaceElement) {
+        if (replace.isNotEmpty) {
+          p.push(replace);
+        }
+      } else {
+        p.push(pe);
+      }
     }
     return p;
   }

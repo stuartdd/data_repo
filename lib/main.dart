@@ -842,6 +842,17 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           return _querySelect(detailActionData.path, detailActionData.additional);
         }
+      case ActionType.clearTheme:
+        {
+          final resp = _configData.clearThemeForFile(_configData.getDataFileName());
+          if (resp.isEmpty) {
+            _globalSuccessState = SuccessState(true, message: "__CONFIG:__ Theme: ${_configData.getDataFileName()} removed", log: logger.log);
+            _configData.save(logger.log);
+          } else {
+            _globalSuccessState = SuccessState(false, message: "__CONFIG:__ $resp", log: logger.log);
+          }
+          return Path.empty();
+        }
       case ActionType.link:
         {
           _implementLinkStateAsync(detailActionData.oldValue, detailActionData.path.last);
@@ -1427,13 +1438,21 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    _screenSize(context);
+
+    if (_loadedData.isNotEmpty) {
+      _configData.themeContext = _configData.getDataFileName();
+    } else {
+      _configData.themeContext = defaultThemeReplace;
+    }
+
     final AppThemeData appThemeData = _configData.getAppThemeData();
     final screenForeground = appThemeData.screenForegroundColour(true);
     final appBackgroundColor = appThemeData.screenBackgroundColor;
     final appBackgroundErrorColor = appThemeData.screenBackgroundErrorColor;
 
-    _screenSize(context);
     _configData.onUpdate = _onUpdateConfig;
+
 
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
       return await _handleShouldExit();
@@ -1548,6 +1567,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
 
     if (_loadedData.isEmpty) {
+
       _navBarHeight = 0;
       toolBarItems.add(Container(
         color: appThemeData.primary.med,
@@ -1847,6 +1867,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     }),
                     MenuOptionDetails("Reset Saved State", "Clears Previous searches etc.", ActionType.clearState, () {
                       return Icons.cleaning_services;
+                    }),
+                    MenuOptionDetails("Clear theme ", "Clears theme for file: ${_configData.getDataFileName()}.", ActionType.clearTheme, () {
+                      return Icons.delete_sweep_outlined;
                     }),
                   ],
                   [

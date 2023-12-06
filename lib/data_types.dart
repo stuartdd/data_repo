@@ -35,6 +35,7 @@ enum ActionType {
   reload, // Reload the data, Confirms if data was updated
   restart, // Restart the application, Confirms if data was updated
   clearState, // Reset (delete) the saved state config json
+  clearTheme, // Remove file specific theme from config
   save, // Save as it is (encrypted or un-encrypted)
   saveAlt, // Save unencrypted as encrypted OR save encrypted as un-encrypted
   flipSorted,
@@ -345,6 +346,10 @@ class DetailAction {
   String toString() {
     final s = "Type:'${value ? "Value" : "Map"}' Path:'$path' V1:'$oldValue' ";
     switch (action) {
+      case ActionType.clearTheme:
+        {
+          return "CLEAR_THEME";
+        }
       case ActionType.settings:
         {
           return "SETTINGS";
