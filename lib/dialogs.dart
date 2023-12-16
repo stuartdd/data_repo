@@ -38,7 +38,7 @@ Future<void> showOptionsDialog(
         child: ListView(
           children: [
             for (int i = 0; i < menuOptionsList.length; i++) ...[
-              menuOptionsList[i].enabled
+              menuOptionsList[i].enabled && menuOptionsList[i].isNotGroup
                   ? Card(
                       shape: appThemeData.rectangleBorderShape,
                       elevation: 2,
@@ -55,13 +55,13 @@ Future<void> showOptionsDialog(
                                   color: appThemeData
                                       .screenForegroundColour(true)),
                               appThemeData.iconGapBox(1),
-                              Text(menuOptionsList[i].s1(sub),
+                              Text(menuOptionsList[i].title(sub),
                                   style: appThemeData.tsLarge),
                             ],
                           ),
                         ),
                         subtitle: menuOptionsList[i].hasSubText
-                            ? Text(menuOptionsList[i].s2(sub),
+                            ? Text(menuOptionsList[i].subTitle(sub),
                                 style: appThemeData.tsMedium)
                             : null,
                         onTap: () {
@@ -73,13 +73,20 @@ Future<void> showOptionsDialog(
                         },
                       ),
                     )
-                  : const SizedBox(height: 0),
+                  : emptyOrGroup(menuOptionsList[i]),
             ]
           ],
         ),
       );
     },
   );
+}
+
+Widget emptyOrGroup(MenuOptionDetails mo) {
+  if (mo.enabled) {
+    return Container(height: 5, color: mo.separatorColour);
+  }
+  return const SizedBox(height: 0);
 }
 
 List<Widget> _stringsToTextList(final List<String> values, final int startAt,

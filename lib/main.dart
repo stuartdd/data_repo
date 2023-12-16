@@ -1453,7 +1453,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
     _configData.onUpdate = _onUpdateConfig;
 
-
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
       return await _handleShouldExit();
     });
@@ -1567,7 +1566,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
 
     if (_loadedData.isEmpty) {
-
       _navBarHeight = 0;
       toolBarItems.add(Container(
         color: appThemeData.primary.med,
@@ -1844,32 +1842,35 @@ class _MyHomePageState extends State<MyHomePage> {
                     MenuOptionDetails("Validate references", "Check validity of reference elements", ActionType.checkReferences, enabled: _isEditDataDisplay, () {
                       return Icons.check_circle_outline;
                     }),
-                    MenuOptionDetails("Save %{0}", "Save %{4} %{2}%{0}", ActionType.save, () {
+                    MenuOptionDetails.separator(appThemeData.hiLight.med, enabled: _isEditDataDisplay),
+                    MenuOptionDetails("Save Data", "Save '%{4}' %{2}%{0}", ActionType.save, () {
                       return Icons.lock_open;
                     }),
-                    MenuOptionDetails("Save %{1}", "Save %{4} %{2}%{1}", ActionType.saveAlt, () {
+                    MenuOptionDetails("Save %{1}", "Save '%{4}' %{2}%{1}", ActionType.saveAlt, () {
                       return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;
                     }),
-                    MenuOptionDetails("New data file", "Create a new data file", ActionType.createFile, () {
+                    MenuOptionDetails("Create data file", "Create a new data file", ActionType.createFile, () {
                       return _dataWasUpdated ? Icons.disabled_by_default_outlined : Icons.post_add;
                     }, enabled: !_dataWasUpdated),
                     MenuOptionDetails("Reload data file", "Reload %{4}", ActionType.reload, () {
                       return Icons.refresh;
                     }),
-                    MenuOptionDetails("Restart application", "Restart this application", ActionType.restart, () {
-                      return Icons.restart_alt;
+                    MenuOptionDetails.separator(appThemeData.hiLight.med),
+                    MenuOptionDetails("About", "App Information", ActionType.about, () {
+                      return Icons.info_outline;
                     }),
                     MenuOptionDetails("Settings", "Configure the app", ActionType.settings, () {
                       return Icons.settings;
                     }),
-                    MenuOptionDetails("About", "App Information", ActionType.about, () {
-                      return Icons.info_outline;
-                    }),
+                    MenuOptionDetails.separator(appThemeData.error.med),
                     MenuOptionDetails("Reset Saved State", "Clears Previous searches etc.", ActionType.clearState, () {
                       return Icons.cleaning_services;
                     }),
                     MenuOptionDetails("Clear theme ", "Clears theme for file: ${_configData.getDataFileName()}.", ActionType.clearTheme, () {
                       return Icons.delete_sweep_outlined;
+                    }),
+                    MenuOptionDetails("Restart application", "Restart this application", ActionType.restart, () {
+                      return Icons.restart_alt;
                     }),
                   ],
                   [

@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'path.dart';
 
 //
@@ -272,18 +273,30 @@ const List<OptionsTypeData> optionGroupUYesNo = [
 class MenuOptionDetails {
   final IconData Function() _getIcon;
   late final bool _enabled;
-  final String _s1;
-  final String _s2;
+  late final Color? separatorColour;
+  final String _title;
+  final String _subTitle;
   final ActionType action;
-  MenuOptionDetails(this._s1, this._s2, this.action, this._getIcon, {bool enabled = true}) {
+  MenuOptionDetails(this._title, this._subTitle, this.action, this._getIcon, {bool enabled = true, this.separatorColour}) {
     _enabled = enabled;
   }
 
-  String s1(final List<String> x) {
-    if (_s1.isEmpty) {
-      return "";
-    }
-    return _sub(_s1, x);
+  factory MenuOptionDetails.separator(Color separatorColour, {bool enabled = true}) {
+    return MenuOptionDetails("","",ActionType.none, () {
+      return Icons.add;
+    },enabled: enabled, separatorColour: separatorColour);
+  }
+
+  bool get isNotGroup {
+    return separatorColour == null;
+  }
+
+  bool get isGroup {
+    return separatorColour != null;
+  }
+
+  String title(final List<String> x) {
+    return _sub(_title, x);
   }
 
   IconData? get icon {
@@ -294,18 +307,18 @@ class MenuOptionDetails {
     return _enabled;
   }
 
-  String s2(final List<String> x) {
-    if (_s2.isEmpty) {
-      return "";
-    }
-    return _sub(_s2, x);
+  String subTitle(final List<String> x) {
+    return _sub(_subTitle, x);
   }
 
   bool get hasSubText {
-    return _s2.isNotEmpty;
+    return _subTitle.isNotEmpty;
   }
 
   String _sub(String s, final List<String> x) {
+    if (s.isEmpty) {
+      return "";
+    }
     for (int i = 0; i < x.length; i++) {
       s = s.replaceAll("%{$i}", x[i]);
     }
