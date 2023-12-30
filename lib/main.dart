@@ -530,7 +530,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 _checkReferences = true;
                               }
                               _pathPropertiesList.setRenamed(intoPath.cloneAppendList([Path.fromDotPath(k).last]));
-                              _pathPropertiesList.setRenamed(intoPath);
+                              _pathPropertiesList.setRenamed(intoPath, shouldLog: false);
                             }
                           }
                         }
@@ -1111,52 +1111,50 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _handleAddState(final Path path, final String name, final OptionsTypeData type) async {
-    if (name.length < 2) {
-      _globalSuccessState = SuccessState(false, message: "__ADD__ Name is too short");
-      return;
-    }
-    final mapNodes = path.pathNodes(_loadedData.dataMap);
-    if (mapNodes.error) {
-      _globalSuccessState = SuccessState(false, message: "__ADD__ Path not found");
-      return;
-    }
-    if (mapNodes.lastNodeIsData) {
-      _globalSuccessState = SuccessState(false, message: "__ADD__ Cannot add to a data node");
-      return;
-    }
-    if (mapNodes.lastNodeAsMap!.containsKey(name)) {
-      _globalSuccessState = SuccessState(false, message: "__ADD__ Name already exists");
-      return;
-    }
-    switch (type) {
-      case optionTypeDataValue:
-        setState(() {
+    setState(() {
+      if (name.length < 2) {
+        _globalSuccessState = SuccessState(false, message: "__ADD__ Name is too short", log: logger.log);
+        return;
+      }
+      final mapNodes = path.pathNodes(_loadedData.dataMap);
+      if (mapNodes.error) {
+        _globalSuccessState = SuccessState(false, message: "__ADD__ Path not found", log: logger.log);
+        return;
+      }
+      if (mapNodes.lastNodeIsData) {
+        _globalSuccessState = SuccessState(false, message: "__ADD__ Cannot add to a data node", log: logger.log);
+        return;
+      }
+      if (mapNodes.lastNodeAsMap!.containsKey(name)) {
+        _globalSuccessState = SuccessState(false, message: "__ADD__ Name already exists", log: logger.log);
+        return;
+      }
+      switch (type) {
+        case optionTypeDataValue:
           mapNodes.lastNodeAsMap![name] = emptyString;
           _dataWasUpdated = true;
           _checkReferences = true;
-          _pathPropertiesList.setUpdated(path);
-          _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
-          _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
+          _pathPropertiesList.setUpdated(path,shouldLog: false);
+          _pathPropertiesList.setRenamed(path.cloneAppendList([name]),shouldLog: false);
+          _pathPropertiesList.setUpdated(path.cloneAppendList([name]),shouldLog: false);
           _reloadTreeFromMapAndCopyFlags();
           selectNode(path);
           _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log: logger.log);
-        });
-        break;
-      case optionTypeDataGroup:
-        setState(() {
+          break;
+        case optionTypeDataGroup:
           final Map<String, dynamic> m = {};
           mapNodes.lastNodeAsMap![name] = m;
           _dataWasUpdated = true;
           _checkReferences = true;
-          _pathPropertiesList.setUpdated(path);
-          _pathPropertiesList.setRenamed(path.cloneAppendList([name]));
-          _pathPropertiesList.setUpdated(path.cloneAppendList([name]));
+          _pathPropertiesList.setUpdated(path,shouldLog: false);
+          _pathPropertiesList.setRenamed(path.cloneAppendList([name]),shouldLog: false);
+          _pathPropertiesList.setUpdated(path.cloneAppendList([name]),shouldLog: false);
           _reloadTreeFromMapAndCopyFlags();
-          selectNode(path);
+          selectNode(path.cloneAppendList([name]));
           _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log: logger.log);
-        });
-        break;
-    }
+          break;
+      }
+    });
   }
 
   String _checkRenameOk(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
@@ -1218,7 +1216,7 @@ class _MyHomePageState extends State<MyHomePage> {
         var newPath = detailActionData.path.cloneRename(newName);
         var parentPath = newPath.cloneParentPath();
         _pathPropertiesList.setRenamed(newPath);
-        _pathPropertiesList.setRenamed(parentPath);
+        _pathPropertiesList.setRenamed(parentPath,shouldLog: false);
         _reloadTreeFromMapAndCopyFlags();
         selectNode(parentPath);
         _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: logger.log);
@@ -1306,7 +1304,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           }
           _pathPropertiesList.setUpdated(detailActionData.path);
-          _pathPropertiesList.setUpdated(detailActionData.path.cloneParentPath());
+          _pathPropertiesList.setUpdated(detailActionData.path.cloneParentPath(), shouldLog: false);
           _reloadTreeFromMapAndCopyFlags();
           selectNode(detailActionData.path.cloneParentPath());
           _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.getLastPathElement()} updated");

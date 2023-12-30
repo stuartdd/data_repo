@@ -207,25 +207,25 @@ class PathPropertiesList {
     }
   }
 
-  void setRenamed(final Path p, {String from = _updatedNotForUnDo}) {
+  void setRenamed(final Path p, {String from = _updatedNotForUnDo, bool shouldLog = true}) {
     final ps = p.toString();
     final pfp = _propertiesForPath(ps);
     if (!pfp.canUndoRename) {
       pfp.renamedFrom = from;
     }
-    if (log != null) {
+    if (shouldLog && log != null) {
       log!("__NODE__ RENAME [$p] ${pfp.renamed ? 'YES' : 'NO'}");
     }
     _list[ps] = pfp;
   }
 
-  void setUpdated(final Path p, {String from = _updatedNotForUnDo}) {
+  void setUpdated(final Path p, {String from = _updatedNotForUnDo, bool shouldLog = true}) {
     final ps = p.toString();
     final pfp = _propertiesForPath(ps);
     if (!pfp.canUndoUpdate) {
       pfp.updatedFrom = from;
     }
-    if (log != null) {
+    if (shouldLog && log != null) {
       log!("__NODE__ UPDATED [$p]  ${pfp.updated ? 'YES' : 'NO'}");
     }
     _list[ps] = pfp;
