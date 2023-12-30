@@ -1392,6 +1392,9 @@ class _MyHomePageState extends State<MyHomePage> {
       return SuccessState(false, message: "Cannot ref ${ss.displayName}");
     }
     final p = Path.fromDotPath(value);
+    if (p.isEmpty) {
+      return SuccessState(false, message: "Reference is required ${ss.displayName}");
+    }
     final n = _loadedData.getNodeFromJson(p);
     if (n == null) {
       return SuccessState(false, message: "Item Not found");
