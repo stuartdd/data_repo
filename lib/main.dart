@@ -184,7 +184,6 @@ class _MyHomePageState extends State<MyHomePage> {
   MyTreeNode _filteredNodeDataRoot = MyTreeNode.empty();
   MyTreeNode _selectedTreeNode = MyTreeNode.empty();
   Path _selectedPath = Path.empty();
-  int _currentSelectedGroups = 0;
   String _currentSelectedGroupsPrefix = "";
 
   final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: logger.log);
@@ -1092,7 +1091,6 @@ class _MyHomePageState extends State<MyHomePage> {
     _pathPropertiesList.clear();
     _globalSuccessState = SuccessState(true, message: reason);
     _currentSelectedGroupsPrefix = "";
-    _currentSelectedGroups = 0;
     logger.log("__DATA_CLEARED__ $reason");
   }
 
@@ -1134,9 +1132,9 @@ class _MyHomePageState extends State<MyHomePage> {
           mapNodes.lastNodeAsMap![name] = emptyString;
           _dataWasUpdated = true;
           _checkReferences = true;
-          _pathPropertiesList.setUpdated(path,shouldLog: false);
-          _pathPropertiesList.setRenamed(path.cloneAppendList([name]),shouldLog: false);
-          _pathPropertiesList.setUpdated(path.cloneAppendList([name]),shouldLog: false);
+          _pathPropertiesList.setUpdated(path, shouldLog: false);
+          _pathPropertiesList.setRenamed(path.cloneAppendList([name]), shouldLog: false);
+          _pathPropertiesList.setUpdated(path.cloneAppendList([name]), shouldLog: false);
           _reloadTreeFromMapAndCopyFlags();
           selectNode(path);
           _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log: logger.log);
@@ -1146,9 +1144,9 @@ class _MyHomePageState extends State<MyHomePage> {
           mapNodes.lastNodeAsMap![name] = m;
           _dataWasUpdated = true;
           _checkReferences = true;
-          _pathPropertiesList.setUpdated(path,shouldLog: false);
-          _pathPropertiesList.setRenamed(path.cloneAppendList([name]),shouldLog: false);
-          _pathPropertiesList.setUpdated(path.cloneAppendList([name]),shouldLog: false);
+          _pathPropertiesList.setUpdated(path, shouldLog: false);
+          _pathPropertiesList.setRenamed(path.cloneAppendList([name]), shouldLog: false);
+          _pathPropertiesList.setUpdated(path.cloneAppendList([name]), shouldLog: false);
           _reloadTreeFromMapAndCopyFlags();
           selectNode(path.cloneAppendList([name]));
           _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log: logger.log);
@@ -1216,7 +1214,7 @@ class _MyHomePageState extends State<MyHomePage> {
         var newPath = detailActionData.path.cloneRename(newName);
         var parentPath = newPath.cloneParentPath();
         _pathPropertiesList.setRenamed(newPath);
-        _pathPropertiesList.setRenamed(parentPath,shouldLog: false);
+        _pathPropertiesList.setRenamed(parentPath, shouldLog: false);
         _reloadTreeFromMapAndCopyFlags();
         selectNode(parentPath);
         _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: logger.log);
@@ -1892,23 +1890,12 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           );
 
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    //
-    if (_globalSuccessState.isSuccess) {
-      final newCount = _pathPropertiesList.countGroupSelects;
-      if (_currentSelectedGroups != newCount) {
-        _currentSelectedGroups = newCount;
-        if (newCount > 0) {
-          _currentSelectedGroupsPrefix = "SEL[$newCount]: ";
-        } else {
-          _currentSelectedGroupsPrefix = "";
-        }
-      }
+    // _currentSelectedGroupsPrefix is displayed in the status area if 1 or more groups are selected
+    final newCount = _pathPropertiesList.countGroupSelects;
+    if (newCount > 0) {
+      _currentSelectedGroupsPrefix = "SEL[$newCount]: ";
+    } else {
+      _currentSelectedGroupsPrefix = "";
     }
 
     return Scaffold(

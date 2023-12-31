@@ -281,9 +281,9 @@ class MenuOptionDetails {
   }
 
   factory MenuOptionDetails.separator(Color separatorColour, {bool enabled = true}) {
-    return MenuOptionDetails("","",ActionType.none, () {
+    return MenuOptionDetails("", "", ActionType.none, () {
       return Icons.add;
-    },enabled: enabled, separatorColour: separatorColour);
+    }, enabled: enabled, separatorColour: separatorColour);
   }
 
   bool get isNotGroup {
@@ -618,15 +618,9 @@ class SuccessState {
       }
     } else {
       if (isFail) {
-        if (m.isNotEmpty) {
-          return "FAIL: $m";
-        }
-        return "FAIL";
+        return "${prefix}FAIL:$m";
       } else {
-        if (m.isNotEmpty) {
-          return "${prefix}OK:$m";
-        }
-        return "${prefix}OK:";
+        return "${prefix}OK:$m";
       }
     }
   }
