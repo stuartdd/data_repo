@@ -271,31 +271,29 @@ void main() {
     final p = Path.fromDotPath("root.one.two");
     expect(p.length, 3);
     expect(p.toString(), "root.one.two");
-    final p2 = p.cloneAppendList(["three", "four"]);
+    final p2 = p.cloneAppend("three");
     expect(p.length, 3);
     expect(p.toString(), "root.one.two");
-    expect(p2.length, 5);
-    expect(p2.toString(), "root.one.two.three.four");
-
-    expect(p.pop(), "two");
-    expect(p2.pop(), "four");
-    expect(p.length, 2);
-    expect(p.toString(), "root.one");
     expect(p2.length, 4);
     expect(p2.toString(), "root.one.two.three");
+
+    expect(p.pop(), "two");
+    expect(p2.pop(), "three");
+    expect(p.length, 2);
+    expect(p.toString(), "root.one");
+    expect(p2.length, 3);
+    expect(p2.toString(), "root.one.two");
 
     final p3 = Path.fromDotPath("root.one.two");
     expect(p3.length, 3);
     expect(p3.toString(), "root.one.two");
-    final p4 = p3.cloneAppendList(["three", "four"]);
+    final p4 = p3.cloneAppend("three");
     p4.push("five");
     p4.push("six");
-    expect(p4.toString(), "root.one.two.three.four.five.six");
+    expect(p4.toString(), "root.one.two.three.five.six");
     var p5 = p4.cloneParentPath();
-    expect(p4.toString(), "root.one.two.three.four.five.six");
-    expect(p5.toString(), "root.one.two.three.four.five");
-    p5 = p5.cloneParentPath();
-    expect(p5.toString(), "root.one.two.three.four");
+    expect(p4.toString(), "root.one.two.three.five.six");
+    expect(p5.toString(), "root.one.two.three.five");
     p5 = p5.cloneParentPath();
     expect(p5.toString(), "root.one.two.three");
     p5 = p5.cloneParentPath();
@@ -306,7 +304,7 @@ void main() {
     expect(p5.toString(), "root");
     p5 = p5.cloneParentPath();
     expect(p5.toString(), "");
-    expect(p4.toString(), "root.one.two.three.four.five.six");
+    expect(p4.toString(), "root.one.two.three.five.six");
     final p6 = Path.fromDotPath("A.B.C");
     expect(p6.toString(), "A.B.C");
     final p7 = p6.cloneReversed();

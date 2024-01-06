@@ -264,17 +264,17 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
   List<DataValueDisplayRow> lv = List.empty(growable: true);
   for (var element in json.entries) {
     if (element.value is Map) {
-      final p = treeNodeRoot.findByPath(path.cloneAppendList([element.key]));
+      final p = treeNodeRoot.findByPath(path.cloneAppend(element.key));
       if (p != null) {
-        _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as Map).length), sortOrder);
+        _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as Map).length, path.cloneAppend(element.key)), sortOrder);
       }
     } else if (element.value is List) {
-      final p = treeNodeRoot.findByPath(path.cloneAppendList([element.key]));
+      final p = treeNodeRoot.findByPath(path.cloneAppend(element.key));
       if (p != null) {
-        _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as List).length), sortOrder);
+        _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as List).length, path.cloneAppend(element.key)), sortOrder);
       }
     } else {
-      _insertDisplayValueListInOrder(lv,DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.staticFindOptionTypeFromNameAndType(element.value.runtimeType, element.key), true, path, 0), sortOrder);
+      _insertDisplayValueListInOrder(lv, DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.staticFindOptionTypeFromNameAndType(element.value.runtimeType, element.key), true, path, 0, path.cloneAppend(element.key)), sortOrder);
     }
   }
   lm.addAll(lv);

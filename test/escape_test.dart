@@ -21,14 +21,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('Test Boolean name yes', () async {
-    final d = DataValueDisplayRow("b", "true", optionTypeDataBoolYes, true, Path.empty(), 1);
+    final d = DataValueDisplayRow("b", "true", optionTypeDataBoolYes, true, Path.empty(), 1, Path.fromDotPath("dotPath.b"));
     expect(d.name, "b");
     expect(d.value, "Yes");
+    expect(d.pathWithName.toString(), "dotPath.b");
   });
 
   test('Test Boolean name no', () async {
-    final d = DataValueDisplayRow("b", "false", optionTypeDataBoolNo, true, Path.empty(), 1);
+    final d = DataValueDisplayRow("b", "false", optionTypeDataBoolNo, true, Path.empty(), 1, Path.fromDotPath("dotPath.b"));
     expect(d.name, "b");
     expect(d.value, "No");
+    expect(d.pathWithName.toString(), "dotPath.b");
   });
 }

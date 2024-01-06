@@ -325,7 +325,7 @@ class DataContainer {
   static void staticVisitEachSubNode(Map<String, dynamic> map, Path p, final void Function(String, Path, dynamic) func) {
     for (var key in map.keys) {
       final me = map[key];
-      final pp = p.cloneAppendList([key]);
+      final pp = p.cloneAppend(key);
       if (me is Map<String, dynamic>) {
         func(key, pp, me);
         staticVisitEachSubNode(me, pp, func);

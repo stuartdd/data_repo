@@ -393,14 +393,12 @@ class Path {
     return true;
   }
 
-  Path cloneAppendList(final List<String> app) {
+  Path cloneAppend(final String app) {
     final p = Path.empty();
     for (int i = 0; i < _count; i++) {
       p.push(pathList[i]);
     }
-    for (int i = 0; i < app.length; i++) {
-      p.push(app[i]);
-    }
+    p.push(app);
     return p;
   }
 

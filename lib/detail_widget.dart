@@ -24,16 +24,13 @@ import 'detail_buttons.dart';
 
 class DataValueDisplayRow {
   final String _name;
-  final String _value;
+  final String _stringValue;
   final OptionsTypeData _type;
   final bool _isValue;
   final Path _path;
   final int _mapSize;
-  late final Path _pathWithName;
-
-  DataValueDisplayRow(this._name, this._value, this._type, this._isValue, this._path, this._mapSize) {
-    _pathWithName = _path.cloneAppendList([_name]);
-  }
+  final Path _pathWithName;
+  const DataValueDisplayRow(this._name, this._stringValue, this._type, this._isValue, this._path, this._mapSize, this._pathWithName);
 
   String get name => _name;
   OptionsTypeData get type => _type;
@@ -50,7 +47,7 @@ class DataValueDisplayRow {
   }
 
   Path get fullPath {
-    return _path.cloneAppendList([_name]);
+    return _path.cloneAppend(_name);
   }
 
   String getDisplayName(bool editMode) {
@@ -62,17 +59,17 @@ class DataValueDisplayRow {
 
   String get value {
     if (_type.dataValueType == bool) {
-      if (_value == "true") {
+      if (_stringValue == "true") {
         return "Yes";
       }
       return "No";
     }
-    return _value;
+    return _stringValue;
   }
 
   bool get isLink {
     if (_isValue) {
-      return isLinkString(_value);
+      return isLinkString(_stringValue);
     }
     return false;
   }
@@ -95,7 +92,7 @@ class DataValueDisplayRow {
 
 class DetailWidget extends StatefulWidget {
   const DetailWidget({super.key, required this.dataValueRow, required this.appThemeData, required this.dataAction, required this.onResolve, required this.pathPropertiesList, required this.isEditDataDisplay, required this.isHorizontal});
-  final DataValueDisplayRow dataValueRow;
+  final DataValueDisplayRow dataValueRow; // Fixed data about the node to be displayed
   final AppThemeData appThemeData;
   final PathPropertiesList pathPropertiesList;
   final bool isEditDataDisplay;

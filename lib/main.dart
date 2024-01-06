@@ -528,7 +528,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 _dataWasUpdated = true;
                                 _checkReferences = true;
                               }
-                              _pathPropertiesList.setRenamed(intoPath.cloneAppendList([Path.fromDotPath(k).last]));
+                              _pathPropertiesList.setRenamed(intoPath.cloneAppend(Path.fromDotPath(k).last));
                               _pathPropertiesList.setRenamed(intoPath, shouldLog: false);
                             }
                           }
@@ -1133,8 +1133,8 @@ class _MyHomePageState extends State<MyHomePage> {
           _dataWasUpdated = true;
           _checkReferences = true;
           _pathPropertiesList.setUpdated(path, shouldLog: false);
-          _pathPropertiesList.setRenamed(path.cloneAppendList([name]), shouldLog: false);
-          _pathPropertiesList.setUpdated(path.cloneAppendList([name]), shouldLog: false);
+          _pathPropertiesList.setRenamed(path.cloneAppend(name), shouldLog: false);
+          _pathPropertiesList.setUpdated(path.cloneAppend(name), shouldLog: false);
           _reloadTreeFromMapAndCopyFlags();
           selectNode(path);
           _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log: logger.log);
@@ -1145,10 +1145,10 @@ class _MyHomePageState extends State<MyHomePage> {
           _dataWasUpdated = true;
           _checkReferences = true;
           _pathPropertiesList.setUpdated(path, shouldLog: false);
-          _pathPropertiesList.setRenamed(path.cloneAppendList([name]), shouldLog: false);
-          _pathPropertiesList.setUpdated(path.cloneAppendList([name]), shouldLog: false);
+          _pathPropertiesList.setRenamed(path.cloneAppend(name), shouldLog: false);
+          _pathPropertiesList.setUpdated(path.cloneAppend(name), shouldLog: false);
           _reloadTreeFromMapAndCopyFlags();
-          selectNode(path.cloneAppendList([name]));
+          selectNode(path.cloneAppend(name));
           _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log: logger.log);
           break;
       }
