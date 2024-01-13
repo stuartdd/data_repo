@@ -22,10 +22,12 @@ import 'data_types.dart';
 import 'dart:io';
 
 const String defaultRemoteGetUrl = "http://localhost:8080/file";
+const String defaultRemoteListDataUrl = "http://localhost:8080/file";
 const String defaultRemotePostUrl = "http://localhost:8080/file";
 const String defaultDataFileName = "data.json";
 const String defaultAppStateFileName = "data_repo_appState.json";
 const String defaultConfigFileName = "data_repo_config.json";
+const String defaultRemoteTestFileName = "remoteTestFile.rtf";
 
 const String defaultPrimaryColourName = "blue";
 const String defaultSecondaryColourName = "green";
@@ -66,6 +68,7 @@ const defaultConfig = """  {
     } """;
 
 final getDataUrlPath = Path.fromList(["file", "getDataUrl"]);
+final getListDataUrlPath = Path.fromList(["file", "getListDataUrl"]);
 final postDataUrlPath = Path.fromList(["file", "postDataUrl"]);
 final dataFileLocalNamePath = Path.fromList(["file", "datafile"]);
 final dataFileLocalDirPath = Path.fromList(["file", "datafilePath"]);
@@ -176,6 +179,7 @@ class ColorPallet {
   String toString() {
     return colorName;
   }
+
   static bool colorNameExists(String name) {
     return _colourNames.containsKey(name.toLowerCase());
   }
@@ -187,7 +191,7 @@ class ColorPallet {
     }
     return cp;
   }
-  
+
   factory ColorPallet.fromMaterialColor(MaterialColor mc, String colorName) {
     return ColorPallet(colorName, mc.shade200, mc.shade300, mc.shade400, mc.shade500, mc.shade600, mc.shade800, mc.shade900);
   }
@@ -373,7 +377,6 @@ class AppThemeData {
   Widget get horizontalLine {
     return Container(height: 1, color: screenForegroundColour(true));
   }
-  
 
   ColorPallet getColorPalletWithColourInIt(final Color findIt) {
     for (final pallet in _colourNames.values) {
@@ -423,6 +426,7 @@ class ConfigData {
   String _themeContext = defaultThemeReplace;
   String _rootNodeName = "";
   String _dataFileName = "";
+  String _listDataUrl = "";
   String _getDataFileUrl = "";
   String _postDataFileUrl = "";
   String _dataFileLocalDir = ""; // Where the data file is. Desktop: defined by config. Mobile: Always _applicationDefaultDir
@@ -433,11 +437,29 @@ class ConfigData {
   bool _darkMode = false;
   bool _hideDataPath = false;
 
-  List<String> dir(final List<String> extensions, final List<String> hidden, final Function(String) log) {
+  Future<List<String>> remoteDir(final List<String> extension, final Function(String) onFail) async {
+    final getUrl = getListDataUrl();
+    final List<String> list = List.empty(growable: true);
+    final res = await DataContainer.listHttpGet(getUrl, timeoutMillis: 2000, log: log, onFind: (value) {
+      final vlc = value.toLowerCase();
+      for (int i =0; i<extension.length;i++) {
+        if (vlc.endsWith(extension[i]) && !vlc.contains("config") && !vlc.startsWith(".")) {
+          list.add(value);
+        }
+      }
+    },);
+    if (res.isFail) {
+      onFail("__LIST_REMOTE__ ${res.message}");
+      return [];
+    }
+    return list;
+  }
+
+  List<String> dir(final List<String> extensions, final List<String> hidden, final Function(String) onFail) {
     final l = List<String>.empty(growable: true);
     final dir = Directory(_dataFileLocalDir);
     if (!dir.existsSync()) {
-      log("__LIST_DIR__ Path not found:$_dataFileLocalDir");
+      onFail("__LIST_DIR__ Path not found:$_dataFileLocalDir");
       return [];
     }
     final dirList = dir.listSync(recursive: false);
@@ -502,6 +524,7 @@ class ConfigData {
   void update({final bool callOnUpdate = true}) {
     _getDataFileUrl = _data.getStringFromJson(getDataUrlPath, fallback: defaultRemoteGetUrl);
     _postDataFileUrl = _data.getStringFromJson(postDataUrlPath, fallback: defaultRemotePostUrl);
+    _listDataUrl = _data.getStringFromJson(getListDataUrlPath, fallback: defaultRemoteListDataUrl);
     _dataFileName = _data.getStringFromJson(dataFileLocalNamePath, fallback: defaultDataFileName);
     if (_isDesktop) {
       _dataFileLocalDir = _data.getStringFromJson(dataFileLocalDirPath, fallback: _applicationDefaultDir);
@@ -509,19 +532,19 @@ class ConfigData {
       _dataFileLocalDir = _applicationDefaultDir;
     }
 
-    _appColoursPrimary = validColour(_data.getStringFromJson(appColoursPrimaryPathC, fallback: defaultPrimaryColourName, sub2: defaultThemeReplace, sub1:_themeContext),appColoursPrimaryPathC);
+    _appColoursPrimary = validColour(_data.getStringFromJson(appColoursPrimaryPathC, fallback: defaultPrimaryColourName, sub2: defaultThemeReplace, sub1: _themeContext), appColoursPrimaryPathC);
 
-    _appColoursSecondary = validColour(_data.getStringFromJson(appColoursSecondaryPathC, fallback: defaultSecondaryColourName, sub2: defaultThemeReplace, sub1:_themeContext),appColoursSecondaryPathC);
+    _appColoursSecondary = validColour(_data.getStringFromJson(appColoursSecondaryPathC, fallback: defaultSecondaryColourName, sub2: defaultThemeReplace, sub1: _themeContext), appColoursSecondaryPathC);
 
-    _appColoursHiLight = validColour(_data.getStringFromJson(appColoursHiLightPathC, fallback: defaultHiLightColourName, sub2: defaultThemeReplace, sub1:_themeContext),appColoursHiLightPathC);
+    _appColoursHiLight = validColour(_data.getStringFromJson(appColoursHiLightPathC, fallback: defaultHiLightColourName, sub2: defaultThemeReplace, sub1: _themeContext), appColoursHiLightPathC);
 
-    _appColoursError = validColour(_data.getStringFromJson(appColoursErrorPathC, fallback: defaultErrorColourName, sub2: defaultThemeReplace, sub1:_themeContext),appColoursErrorPathC);
+    _appColoursError = validColour(_data.getStringFromJson(appColoursErrorPathC, fallback: defaultErrorColourName, sub2: defaultThemeReplace, sub1: _themeContext), appColoursErrorPathC);
 
-    _darkMode = _data.getBoolFromJson(appDarkModePathC, fallback: defaultDarkMode, sub2: defaultThemeReplace, sub1:_themeContext);
+    _darkMode = _data.getBoolFromJson(appDarkModePathC, fallback: defaultDarkMode, sub2: defaultThemeReplace, sub1: _themeContext);
 
-    _hideDataPath = _data.getBoolFromJson(hideDataPathPathC, fallback: defaultHideDataPath, sub2: defaultThemeReplace, sub1:_themeContext);
+    _hideDataPath = _data.getBoolFromJson(hideDataPathPathC, fallback: defaultHideDataPath, sub2: defaultThemeReplace, sub1: _themeContext);
 
-    _rootNodeName = _data.getStringFromJson(appRootNodeNamePathC, fallback: defaultRootNodeName, sub2: defaultThemeReplace, sub1:_themeContext);
+    _rootNodeName = _data.getStringFromJson(appRootNodeNamePathC, fallback: defaultRootNodeName, sub2: defaultThemeReplace, sub1: _themeContext);
 
     _textScale = _data.getNumFromJson(appTextScalePath, fallback: (_isDesktop ? defaultFontScaleDesktop : defaultFontScaleMobile)).toDouble();
     _appThemeData = null;
@@ -682,7 +705,11 @@ class ConfigData {
   }
 
   String get getRemoteTestFileName {
-    return "test.data";
+    return defaultRemoteTestFileName;
+  }
+
+  String getListDataUrl() {
+    return _listDataUrl;
   }
 
   String getGetDataFileUrl() {

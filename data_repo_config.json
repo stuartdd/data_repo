@@ -9,7 +9,8 @@
   "file": {
     "getDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
     "postDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
-    "datafile": "test2.json",
+    "getListDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb",
+    "datafile": "stuff.json",
     "datafilePath": "../data_repo_server/local"
   }
 }

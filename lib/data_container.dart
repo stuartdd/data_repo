@@ -69,6 +69,10 @@ class DataContainer {
     return DataContainer("", FileDataPrefix.empty(), "", "", "", "");
   }
 
+  factory DataContainer.fromJson(final String json, {final Function(String)? log}) {
+    return DataContainer(json, FileDataPrefix.empty(), "", "", "", "", log: log);
+  }
+
   DataContainer(final String fileContents, final FileDataPrefix filePrefixData, this.remoteSourcePath, this.localSourcePath, this.fileName, final String pw, {final Function(String)? log}) {
     password = pw;
     _timeStamp = filePrefixData.timeStamp;
@@ -321,6 +325,24 @@ class DataContainer {
   //
   // Static tools to store and load files
   //
+  static void staticVisitEachList(List<dynamic> list, Path p, final void Function(String, Path, dynamic) func) {
+    for (var index = 0; index < list.length; index++) {
+      final item = list[index];
+      final pp = p.cloneAppend("$index");
+      if (item is Map<String, dynamic>) {
+        func("$index", pp, item);
+        staticVisitEachSubNode(item, pp, func);
+      } else {
+        if (item is List<dynamic>) {
+          for (var item in item) {
+            staticVisitEachList(item, pp, func);
+          }
+        } else {
+          func("$index", pp, item);
+        }
+      }
+    }
+  }
 
   static void staticVisitEachSubNode(Map<String, dynamic> map, Path p, final void Function(String, Path, dynamic) func) {
     for (var key in map.keys) {
@@ -330,7 +352,11 @@ class DataContainer {
         func(key, pp, me);
         staticVisitEachSubNode(me, pp, func);
       } else {
-        func(key, pp, me);
+        if (me is List<dynamic>) {
+          staticVisitEachList(me, pp, func);
+        } else {
+          func(key, pp, me);
+        }
       }
     }
   }
@@ -401,6 +427,43 @@ class DataContainer {
     }
   }
 
+  static Future<SuccessState> listHttpGet(final String url, {final void Function(String)? log, final void Function(String)? onFind, final int timeoutMillis = 2000, final String prefix = ""}) async {
+    try {
+      final uri = Uri.parse(url);
+      final response = await http.get(uri).timeout(
+        Duration(milliseconds: timeoutMillis),
+        onTimeout: () {
+          return http.Response('Error:', StatusCode.REQUEST_TIMEOUT);
+        },
+      );
+      if (response.statusCode != StatusCode.OK) {
+        return SuccessState(false, path: url, message: "Remote Data loaded Failed. Status:${response.statusCode} Msg:${getStatusMessage(response.statusCode)}", log: log);
+      }
+      final body = response.body.trim();
+      if (body.isEmpty) {
+        return SuccessState(false, path: url, message: "Remote Data was empty:", log: log);
+      }
+      final body100 = body.length > 100 ? body.substring(0, 100).toLowerCase() : body.toLowerCase();
+      if (body100.contains("<html>") || body100.contains("<!doctype")) {
+        return SuccessState(false, path: url, message: "Remote Data Load contains html:", log: log);
+      }
+      if (body.startsWith('{') || body.startsWith('[')) {
+        final data = DataContainer.fromJson(body, log: log);
+        data.visitEachSubNode((name, path, node) {
+          if (path.length == 4 && path.peek(0) == "files" && path.toString().endsWith("name.name") && node is String) {
+            if (onFind != null) {
+              onFind(node.toString());
+            }
+          }
+        });
+        return SuccessState(true, path: url, value: body, message: "Remote Data loaded OK", log: log);
+      }
+      return SuccessState(false, path: url, message: "Remote Data Load was not JSON:", log: log);
+    } catch (e) {
+      return SuccessState(false, path: url, message: "Remote Data Load:", exception: e as Exception, log: log);
+    }
+  }
+
   static Future<SuccessState> receiveHttpGet(final String url, {final void Function(String)? log, final int timeoutMillis = 2000, final String prefix = ""}) async {
     try {
       final uri = Uri.parse(url);
@@ -421,8 +484,8 @@ class DataContainer {
       if (prefix.isNotEmpty && body.startsWith(prefix)) {
         return SuccessState(true, path: url, value: body.substring(prefix.length), message: "Remote Data loaded OK", log: log);
       }
-      final body100 = body.length > 100 ? body.substring(0, 100).toLowerCase() : body;
-      if (body100.contains("<html>") || body100.contains("<!DOCTYPE")) {
+      final body100 = body.length > 100 ? body.substring(0, 100).toLowerCase() : body.toLowerCase();
+      if (body100.contains("<html>") || body100.contains("<!doctype")) {
         return SuccessState(false, path: url, message: "Remote Data Load contains html:", log: log);
       }
       if (body.startsWith('{') || body.startsWith('[') || body.startsWith(timeStampPrefix)) {

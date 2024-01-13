@@ -184,7 +184,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
         scDataValue = scData.stringValue;
       }
       if (sv.isNotError) {
-        await DataContainer.testHttpGet("${scGet.stringValue}/$scDataValue", prefix: "File: $scDataValue.", (resp) {
+        await DataContainer.testHttpGet("${scGet.stringValue}/$scDataValue", prefix: "File: '$scDataValue'  ", (resp) {
           if (resp.isNotEmpty) {
             sv = SettingValidation.warning(resp);
           }

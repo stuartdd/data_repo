@@ -162,7 +162,7 @@ Future<void> showFileNamePasswordDialog(
       } else {
         password = "";
       }
-      fileNameInput.reValidate(id: "xxx");
+      fileNameInput.reValidateImpl(id: "xxx");
       return message;
     },
   );
@@ -378,10 +378,11 @@ Future<void> showCopyMoveDialog(
   );
 }
 
-Future<void> showLocalFilesDialog(
+Future<void> showFilesListDialog(
     final BuildContext context,
     final AppThemeData appThemeData,
     List<String> files,
+    final bool canCreateFile,
     final Function(String) onSelect,
     final void Function(SimpleButtonActions) onAction,
     final Function() onClose) async {
@@ -389,13 +390,30 @@ Future<void> showLocalFilesDialog(
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
+
+      final Widget createButton;
+      if (canCreateFile) {
+        createButton = DetailTextButton(
+          gaps: 0,
+          appThemeData: appThemeData,
+          text: "Create a new file",
+          onPressed: (button) {
+            onAction(SimpleButtonActions.ok);
+            Navigator.of(context).pop();
+            onClose();
+          },
+        );
+      } else {
+        createButton = const SizedBox(height: 0);
+      }
+
       return AlertDialog(
         shape: appThemeData.rectangleBorderShape,
         actionsPadding: EdgeInsets.fromLTRB(
             appThemeData.buttonGap * 3, 0, 0, appThemeData.buttonGap),
         insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         backgroundColor: appThemeData.dialogBackgroundColor,
-        title: Text('Choose File', style: appThemeData.tsMedium),
+        title: Text('Choose ${canCreateFile?"Local":"Remote"} File', style: appThemeData.tsMedium),
         content: SingleChildScrollView(
           child: ListBody(children: [
             appThemeData.horizontalLine,
@@ -411,16 +429,7 @@ Future<void> showLocalFilesDialog(
               appThemeData.horizontalLine,
             ],
             appThemeData.verticalGapBox(1),
-            DetailTextButton(
-              gaps: 0,
-              appThemeData: appThemeData,
-              text: "Create a new file",
-              onPressed: (button) {
-                onAction(SimpleButtonActions.ok);
-                Navigator.of(context).pop();
-                onClose();
-              },
-            )
+            createButton
           ]),
         ),
         actions: <Widget>[
@@ -496,6 +505,8 @@ Future<void> showModalButtonsDialog(
     final Path path,
     final void Function(Path, String) onResponse,
     final Function() onClose) async {
+
+  debugPrint("showDialog");
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -696,6 +707,7 @@ Future<void> showModalInputDialog(
         content: ValidatedInputField(
           options: options,
           isPassword: isPassword,
+          isRename: isRename,
           initialOption: currentOption,
           initialValue: currentValue,
           prompt: "Input: ${isRename ? "New Name" : "[type]"}",

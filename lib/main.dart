@@ -1495,6 +1495,69 @@ class _MyHomePageState extends State<MyHomePage> {
       _handleAction(DetailAction.actionOnly(ActionType.showLog));
     }
 
+    final remoteFileListButton = DetailIconButtonManager(
+      iconData: Icons.cloud_download,
+      tooltip: 'Choose Remote File',
+      visible: false,
+      appThemeData: appThemeData,
+      onPressed: (button) async {
+        // Load the file list from the server...
+        final remoteFileList = await _configData.remoteDir(
+          ["data", "json"],
+          (failReason) {
+            // Fail
+            showModalButtonsDialog(
+              context,
+              _configData.getAppThemeData(),
+              "Configuration Error",
+              ["Element: '$getListDataUrlPath'", "Value: ${_configData.getListDataUrl()}", "", failReason],
+              ["OK"],
+              Path.empty(),
+              (path, response) {},
+              () {
+                _setFocus("_configData.remoteDir");
+              },
+            );
+          },
+        );
+        if (remoteFileList.isEmpty) {
+          return;
+        }
+        Timer(
+          const Duration(microseconds: 200),
+          () {
+            showFilesListDialog(
+              context,
+              _configData.getAppThemeData(),
+              remoteFileList,
+              false,
+              (fileName) {
+                if (fileName != _configData.getDataFileName()) {
+                  _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
+                  _configData.update(callOnUpdate: true);
+                  logger.log("__CONFIG__ File name updated to:'$fileName'");
+                  _configData.save(logger.log);
+                } else {
+                  logger.log("__CONFIG__ File name not updated. No change");
+                }
+                _initialPassword = _passwordEditingController.text;
+                _passwordEditingController.text = "";
+                _loadDataState();
+              },
+              (action) {
+                if (action == SimpleButtonActions.ok) {
+                  _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
+                }
+              },
+              () {
+                _setFocus("showLocalFilesDialog");
+              },
+            );
+          },
+        );
+      },
+    );
+
     final indicatorIconManager = IndicatorIconManager(
       const [Icons.access_time_filled, Icons.access_time],
       color: _configData.getAppThemeData().screenForegroundColour(true),
@@ -1505,19 +1568,18 @@ class _MyHomePageState extends State<MyHomePage> {
         _handleAction(DetailAction.actionOnly(ActionType.showLog));
       },
       getState: (c, widget) {
-        if ((c % 15) == 0 && c > 0) {
-          DataContainer.testHttpGet(
-            _configData.getRemoteTestFileUrl(),
-            (response) {
-              if (response.isEmpty) {
-                logger.log("__REMOTE__ Test file loaded OK");
-                widget.setVisible(false);
-              } else {
-                logger.log("__REMOTE__ $response");
-                widget.setVisible(true);
-              }
-            },
-          );
+        if ((c % 20) == 0 && c > 0 || c == 2) {
+          DataContainer.testHttpGet(_configData.getRemoteTestFileUrl(), (response) {
+            if (response.isEmpty) {
+              logger.log("__REMOTE__ Test file loaded OK");
+              widget.setVisible(false);
+              remoteFileListButton.setVisible(true);
+            } else {
+              logger.log("__REMOTE__ $response");
+              remoteFileListButton.setVisible(false);
+              widget.setVisible(true);
+            }
+          }, prefix: "TestFile: '${_configData.getRemoteTestFileName}'  ");
         }
         return c + 1;
       },
@@ -1598,10 +1660,11 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ));
 
-      final fileList = _configData.dir(
+      final localFileList = _configData.dir(
         ["data", "json"],
         [defaultConfigFileName, _configData.getAppStateFileName()],
         (p0) {
+          // Error - Path not found
           Timer(
             const Duration(microseconds: 200),
             () {
@@ -1625,13 +1688,15 @@ class _MyHomePageState extends State<MyHomePage> {
       toolBarItems.add(DetailIconButton(
           appThemeData: appThemeData,
           iconData: Icons.rule_folder,
-          tooltip: 'Choose File',
+          tooltip: 'Choose Local File',
           onPressed: (button) {
-            showLocalFilesDialog(
+            showFilesListDialog(
               context,
               _configData.getAppThemeData(),
-              fileList,
+              localFileList,
+              true,
               (fileName) {
+                // OnSelect
                 if (fileName != _configData.getDataFileName()) {
                   _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
                   _configData.update(callOnUpdate: true);
@@ -1645,15 +1710,19 @@ class _MyHomePageState extends State<MyHomePage> {
                 _loadDataState();
               },
               (action) {
+                // Create Local File
                 if (action == SimpleButtonActions.ok) {
                   _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
                 }
               },
               () {
+                // On Close - Refocus to Search or Password fields
                 _setFocus("showLocalFilesDialog");
               },
             );
           }));
+
+      toolBarItems.add(remoteFileListButton.widget);
     } else {
       //
       // Data is loaded
