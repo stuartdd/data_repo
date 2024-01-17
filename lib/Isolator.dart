@@ -29,7 +29,7 @@ class Isolator {
   final String path;
   bool locked = false;
 
-  Isolator(this.path) {
+  Isolator(this.path, final bool shouldIsolate) {
     _forEachLockFile(path, (fileName) {
       locked = true;
     });
@@ -40,8 +40,9 @@ class Isolator {
     if (locked) {
       return;
     }
-
-    File(name).writeAsStringSync("LOCK");
+    if (shouldIsolate) {
+      File(name).writeAsStringSync("LOCK");
+    }
   }
 
   clean() {

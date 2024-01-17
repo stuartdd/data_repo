@@ -24,14 +24,21 @@ import 'data_container.dart';
 import 'path.dart';
 import 'config.dart';
 
-enum SettingDetailType { url, dir, file, int, double, bool, color, name }
+enum SettingDetailType { host, url, dir, file, int, double, bool, color, name }
 
 enum _SettingState { ok, warning, error }
 
+const List<String> mustContainData = ["/", "%dataFileName%"];
+const List<String> mustContainTest = ["/", "%testFileName%"];
+
+const List<String> mustContainMinimum = [];
+
 final List<SettingDetail> _settingsData = [
-  SettingDetail("get", "Server URL (Download)", "Download address of the host server", getDataUrlPath, SettingDetailType.url, defaultRemoteGetUrl, true),
-  SettingDetail("put", "Server URL (Upload)", "Upload address of the host server", postDataUrlPath, SettingDetailType.url, defaultRemotePostUrl, true),
-  SettingDetail("path", "Local Data file path", "The directory for the data file", dataFileLocalDirPath, SettingDetailType.dir, defaultDataEmptyString, false),
+  SettingDetail("host", "Server URL", "E.G. http://192.168.1.243:8080", getServerPathPath, SettingDetailType.host, defaultServerPath, true),
+  SettingDetail("get", "Server URL (Download)", "Read Data URL", getDataUrlPath, SettingDetailType.url, defaultRemoteGetUrl, true, mustContain: mustContainData),
+  SettingDetail("put", "Server URL (Upload)", "Write Data URL", postDataUrlPath, SettingDetailType.url, defaultRemotePostUrl, true, mustContain: mustContainData),
+  SettingDetail("test", "Server URL (Test)", "Test Data URL. File:$defaultRemoteTestFileName", getTestFileUrlPath, SettingDetailType.url, defaultRemoteTestFileUrl, true, mustContain: mustContainTest),
+  SettingDetail("path", "Local Data file path", "GET List data URL", dataFileLocalDirPath, SettingDetailType.dir, defaultDataEmptyString, false),
   SettingDetail("data", "Data file Name", "Now set from the main screen!", dataFileLocalNamePath, SettingDetailType.file, defaultDataEmptyString, true, hide: true),
   SettingDetail("rootNodeName", "Root Node Name", "Replace the root node name with this", appRootNodeNamePathC, SettingDetailType.name, defaultDataEmptyString, true),
   SettingDetail("timeout", "Server Timeout Milliseconds", "The host server timeout 100..5000", dataFetchTimeoutMillisPath, SettingDetailType.int, defaultFetchTimeoutMillis.toString(), false, minValue: 100, maxValue: 5000),
@@ -57,6 +64,14 @@ class SettingValidation {
   }
   factory SettingValidation.warning(String m) {
     return SettingValidation._(_SettingState.warning, m);
+  }
+  factory SettingValidation.mustContain(String m, List<String> mustContain) {
+    for (int i = 0; i < mustContain.length; i++) {
+      if (!m.contains(mustContain[i])) {
+        return SettingValidation._(_SettingState.error, "Must contain ${mustContain[i]}");
+      }
+    }
+    return SettingValidation._(_SettingState.ok, "");
   }
 
   @override
@@ -127,6 +142,7 @@ class ConfigInputPage extends StatefulWidget {
   final void Function(SettingControlList, String) onUpdateState;
   final String hint;
   final double width;
+  final void Function(String) log;
 
   const ConfigInputPage({
     super.key,
@@ -136,6 +152,7 @@ class ConfigInputPage extends StatefulWidget {
     required this.onUpdateState,
     required this.hint,
     required this.width,
+    required this.log,
   });
 
   @override
@@ -143,6 +160,8 @@ class ConfigInputPage extends StatefulWidget {
 }
 
 class _ConfigInputPageState extends State<ConfigInputPage> {
+  bool testErrorNotLogged = true;
+  bool getErrorNotLogged = true;
   Timer? countdownTimer;
 
   @override
@@ -166,32 +185,60 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
     if (countdownTimer != null) {
       countdownTimer!.cancel();
     }
-    countdownTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
-      SettingValidation sv = SettingValidation.ok();
+    countdownTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      SettingValidation svTest = SettingValidation.ok();
+      SettingValidation svGet = SettingValidation.ok();
+      var dataError = "";
+      final scHost = widget.settingsControlList.getSettingControlForId("host");
+      if (scHost == null) {
+        dataError = "${dataError}host, ";
+      }
+      final scTestGet = widget.settingsControlList.getSettingControlForId("test");
+      if (scTestGet == null) {
+        dataError = "${dataError}test, ";
+      }
       final scGet = widget.settingsControlList.getSettingControlForId("get");
       if (scGet == null) {
+        dataError = "${dataError}get, ";
+      }
+      final scFileName = widget.settingsControlList.getSettingControlForId("data");
+      if (scFileName == null) {
+        dataError = "${dataError}data, ";
+      }
+      if (dataError.isNotEmpty) {
+        dataError = "__VALIDATE SETTINGS__ settings [${dataError.substring(0, dataError.length - 2)}] not found";
+        widget.log(dataError);
         return;
       }
-      if (scGet.validationState.isError) {
-        return;
-      }
-      final scData = widget.settingsControlList.getSettingControlForId("data");
-      final String scDataValue;
-      if (scData == null) {
-        sv = SettingValidation.warning("Setting 'get' setting not found");
-        scDataValue = "NUL";
-      } else {
-        scDataValue = scData.stringValue;
-      }
-      if (sv.isNotError) {
-        await DataContainer.testHttpGet("${scGet.stringValue}/$scDataValue", prefix: "File: '$scDataValue'  ", (resp) {
-          if (resp.isNotEmpty) {
-            sv = SettingValidation.warning(resp);
+
+      final pathTest = widget.settingsControlList.substituteForUrl(scTestGet!.stringValue);
+      final pathGet = widget.settingsControlList.substituteForUrl(scGet!.stringValue);
+
+      await DataContainer.testHttpGet(pathTest, prefix: "Remote Test File: '$defaultRemoteTestFileName'  ", (resp) {
+        if (resp.isNotEmpty) {
+          if (testErrorNotLogged) {
+            widget.log("__VALIDATE SETTINGS__ 'Test url' $resp");
+            testErrorNotLogged = false;
           }
-        });
+          svTest = SettingValidation.warning(resp);
+        }
+      });
+      if (scTestGet.validationState.isNotEqual(svTest)) {
+        scTestGet.validationState = svTest;
+        updateState();
       }
-      if (scGet.validationState.isNotEqual(sv)) {
-        scGet.validationState = sv;
+
+      await DataContainer.testHttpGet(pathGet, prefix: "Remote File: '${scFileName!.stringValue}'  ", (resp) {
+        if (resp.isNotEmpty) {
+          if (getErrorNotLogged) {
+            widget.log("__VALIDATE SETTINGS__ 'Get url' $resp");
+            getErrorNotLogged = false;
+          }
+          svGet = SettingValidation.warning(resp);
+        }
+      });
+      if (scGet.validationState.isNotEqual(svGet)) {
+        scGet.validationState = svGet;
         updateState();
       }
     });
@@ -355,7 +402,9 @@ class SettingDetail {
   final String falseValue; // The text value if false
   final double minValue; // The text value if true
   final double maxValue; // The text value if false
-  const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = "", this.minValue = double.maxFinite, this.maxValue = double.maxFinite, this.hide = false});
+  final List<String> mustContain;
+
+  const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = "", this.minValue = double.maxFinite, this.maxValue = double.maxFinite, this.hide = false, this.mustContain = mustContainMinimum});
 
   String range(String valueString) {
     final name = detailType == SettingDetailType.double ? 'Decimal' : 'Integer';
@@ -387,7 +436,7 @@ class SettingControlList {
   late final List<SettingControl> list;
   final String dataFileDir;
 
-  SettingControlList(final bool isDeskTop, this.dataFileDir, final ConfigData configData) {
+  SettingControlList(final bool isDeskTop, this.dataFileDir, ConfigData configData) {
     list = List<SettingControl>.empty(growable: true);
     for (var settingDetail in _settingsData) {
       if (isDeskTop || settingDetail.desktopOnly) {
@@ -406,12 +455,20 @@ class SettingControlList {
     }
   }
 
-  String getValueForId(String id) {
+  String substituteForUrl(String value) {
+    final dataFileName = getValueForId("data", fallback: "?");
+    final serverPath = getValueForId("host", fallback: "?");
+    var s = value.replaceAll("%dataFileName%", dataFileName);
+    s = s.replaceAll("%testFileName%", defaultRemoteTestFileName);
+    return "$serverPath/$s";
+  }
+
+  String getValueForId(String id, {final String fallback = ""}) {
     final e = getSettingControlForId(id);
     if (e != null) {
       return e.stringValue;
     }
-    return "";
+    return fallback;
   }
 
   SettingControl? getSettingControlForId(String id) {
@@ -525,7 +582,7 @@ class SettingControl {
   }
 }
 
-bool _stringToBool(String text) {
+bool _stringToBool(final String text) {
   final txt = text.trim().toLowerCase();
   if (txt == "true" || txt == "yes") {
     return true;
@@ -533,7 +590,7 @@ bool _stringToBool(String text) {
   return false;
 }
 
-SettingValidation _initialValidate(String value, SettingDetail detail, SettingControlList controlList, SettingValidation Function(String, SettingDetail) onValidate) {
+SettingValidation _initialValidate(final String value, final SettingDetail detail, final SettingControlList controlList, final SettingValidation Function(String, SettingDetail) onValidate) {
   final vt = value.trim();
   switch (detail.detailType) {
     case SettingDetailType.int:
@@ -559,18 +616,35 @@ SettingValidation _initialValidate(String value, SettingDetail detail, SettingCo
         }
         break;
       }
-    case SettingDetailType.url:
+    case SettingDetailType.host:
       {
         if (vt.isEmpty) {
-          return SettingValidation.error("URL name cannot be empty");
+          return SettingValidation.error("Host path cannot be empty");
         }
         try {
           Uri.parse(vt);
         } catch (e) {
-          return SettingValidation.error("Could not parse URL");
+          return SettingValidation.error("Could not parse Host");
         }
         if (!vt.toLowerCase().startsWith("http://") && !vt.toLowerCase().startsWith("https://")) {
-          return SettingValidation.error("URL must start http:// or https://");
+          return SettingValidation.error("Host must start http:// or https://");
+        }
+        break;
+      }
+    case SettingDetailType.url:
+      {
+        if (vt.isEmpty) {
+          return SettingValidation.error("URL cannot be empty");
+        }
+        final mc = SettingValidation.mustContain(vt, detail.mustContain);
+        if (mc.isError) {
+          return mc;
+        }
+        final vs = controlList.substituteForUrl(vt);
+        try {
+          Uri.parse(vs);
+        } catch (e) {
+          return SettingValidation.error("Could not parse URL");
         }
         break;
       }
@@ -598,6 +672,10 @@ SettingValidation _initialValidate(String value, SettingDetail detail, SettingCo
         if (!File(fn).existsSync()) {
           return SettingValidation.error("Local file not found");
         }
+        break;
+      }
+    case SettingDetailType.name:
+      {
         break;
       }
   }
@@ -749,6 +827,7 @@ Future<void> showConfigDialog(final BuildContext context, ConfigData configData,
             },
             hint: canChangeConfig(),
             width: size.width,
+            log: log,
           ),
           actions: [
             Row(

@@ -4,13 +4,16 @@
     "authorEmail": "sdd.davies@gmail.com",
     "repoName": "https://github.com/stuartdd/data_repo",
     "dataFetchTimeoutMillis": 2000,
-    "textScale": 0.8
+    "textScale": 0.8,
+    "shouldIsolate": false
   },
   "file": {
-    "getDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
-    "postDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb/name",
-    "getListDataUrl": "http://192.168.1.243:8080/files/user/stuart/loc/mydb",
-    "datafile": "stuff.json",
+    "serverPath": "http://192.168.1.243:8080",
+    "getDataUrl": "files/user/stuart/loc/mydb/name/%dataFileName%",
+    "postDataUrl": "files/user/stuart/loc/mydb/name/%dataFileName%",
+    "getTestFileUrl": "files/user/stuart/loc/mydb/name/%testFileName%",
+    "getListDataUrl": "files/user/stuart/loc/mydb",
+    "datafileName": "my.data",
     "datafilePath": "../data_repo_server/local"
   }
 }

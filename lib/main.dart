@@ -61,8 +61,8 @@ void main() async {
     final applicationDefaultDir = await ApplicationState.getApplicationDefaultDir();
     final isDesktop = ApplicationState.appIsDesktop();
     // Read the config file and ans specify app or desktop
-    _isolator = Isolator(applicationDefaultDir);
     _configData = ConfigData(applicationDefaultDir, defaultConfigFileName, isDesktop, logger.log);
+    _isolator = Isolator(applicationDefaultDir,_configData.shouldIsolate);
     _applicationState = ApplicationState.fromFile(_configData.getAppStateFileLocal(), logger.log);
 
     if (isDesktop) {
@@ -83,7 +83,7 @@ void main() async {
 
   if (!_isolator.locked) {
     Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_isolator.shouldStop()) {
+      if (_isolator.shouldStop() && _configData.shouldIsolate) {
         _exitReturnCode = 9;
       }
       if (_exitReturnCode >= 0) {
@@ -237,11 +237,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _selectNodeState(final Path path) {
     setState(() {
-      selectNode(path);
+      _selectNode(path);
     });
   }
 
-  void selectNode(final Path path) {
+  void _selectNode(final Path path) {
     var pa = path;
     var sn = _treeNodeDataRoot.findByPath(pa);
     while ((sn == null || sn.isLeaf) && pa.length > 1) {
@@ -316,7 +316,7 @@ class _MyHomePageState extends State<MyHomePage> {
       final n = _treeNodeDataRoot.findByPath(path);
       if (n != null) {
         n.expanded = !n.expanded;
-        selectNode(path);
+        _selectNode(path);
       }
     });
   }
@@ -570,7 +570,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     // onActionClose. Node was selected in list.
                     if (action == SimpleButtonActions.select) {
                       setState(() {
-                        selectNode(intoPath);
+                        _selectNode(intoPath);
                       });
                     }
                   },
@@ -898,7 +898,7 @@ class _MyHomePageState extends State<MyHomePage> {
           setState(() {
             _applicationState.flipDataSorted;
             _reloadTreeFromMapAndCopyFlags();
-            selectNode(_selectedPath);
+            _selectNode(_selectedPath);
           });
           break;
         }
@@ -912,7 +912,7 @@ class _MyHomePageState extends State<MyHomePage> {
       case ActionType.select:
         {
           setState(() {
-            selectNode(detailActionData.path);
+            _selectNode(detailActionData.path);
           });
           break;
         }
@@ -1136,7 +1136,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _pathPropertiesList.setRenamed(path.cloneAppend(name), shouldLog: false);
           _pathPropertiesList.setUpdated(path.cloneAppend(name), shouldLog: false);
           _reloadTreeFromMapAndCopyFlags();
-          selectNode(path);
+          _selectNode(path);
           _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log: logger.log);
           break;
         case optionTypeDataGroup:
@@ -1148,7 +1148,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _pathPropertiesList.setRenamed(path.cloneAppend(name), shouldLog: false);
           _pathPropertiesList.setUpdated(path.cloneAppend(name), shouldLog: false);
           _reloadTreeFromMapAndCopyFlags();
-          selectNode(path.cloneAppend(name));
+          _selectNode(path.cloneAppend(name));
           _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log: logger.log);
           break;
       }
@@ -1216,7 +1216,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _pathPropertiesList.setRenamed(newPath);
         _pathPropertiesList.setRenamed(parentPath, shouldLog: false);
         _reloadTreeFromMapAndCopyFlags();
-        selectNode(parentPath);
+        _selectNode(parentPath);
         _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: logger.log);
       });
     }
@@ -1253,7 +1253,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _checkReferences = true;
         _pathPropertiesList.setUpdated(parentPath);
         _reloadTreeFromMapAndCopyFlags();
-        selectNode(parentPath);
+        _selectNode(parentPath);
         _globalSuccessState = SuccessState(true, message: "Removed: '${path.last}'");
       });
     }
@@ -1304,7 +1304,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _pathPropertiesList.setUpdated(detailActionData.path);
           _pathPropertiesList.setUpdated(detailActionData.path.cloneParentPath(), shouldLog: false);
           _reloadTreeFromMapAndCopyFlags();
-          selectNode(detailActionData.path.cloneParentPath());
+          _selectNode(detailActionData.path.cloneParentPath());
           _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.getLastPathElement()} updated");
         } catch (e, s) {
           debugPrintStack(stackTrace: s);
@@ -1372,7 +1372,7 @@ class _MyHomePageState extends State<MyHomePage> {
       if (shouldExit) {
         _exitReturnCode = 0;
       }
-      return false;
+      return shouldExit;
     } finally {
       _inExitProcess = false;
     }
@@ -1417,7 +1417,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _setFocus(String x) {
     if (!_isEditDataDisplay) {
-      Timer(
+      Future.delayed(
         const Duration(milliseconds: 500),
         () {
           if (!Navigator.of(context).canPop()) {
@@ -1453,7 +1453,8 @@ class _MyHomePageState extends State<MyHomePage> {
     _configData.onUpdate = _onUpdateConfig;
 
     FlutterWindowClose.setWindowShouldCloseHandler(() async {
-      return await _handleShouldExit();
+      await _handleShouldExit();
+      return false;
     });
 
     if (_loadedData.isNotEmpty) {
@@ -1523,7 +1524,7 @@ class _MyHomePageState extends State<MyHomePage> {
         if (remoteFileList.isEmpty) {
           return;
         }
-        Timer(
+        Future.delayed(
           const Duration(microseconds: 200),
           () {
             showFilesListDialog(

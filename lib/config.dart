@@ -21,9 +21,11 @@ import 'build_date.dart';
 import 'data_types.dart';
 import 'dart:io';
 
-const String defaultRemoteGetUrl = "http://localhost:8080/file";
-const String defaultRemoteListDataUrl = "http://localhost:8080/file";
-const String defaultRemotePostUrl = "http://localhost:8080/file";
+const String defaultServerPath = "http://localhost:8080";
+const String defaultRemoteGetUrl = "files/user/stuart/loc/mydb/name/%dataFileName%";
+const String defaultRemotePostUrl = "files/user/stuart/loc/mydb/name/%dataFileName%";
+const String defaultRemoteTestFileUrl = "files/user/stuart/loc/mydb/name/%testFileName%";
+const String defaultRemoteListDataUrl = "files/user/stuart/loc/mydb";
 const String defaultDataFileName = "data.json";
 const String defaultAppStateFileName = "data_repo_appState.json";
 const String defaultConfigFileName = "data_repo_config.json";
@@ -59,21 +61,31 @@ const defaultVerticalGap = 10;
 const defaultConfig = """  {
         "application" : {
             "title": "Data Repository",
+            "authorEmail": "sdd.davies@gmail.com",
+            "repoName": "https://github.com/stuartdd/data_repo",
         },
         "file": {
-            "postDataUrl": "http://10.0.2.2:3000/file",
-            "getDataUrl": "http://10.0.2.2:3000/file",
-            "datafile": "data.json"
+            "serverPath": "http://192.168.1.243:8080",
+            "getDataUrl": "files/user/stuart/loc/mydb/name/%dataFileName%",
+            "postDataUrl": "files/user/stuart/loc/mydb/name/%dataFileName%",
+            "getTestFileUrl": "/files/user/stuart/loc/mydb/name/%testFileName%",
+            "getListDataUrl": "files/user/stuart/loc/mydb",
+            "datafileName": "data.json",
+            "datafilePath": "."
         }
     } """;
 
+final getServerPathPath = Path.fromList(["file", "serverPath"]);
 final getDataUrlPath = Path.fromList(["file", "getDataUrl"]);
-final getListDataUrlPath = Path.fromList(["file", "getListDataUrl"]);
 final postDataUrlPath = Path.fromList(["file", "postDataUrl"]);
-final dataFileLocalNamePath = Path.fromList(["file", "datafile"]);
+final getTestFileUrlPath = Path.fromList(["file", "getTestFileUrl"]);
+final getListDataUrlPath = Path.fromList(["file", "getListDataUrl"]);
+
+final dataFileLocalNamePath = Path.fromList(["file", "datafileName"]);
 final dataFileLocalDirPath = Path.fromList(["file", "datafilePath"]);
 final appStateFileNamePath = Path.fromList(["file", "appStateFile"]);
 final appStateLocalDirPath = Path.fromList(["file", "appStatePath"]);
+final shouldIsolatePath = Path.fromList(["application", "shouldIsolate"]);
 final repoPath = Path.fromList(["application", "repoName"]);
 final titlePath = Path.fromList(["application", "title"]);
 final authorEmailPath = Path.fromList(["application", "authorEmail"]);
@@ -427,8 +439,10 @@ class ConfigData {
   String _rootNodeName = "";
   String _dataFileName = "";
   String _listDataUrl = "";
+  String _serverPath = "";
   String _getDataFileUrl = "";
   String _postDataFileUrl = "";
+  String _getTestFileUrl = "";
   String _dataFileLocalDir = ""; // Where the data file is. Desktop: defined by config. Mobile: Always _applicationDefaultDir
   ColorPallet _appColoursPrimary = ColorPallet.fromMaterialColor(Colors.blue, 'blue');
   ColorPallet _appColoursSecondary = ColorPallet.fromMaterialColor(Colors.green, 'green');
@@ -436,52 +450,7 @@ class ConfigData {
   ColorPallet _appColoursError = ColorPallet.fromMaterialColor(Colors.red, 'red');
   bool _darkMode = false;
   bool _hideDataPath = false;
-
-  Future<List<String>> remoteDir(final List<String> extension, final Function(String) onFail) async {
-    final getUrl = getListDataUrl();
-    final List<String> list = List.empty(growable: true);
-    final res = await DataContainer.listHttpGet(getUrl, timeoutMillis: 2000, log: log, onFind: (value) {
-      final vlc = value.toLowerCase();
-      for (int i =0; i<extension.length;i++) {
-        if (vlc.endsWith(extension[i]) && !vlc.contains("config") && !vlc.startsWith(".")) {
-          list.add(value);
-        }
-      }
-    },);
-    if (res.isFail) {
-      onFail("__LIST_REMOTE__ ${res.message}");
-      return [];
-    }
-    return list;
-  }
-
-  List<String> dir(final List<String> extensions, final List<String> hidden, final Function(String) onFail) {
-    final l = List<String>.empty(growable: true);
-    final dir = Directory(_dataFileLocalDir);
-    if (!dir.existsSync()) {
-      onFail("__LIST_DIR__ Path not found:$_dataFileLocalDir");
-      return [];
-    }
-    final dirList = dir.listSync(recursive: false);
-    for (var element in dirList) {
-      if (element is File) {
-        final fileName = File(element.path).uri.pathSegments.last;
-        if (!fileName.startsWith('.') && !hidden.contains(fileName)) {
-          if (extensions.isEmpty) {
-            l.add(fileName);
-          } else {
-            final ext = fileName.split('.').last.toLowerCase();
-            if (ext.isNotEmpty) {
-              if (extensions.contains(ext)) {
-                l.add(fileName);
-              }
-            }
-          }
-        }
-      }
-    }
-    return l;
-  }
+  bool _shouldIsolate = true;
 
   ConfigData(this._applicationDefaultDir, this._configFileName, this._isDesktop, this.log) {
     log("__PLATFORM:__ ${_isDesktop ? 'DESKTOP' : 'MOBILE'}");
@@ -522,10 +491,13 @@ class ConfigData {
   }
 
   void update({final bool callOnUpdate = true}) {
-    _getDataFileUrl = _data.getStringFromJson(getDataUrlPath, fallback: defaultRemoteGetUrl);
-    _postDataFileUrl = _data.getStringFromJson(postDataUrlPath, fallback: defaultRemotePostUrl);
-    _listDataUrl = _data.getStringFromJson(getListDataUrlPath, fallback: defaultRemoteListDataUrl);
+    _shouldIsolate = _data.getBoolFromJson(shouldIsolatePath, fallback: true);
+    _serverPath = _data.getStringFromJson(getServerPathPath, fallback: defaultServerPath);
     _dataFileName = _data.getStringFromJson(dataFileLocalNamePath, fallback: defaultDataFileName);
+    _getDataFileUrl = _substituteForUrl(_data.getStringFromJson(getDataUrlPath, fallback: defaultRemoteGetUrl));
+    _postDataFileUrl = _substituteForUrl(_data.getStringFromJson(postDataUrlPath, fallback: defaultRemotePostUrl));
+    _getTestFileUrl = _substituteForUrl(_data.getStringFromJson(getTestFileUrlPath, fallback: defaultRemoteTestFileUrl));
+    _listDataUrl = _substituteForUrl(_data.getStringFromJson(getListDataUrlPath, fallback: defaultRemoteListDataUrl));
     if (_isDesktop) {
       _dataFileLocalDir = _data.getStringFromJson(dataFileLocalDirPath, fallback: _applicationDefaultDir);
     } else {
@@ -553,6 +525,12 @@ class ConfigData {
     }
   }
 
+  String _substituteForUrl(String value) {
+    var s = value.replaceAll("%dataFileName%", _dataFileName);
+    s = s.replaceAll("%testFileName%", defaultRemoteTestFileName);
+    return "$_serverPath/$s";
+  }
+
   AppThemeData getAppThemeData() {
     _appThemeData ??= AppThemeData._(_appColoursPrimary, _appColoursSecondary, _appColoursHiLight, _appColoursError, _themeContext, defaultFontFamily, _textScale, Colors.red.shade500, _darkMode, _isDesktop, _hideDataPath);
     return _appThemeData!;
@@ -560,10 +538,6 @@ class ConfigData {
 
   set onUpdate(void Function() onUpdateFunc) {
     _onUpdate = onUpdateFunc;
-  }
-
-  DataContainer getDataContainer() {
-    return _data;
   }
 
   String _fileNameToThemeName(final String fileNane) {
@@ -612,6 +586,10 @@ class ConfigData {
 
   double get iconSize {
     return (defaultIconSize * _textScale);
+  }
+
+  bool get shouldIsolate {
+    return _shouldIsolate;
   }
 
   double get scale {
@@ -713,15 +691,15 @@ class ConfigData {
   }
 
   String getGetDataFileUrl() {
-    return "$_getDataFileUrl/$_dataFileName";
+    return _getDataFileUrl;
   }
 
   String getRemoteTestFileUrl() {
-    return "$_getDataFileUrl/$getRemoteTestFileName";
+    return _getTestFileUrl;
   }
 
   String getPostDataFileUrl() {
-    return "$_postDataFileUrl/$_dataFileName";
+    return _postDataFileUrl;
   }
 
   String getDataFileLocal() {
@@ -776,6 +754,52 @@ class ConfigData {
       return "DT:$_title";
     }
     return "MO:$_title";
+  }
+
+  Future<List<String>> remoteDir(final List<String> extension, final Function(String) onFail) async {
+    final getUrl = getListDataUrl();
+    final List<String> list = List.empty(growable: true);
+    final res = await DataContainer.listHttpGet(getUrl, timeoutMillis: 2000, log: log, onFind: (value) {
+      final vlc = value.toLowerCase();
+      for (int i =0; i<extension.length;i++) {
+        if (vlc.endsWith(extension[i]) && !vlc.contains("config") && !vlc.startsWith(".")) {
+          list.add(value);
+        }
+      }
+    },);
+    if (res.isFail) {
+      onFail("__LIST_REMOTE__ ${res.message}");
+      return [];
+    }
+    return list;
+  }
+
+  List<String> dir(final List<String> extensions, final List<String> hidden, final Function(String) onFail) {
+    final l = List<String>.empty(growable: true);
+    final dir = Directory(_dataFileLocalDir);
+    if (!dir.existsSync()) {
+      onFail("__LIST_DIR__ Path not found:$_dataFileLocalDir");
+      return [];
+    }
+    final dirList = dir.listSync(recursive: false);
+    for (var element in dirList) {
+      if (element is File) {
+        final fileName = File(element.path).uri.pathSegments.last;
+        if (!fileName.startsWith('.') && !hidden.contains(fileName)) {
+          if (extensions.isEmpty) {
+            l.add(fileName);
+          } else {
+            final ext = fileName.split('.').last.toLowerCase();
+            if (ext.isNotEmpty) {
+              if (extensions.contains(ext)) {
+                l.add(fileName);
+              }
+            }
+          }
+        }
+      }
+    }
+    return l;
   }
 
   @override
