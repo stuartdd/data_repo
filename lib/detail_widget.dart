@@ -165,7 +165,7 @@ class _DetailWidgetState extends State<DetailWidget> {
   }
 
   Widget _containerForValue(final DataValueDisplayRow dataValueRow, final AppThemeData appThemeData, final PathProperties plp) {
-    final bgColour = appThemeData.selectedAndHiLightColour(true, plp.updated);
+    final bgColour = appThemeData.selectedAndHiLightColour(true, plp.updated, false);
     final fgColour = appThemeData.screenForegroundColour(true);
 
     if (dataValueRow.type.equal(optionTypeDataPositional)) {
@@ -247,7 +247,7 @@ class _DetailWidgetState extends State<DetailWidget> {
         ListTile(
           title: Container(
             padding: const EdgeInsets.all(3),
-            color: appThemeData.selectedAndHiLightColour(true, plp.renamed),
+            color: appThemeData.selectedAndHiLightColour(true, plp.renamed, false),
             child: Row(
               children: [
                 groupButton(plp, false, isEditDataDisplay, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
@@ -276,19 +276,19 @@ class _DetailWidgetState extends State<DetailWidget> {
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
             widget.appThemeData.buttonGapBox(2),
-            DetailTextButton(
-              appThemeData: widget.appThemeData,
-              visible: widget.isEditDataDisplay,
-              text: 'Properties',
-              onPressed: (button) {
-                widget.dataAction(DetailAction(ActionType.renameItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
-              },
-            ),
+            DetailIconButton(
+                appThemeData: appThemeData,
+                visible: widget.isEditDataDisplay,
+                iconData: Icons.settings,
+                tooltip: "Change Properties",
+                onPressed: (p0) {
+                  widget.dataAction(DetailAction(ActionType.renameItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
+                }),
             DetailIconButton(
                 appThemeData: appThemeData,
                 visible: widget.isEditDataDisplay,
                 iconData: Icons.edit,
-                tooltip: "Edit value",
+                tooltip: "Change value",
                 onPressed: (p0) {
                   widget.dataAction(DetailAction(ActionType.editItemData, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
                 }),
@@ -296,7 +296,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                 appThemeData: appThemeData,
                 visible: !widget.isEditDataDisplay && refIsResolved,
                 iconData: Icons.copy,
-                tooltip: "Copy value",
+                tooltip: "Copy Value",
                 onPressed: (p0) async {
                   await Clipboard.setData(ClipboardData(text: resolvedValue));
                   widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
@@ -305,23 +305,15 @@ class _DetailWidgetState extends State<DetailWidget> {
                 appThemeData: appThemeData,
                 visible: resolvedValueIsLink && !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional) && refIsResolved,
                 iconData: Icons.launch_outlined,
-                tooltip: "Open in browser",
+                tooltip: "Open in Browser",
                 onPressed: (p0) {
                   widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.pathWithName, oldValue: resolvedValue, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
                 }),
             DetailIconButton(
                 appThemeData: appThemeData,
-                visible: widget.isEditDataDisplay,
-                iconData: Icons.delete,
-                tooltip: "Delete item",
-                onPressed: (p0) {
-                  widget.dataAction(DetailAction(ActionType.removeItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
-                }),
-            DetailIconButton(
-                appThemeData: appThemeData,
                 visible: widget.isEditDataDisplay && widget.dataValueRow.type.hasNoSuffix,
-                iconData: Icons.copy,
-                tooltip: "Copy reference to item",
+                iconData: Icons.copy_all,
+                tooltip: "Copy Reference to Item",
                 onPressed: (p0) {
                   Clipboard.setData(ClipboardData(text: widget.dataValueRow.fullPath.toString()));
                 }),
@@ -332,7 +324,15 @@ class _DetailWidgetState extends State<DetailWidget> {
                 tooltip: "Go to Reference",
                 onPressed: (p0) {
                   widget.dataAction(DetailAction(ActionType.select, true, Path.fromDotPath(widget.dataValueRow.value).cloneParentPath(), oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
-                })
+                }),
+            DetailIconButton(
+                appThemeData: appThemeData,
+                visible: widget.isEditDataDisplay,
+                iconData: Icons.delete,
+                tooltip: "Delete Item",
+                onPressed: (p0) {
+                  widget.dataAction(DetailAction(ActionType.removeItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                }),
           ],
         ),
         widget.appThemeData.verticalGapBox(1)
@@ -352,7 +352,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ListTile(
               title: Container(
                 padding: const EdgeInsets.all(3),
-                color: appThemeData.selectedAndHiLightColour(true, plp.renamed),
+                decoration: BoxDecoration(color: appThemeData.selectedAndHiLightColour(true, plp.renamed, true),border: Border.all(color: widget.appThemeData.screenForegroundColour(true), width: 1)),
                 child: Row(
                   children: [
                     groupButton(plp, false, isEditDataDisplay, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
@@ -361,7 +361,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                   ],
                 ),
               ),
-              subtitle: horizontal
+              subtitle: horizontal && !appThemeData.hideDataPath
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [widget.appThemeData.verticalGapBox(1), Text("Owned By:${widget.dataValueRow.path}. Has ${widget.dataValueRow.mapSize} sub elements", style: appThemeData.tsMediumBold)],
@@ -375,19 +375,19 @@ class _DetailWidgetState extends State<DetailWidget> {
               mainAxisAlignment: MainAxisAlignment.start,
               children: <Widget>[
                 widget.appThemeData.buttonGapBox(2),
-                DetailTextButton(
-                  appThemeData: widget.appThemeData,
-                  visible: widget.isEditDataDisplay,
-                  text: 'Properties',
-                  onPressed: (button) {
-                    widget.dataAction(DetailAction(ActionType.renameItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
-                  },
-                ),
+                DetailIconButton(
+                    appThemeData: appThemeData,
+                    visible: widget.isEditDataDisplay,
+                    iconData: Icons.edit_rounded,
+                    tooltip: "Change Item Name",
+                    onPressed: (p0) {
+                      widget.dataAction(DetailAction(ActionType.renameItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
+                    }),
                 DetailIconButton(
                     appThemeData: appThemeData,
                     visible: widget.isEditDataDisplay,
                     iconData: Icons.delete,
-                    tooltip: "Delete item",
+                    tooltip: "Delete Item",
                     onPressed: (p0) {
                       widget.dataAction(DetailAction(ActionType.removeItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
                     }),

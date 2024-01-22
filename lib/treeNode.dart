@@ -402,7 +402,7 @@ Widget? buildNodeDefault(final MyTreeNode node, final String rootNodeName, final
     final pl = node.pathLen - 1;
     return Container(
       height: rowHeight,
-      color: appThemeData.selectedAndHiLightColour(selected, hiLight),
+      color: appThemeData.selectedAndHiLightColour(selected, hiLight, false),
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [

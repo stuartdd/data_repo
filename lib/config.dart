@@ -328,9 +328,12 @@ class AppThemeData {
     return textPainter.size;
   }
 
-  selectedAndHiLightColour(final bool sel, final bool upd) {
+  selectedAndHiLightColour(final bool sel, final bool upd, final bool group) {
     if (upd) {
       return sel ? secondary.lightest : secondary.light;
+    }
+    if (group) {
+      return sel ? primary.medDark: primary.dark;
     }
     return sel ? primary.lightest : primary.light;
   }

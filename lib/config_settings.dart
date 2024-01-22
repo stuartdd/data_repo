@@ -25,53 +25,53 @@ import 'path.dart';
 import 'config.dart';
 
 enum SettingDetailType { host, url, dir, file, int, double, bool, color, name }
+enum SettingDetailId { host, get, put, test, path, data, rootNodeName, timeout, primaryColor, secondaryColor, helpColor, errorColor, ignore}
 
-enum _SettingState { ok, warning, error }
+enum SettingState { ok, warning, error }
 
-const List<String> mustContainData = ["/", "%dataFileName%"];
-const List<String> mustContainTest = ["/", "%testFileName%"];
-
-const List<String> mustContainMinimum = [];
+const List<String> _mustContainData = ["/", "%dataFileName%"];
+const List<String> _mustContainTest = ["/", "%testFileName%"];
+const List<String> _mustContainDefault = [];
 
 final List<SettingDetail> _settingsData = [
-  SettingDetail("host", "Server URL", "E.G. http://192.168.1.243:8080", getServerPathPath, SettingDetailType.host, defaultServerPath, true),
-  SettingDetail("get", "Server URL (Download)", "Read Data URL", getDataUrlPath, SettingDetailType.url, defaultRemoteGetUrl, true, mustContain: mustContainData),
-  SettingDetail("put", "Server URL (Upload)", "Write Data URL", postDataUrlPath, SettingDetailType.url, defaultRemotePostUrl, true, mustContain: mustContainData),
-  SettingDetail("test", "Server URL (Test)", "Test Data URL. File:$defaultRemoteTestFileName", getTestFileUrlPath, SettingDetailType.url, defaultRemoteTestFileUrl, true, mustContain: mustContainTest),
-  SettingDetail("path", "Local Data file path", "GET List data URL", dataFileLocalDirPath, SettingDetailType.dir, defaultDataEmptyString, false),
-  SettingDetail("data", "Data file Name", "Now set from the main screen!", dataFileLocalNamePath, SettingDetailType.file, defaultDataEmptyString, true, hide: true),
-  SettingDetail("rootNodeName", "Root Node Name", "Replace the root node name with this", appRootNodeNamePathC, SettingDetailType.name, defaultDataEmptyString, true),
-  SettingDetail("timeout", "Server Timeout Milliseconds", "The host server timeout 100..5000", dataFetchTimeoutMillisPath, SettingDetailType.int, defaultFetchTimeoutMillis.toString(), false, minValue: 100, maxValue: 5000),
-  SettingDetail("", "Screen Text & Icons", "Icons/Text White or Black. Click below to change", appDarkModePathC, SettingDetailType.bool, "$defaultDarkMode", true, trueValue: "Currently White", falseValue: "Currently Black"),
-  SettingDetail("", "Hide Data Info", "Compact mode. Hide 'Owned By'", hideDataPathPathC, SettingDetailType.bool, "$defaultHideDataPath", false, trueValue: "Currently Hide", falseValue: "Currently Show"),
-  SettingDetail("", "Screen Text Scale", "Text Scale. 0.5..2.0", appTextScalePath, SettingDetailType.double, "1.0", true, minValue: 0.5, maxValue: 2.0),
-  SettingDetail("", "Primary Colour", "The main colour theme", appColoursPrimaryPathC, SettingDetailType.color, defaultPrimaryColourName, true),
-  SettingDetail("", "Preview Colour", "The Markdown 'Preview' colour", appColoursSecondaryPathC, SettingDetailType.color, defaultSecondaryColourName, true),
-  SettingDetail("", "Help Colour", "The Markdown 'Help' colour", appColoursHiLightPathC, SettingDetailType.color, defaultHiLightColourName, true),
-  SettingDetail("", "Error Colour", "The Error colour theme", appColoursErrorPathC, SettingDetailType.color, defaultErrorColourName, true),
+  SettingDetail(SettingDetailId.host, "Server URL", "E.G. http://192.168.1.243:8080", getServerPathPath, SettingDetailType.host, defaultServerPath, true),
+  SettingDetail(SettingDetailId.get, "Server URL (Download)", "Read Data URL", getDataUrlPath, SettingDetailType.url, defaultRemoteGetUrl, true, mustContain: _mustContainData),
+  SettingDetail(SettingDetailId.put, "Server URL (Upload)", "Write Data URL", postDataUrlPath, SettingDetailType.url, defaultRemotePostUrl, true, mustContain: _mustContainData),
+  SettingDetail(SettingDetailId.test, "Server URL (Test)", "Test Data URL. File:$defaultRemoteTestFileName", getTestFileUrlPath, SettingDetailType.url, defaultRemoteTestFileUrl, true, mustContain: _mustContainTest),
+  SettingDetail(SettingDetailId.path, "Local Data file path", "GET List data URL", dataFileLocalDirPath, SettingDetailType.dir, defaultDataEmptyString, false),
+  SettingDetail(SettingDetailId.data, "Data file Name", "Now set from the main screen!", dataFileLocalNamePath, SettingDetailType.file, defaultDataEmptyString, true, hide: true),
+  SettingDetail(SettingDetailId.rootNodeName, "Root Node Name", "Replace the root node name with this", appRootNodeNamePathC, SettingDetailType.name, defaultDataEmptyString, true),
+  SettingDetail(SettingDetailId.timeout, "Server Timeout Milliseconds", "The host server timeout 100..5000", dataFetchTimeoutMillisPath, SettingDetailType.int, defaultFetchTimeoutMillis.toString(), false, minValue: 100, maxValue: 5000),
+  SettingDetail(SettingDetailId.ignore, "Screen Text & Icons", "Icons/Text White or Black. Click below to change", appDarkModePathC, SettingDetailType.bool, "$defaultDarkMode", true, trueValue: "Currently White", falseValue: "Currently Black"),
+  SettingDetail(SettingDetailId.ignore, "Hide Data Info", "Compact mode. Hide 'Owned By'", hideDataPathPathC, SettingDetailType.bool, "$defaultHideDataPath", false, trueValue: "Currently Hide", falseValue: "Currently Show"),
+  SettingDetail(SettingDetailId.ignore, "Screen Text Scale", "Text Scale. 0.5..2.0", appTextScalePath, SettingDetailType.double, "1.0", true, minValue: 0.5, maxValue: 2.0),
+  SettingDetail(SettingDetailId.primaryColor, "Primary Colour", "The main colour theme", appColoursPrimaryPathC, SettingDetailType.color, defaultPrimaryColourName, true),
+  SettingDetail(SettingDetailId.secondaryColor, "Preview Colour", "The Markdown 'Preview' colour", appColoursSecondaryPathC, SettingDetailType.color, defaultSecondaryColourName, true),
+  SettingDetail(SettingDetailId.helpColor, "Help Colour", "The Markdown 'Help' colour", appColoursHiLightPathC, SettingDetailType.color, defaultHiLightColourName, true),
+  SettingDetail(SettingDetailId.errorColor, "Error Colour", "The Error colour theme", appColoursErrorPathC, SettingDetailType.color, defaultErrorColourName, true),
 ];
 
 class SettingValidation {
-  final _SettingState _state;
+  final SettingState _state;
   final String _message;
   SettingValidation._(this._state, this._message);
 
   factory SettingValidation.ok() {
-    return SettingValidation._(_SettingState.ok, "");
+    return SettingValidation._(SettingState.ok, "");
   }
   factory SettingValidation.error(String m) {
-    return SettingValidation._(_SettingState.error, m);
+    return SettingValidation._(SettingState.error, m);
   }
   factory SettingValidation.warning(String m) {
-    return SettingValidation._(_SettingState.warning, m);
+    return SettingValidation._(SettingState.warning, m);
   }
   factory SettingValidation.mustContain(String m, List<String> mustContain) {
     for (int i = 0; i < mustContain.length; i++) {
       if (!m.contains(mustContain[i])) {
-        return SettingValidation._(_SettingState.error, "Must contain ${mustContain[i]}");
+        return SettingValidation._(SettingState.error, "Must contain ${mustContain[i]}");
       }
     }
-    return SettingValidation._(_SettingState.ok, "");
+    return SettingValidation._(SettingState.ok, "");
   }
 
   @override
@@ -85,9 +85,9 @@ class SettingValidation {
 
   String message(String okMessage) {
     switch (_state) {
-      case _SettingState.warning:
+      case SettingState.warning:
         return "Warning: $_message";
-      case _SettingState.error:
+      case SettingState.error:
         return "Error: $_message";
       default:
         return okMessage;
@@ -95,11 +95,11 @@ class SettingValidation {
   }
 
   bool get isError {
-    return (_state == _SettingState.error);
+    return (_state == SettingState.error);
   }
 
   bool get isNotError {
-    return (_state != _SettingState.error);
+    return (_state != SettingState.error);
   }
 
   bool isNotEqual(final SettingValidation other) {
@@ -107,14 +107,14 @@ class SettingValidation {
   }
 
   bool get isNotOk {
-    return (_state != _SettingState.ok);
+    return (_state != SettingState.ok);
   }
 
   TextStyle hintStyle(AppThemeData appThemeData) {
     switch (_state) {
-      case _SettingState.warning:
+      case SettingState.warning:
         return appThemeData.tsMediumError;
-      case _SettingState.error:
+      case SettingState.error:
         return appThemeData.tsLargeError;
       default:
         return appThemeData.tsMedium;
@@ -123,7 +123,7 @@ class SettingValidation {
 
   TextStyle textStyle(AppThemeData appThemeData) {
     switch (_state) {
-      case _SettingState.error:
+      case SettingState.error:
         return appThemeData.tsLargeError;
       default:
         return appThemeData.tsLarge;
@@ -189,19 +189,19 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
       SettingValidation svTest = SettingValidation.ok();
       SettingValidation svGet = SettingValidation.ok();
       var dataError = "";
-      final scHost = widget.settingsControlList.getSettingControlForId("host");
+      final scHost = widget.settingsControlList.getSettingControlForId(SettingDetailId.host);
       if (scHost == null) {
         dataError = "${dataError}host, ";
       }
-      final scTestGet = widget.settingsControlList.getSettingControlForId("test");
+      final scTestGet = widget.settingsControlList.getSettingControlForId(SettingDetailId.test);
       if (scTestGet == null) {
         dataError = "${dataError}test, ";
       }
-      final scGet = widget.settingsControlList.getSettingControlForId("get");
+      final scGet = widget.settingsControlList.getSettingControlForId(SettingDetailId.get);
       if (scGet == null) {
         dataError = "${dataError}get, ";
       }
-      final scFileName = widget.settingsControlList.getSettingControlForId("data");
+      final scFileName = widget.settingsControlList.getSettingControlForId(SettingDetailId.data);
       if (scFileName == null) {
         dataError = "${dataError}data, ";
       }
@@ -323,7 +323,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
             subtitle: widget.settingsControl.validationState.hintText(widget.settingsControl.detail.hint, widget.appThemeData),
           ),
         ),
-        _configInputField(widget.settingsControl.detail.detailType, (value) {
+        _configInputField(widget.settingsControl.detail._detailType, (value) {
           widget.onValidation(value, widget.settingsControl);
         }),
         widget.appThemeData.horizontalLine
@@ -332,6 +332,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
   }
 
   Widget _configInputField(SettingDetailType type, void Function(String) onChanged) {
+    
     if (type == SettingDetailType.bool) {
       final set = _stringToBool(widget.settingsControl.stringValue);
       final iconData = set ? Icon(Icons.circle_outlined, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.circle_rounded, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true));
@@ -390,11 +391,11 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
 }
 
 class SettingDetail {
-  final String id;
   final String title;
   final String hint;
   final Path path;
-  final SettingDetailType detailType; // BOOL, INT or other. Used for validation/conversion
+  final SettingDetailId _locator;
+  final SettingDetailType _detailType; // BOOL, INT or other. Used for validation/conversion
   final String fallback; // The value if not defined in the config data.
   final bool desktopOnly; // Only applies to the desktop
   final bool hide; // Only applies to the desktop
@@ -404,10 +405,10 @@ class SettingDetail {
   final double maxValue; // The text value if false
   final List<String> mustContain;
 
-  const SettingDetail(this.id, this.title, this.hint, this.path, this.detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = "", this.minValue = double.maxFinite, this.maxValue = double.maxFinite, this.hide = false, this.mustContain = mustContainMinimum});
+  const SettingDetail(this._locator, this.title, this.hint, this.path, this._detailType, this.fallback, this.desktopOnly, {this.trueValue = "", this.falseValue = "", this.minValue = double.maxFinite, this.maxValue = double.maxFinite, this.hide = false, this.mustContain = _mustContainDefault});
 
   String range(String valueString) {
-    final name = detailType == SettingDetailType.double ? 'Decimal' : 'Integer';
+    final name = _detailType == SettingDetailType.double ? 'Decimal' : 'Integer';
     final vs = valueString.trim();
     if (vs.isEmpty) {
       return "Requires $name number";
@@ -440,7 +441,7 @@ class SettingControlList {
     list = List<SettingControl>.empty(growable: true);
     for (var settingDetail in _settingsData) {
       if (isDeskTop || settingDetail.desktopOnly) {
-        switch (settingDetail.detailType) {
+        switch (settingDetail._detailType) {
           case SettingDetailType.bool:
             list.add(SettingControl(settingDetail, configData.getBoolFromJson(settingDetail.path, sub2: defaultThemeReplace, sub1: configData.themeContext, fallback: _stringToBool(settingDetail.fallback)).toString()));
             break;
@@ -456,14 +457,14 @@ class SettingControlList {
   }
 
   String substituteForUrl(String value) {
-    final dataFileName = getValueForId("data", fallback: "?");
-    final serverPath = getValueForId("host", fallback: "?");
+    final dataFileName = getValueForId(SettingDetailId.data, fallback: "?");
+    final serverPath = getValueForId(SettingDetailId.host, fallback: "?");
     var s = value.replaceAll("%dataFileName%", dataFileName);
     s = s.replaceAll("%testFileName%", defaultRemoteTestFileName);
     return "$serverPath/$s";
   }
 
-  String getValueForId(String id, {final String fallback = ""}) {
+  String getValueForId(SettingDetailId id, {final String fallback = ""}) {
     final e = getSettingControlForId(id);
     if (e != null) {
       return e.stringValue;
@@ -471,9 +472,9 @@ class SettingControlList {
     return fallback;
   }
 
-  SettingControl? getSettingControlForId(String id) {
+  SettingControl? getSettingControlForId(SettingDetailId locator) {
     for (var element in list) {
-      if (element.detail.id == id) {
+      if (element.detail._locator == locator) {
         return element;
       }
     }
@@ -544,13 +545,13 @@ class SettingControl {
   }
 
   dynamic get dynamicValue {
-    if (detail.detailType == SettingDetailType.bool) {
+    if (detail._detailType == SettingDetailType.bool) {
       return (stringValue.toLowerCase() == "true");
     }
-    if (detail.detailType == SettingDetailType.int) {
+    if (detail._detailType == SettingDetailType.int) {
       return (num.parse(stringValue));
     }
-    if (detail.detailType == SettingDetailType.double) {
+    if (detail._detailType == SettingDetailType.double) {
       return (num.parse(stringValue));
     }
     return stringValue;
@@ -578,7 +579,7 @@ class SettingControl {
 
   @override
   String toString() {
-    return "id:${detail.id} ${validationState.name.toUpperCase()}: ${changed ? '*' : ''} Old:'$oldValue' New:'$stringValue' Path:${detail.path} ";
+    return "id:${detail._locator.toString()} ${validationState.name.toUpperCase()}: ${changed ? '*' : ''} Old:'$oldValue' New:'$stringValue' Path:${detail.path} ";
   }
 }
 
@@ -592,7 +593,7 @@ bool _stringToBool(final String text) {
 
 SettingValidation _initialValidate(final String value, final SettingDetail detail, final SettingControlList controlList, final SettingValidation Function(String, SettingDetail) onValidate) {
   final vt = value.trim();
-  switch (detail.detailType) {
+  switch (detail._detailType) {
     case SettingDetailType.int:
     case SettingDetailType.double:
       {
@@ -664,7 +665,7 @@ SettingValidation _initialValidate(final String value, final SettingDetail detai
         if (vt.isEmpty) {
           return SettingValidation.error("File name cannot be empty");
         }
-        var pathSetting = controlList.getValueForId("path");
+        var pathSetting = controlList.getValueForId(SettingDetailId.path);
         if (pathSetting.isEmpty) {
           pathSetting = controlList.dataFileDir;
         }
