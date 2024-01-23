@@ -13,7 +13,7 @@
     "postDataUrl": "files/user/stuart/loc/mydb/name/%dataFileName%",
     "getTestFileUrl": "files/user/stuart/loc/mydb/name/%testFileName%",
     "getListDataUrl": "files/user/stuart/loc/mydb",
-    "datafileName": "real.json",
+    "datafileName": "stuff.json",
     "datafilePath": "../data_repo_server/local"
   },
   "theme": {

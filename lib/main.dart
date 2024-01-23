@@ -255,6 +255,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _selectedTreeNode.setExpandedParentNodes(true);
     } else {
       logger.log("__SELECT__ Failed Path:'$path'");
+      return;
     }
 
     Future.delayed(
@@ -265,7 +266,9 @@ class _MyHomePageState extends State<MyHomePage> {
           tni = 0;
         }
         final index = tni * (_configData.getAppThemeData().treeNodeHeight + 1);
-        _treeViewScrollController.animateTo(index, duration: const Duration(milliseconds: 400), curve: Curves.ease);
+        if (_treeViewScrollController.hasClients) {
+          _treeViewScrollController.animateTo(index, duration: const Duration(milliseconds: 400), curve: Curves.ease);
+        }
       },
     );
   }
@@ -1612,6 +1615,8 @@ class _MyHomePageState extends State<MyHomePage> {
       logger.log,
       _applicationState.isDataSorted,
       _configData.getRootNodeName(),
+      _configData.getDataFileName(),
+      _search
     );
     _treeViewScrollController = displayData.scrollController;
 

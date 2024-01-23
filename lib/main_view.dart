@@ -34,11 +34,29 @@ class DisplaySplitView {
   final ScrollController scrollController;
   final bool isOk;
 
-  factory DisplaySplitView.error(final AppThemeData appThemeData, final String message) {
+  factory DisplaySplitView.error(final AppThemeData appThemeData, final List<String> messages) {
+    final List<Widget> data = List.empty(growable: true);
+    var style = appThemeData.tsLarge;
+    for (int index = 0; index < messages.length; index++) {
+      final m = messages[index];
+      if (m.isNotEmpty) {
+        data.add(Text(m, style: style));
+        data.add(appThemeData.verticalGapBox(1));
+      } else {
+        style = appThemeData.tsLargeBold;
+        data.add(appThemeData.horizontalLine);
+        data.add(appThemeData.verticalGapBox(1));
+      }
+    }
     return DisplaySplitView(
         Container(
           color: appThemeData.error.med,
-          child: Center(child: Text(message, style: appThemeData.tsLarge)),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: data,
+            ),
+          ),
         ),
         ScrollController(),
         isOk: false);
@@ -76,17 +94,19 @@ DisplaySplitView createSplitView(
     final Path Function(DetailAction) onDataAction,
     final void Function(String) log,
     final int isSorted,
-    final String rootNodeName) {
+    final String rootNodeName,
+    final String currentFileName,
+    final String currentSearch) {
   // Called when one of the detail buttons is pressed
   /// Left right or Top bottom
   ///
   if (data.isEmpty) {
     log("__DATA:__ No data loaded");
-    return DisplaySplitView.error(appThemeData, ("No data has been loaded"));
+    return DisplaySplitView.error(appThemeData, ["No data has been loaded", "", "Current file:", "\"$currentFileName\"", ""]);
   }
   if (filteredTreeNodeDataRoot.isEmpty) {
     log("__DATA:__ No data to display");
-    return DisplaySplitView.error(appThemeData, ("No data to display"));
+    return DisplaySplitView.error(appThemeData, ["No data found", "", "Search", currentSearch.isEmpty ? "?" : "\"$currentSearch\"", ""]);
   }
 
   final selectedPath = selectedTreeNode.path;
@@ -100,7 +120,7 @@ DisplaySplitView createSplitView(
     detailContainer = _createDetailContainer(node, selectedPath, unfilteredTreeNodeDataRoot, isEditDataDisplay, isSorted, horizontal, pathPropertiesList, appThemeData, onDataAction, onResolve);
   } else {
     log("__DATA:__ Selected Node was not found in the data");
-    return DisplaySplitView.error(appThemeData, ("Selected Node was not found in the data"));
+    return DisplaySplitView.error(appThemeData, ["Selected Node was not found in the data"]);
   }
 
   final scrollController = ScrollController();
