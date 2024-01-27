@@ -60,20 +60,21 @@ class DataContainer {
   final String remoteSourcePath;
   final String localSourcePath;
   final String fileName;
+  final bool Function()? canSaveAlt;
   late final int _timeStamp;
   late final Map<String, dynamic> _dataMap;
   String password = "";
   String warning = "";
 
   factory DataContainer.empty() {
-    return DataContainer("", FileDataPrefix.empty(), "", "", "", "");
+    return DataContainer("", FileDataPrefix.empty(), "", "", "", null, "");
   }
 
   factory DataContainer.fromJson(final String json, {final Function(String)? log}) {
-    return DataContainer(json, FileDataPrefix.empty(), "", "", "", "", log: log);
+    return DataContainer(json, FileDataPrefix.empty(), "", "", "", null, "", log: log);
   }
 
-  DataContainer(final String fileContents, final FileDataPrefix filePrefixData, this.remoteSourcePath, this.localSourcePath, this.fileName, final String pw, {final Function(String)? log}) {
+  DataContainer(final String fileContents, final FileDataPrefix filePrefixData, this.remoteSourcePath, this.localSourcePath, this.fileName, this.canSaveAlt, final String pw, {final Function(String)? log}) {
     password = pw;
     _timeStamp = filePrefixData.timeStamp;
     _dataMap = staticConvertStringToMap(fileContents, pw);
@@ -88,6 +89,13 @@ class DataContainer {
         }
       }
     });
+  }
+
+  bool canSaveAltFile() {
+    if (canSaveAlt != null) {
+      return canSaveAlt!();
+    }
+    return true;
   }
 
   String get timeStampString {
@@ -380,6 +388,9 @@ class DataContainer {
     return jsonEncode(map);
   }
 
+  /*
+  Return the map as a String (or encrypted String if pw provided) with a Prefix timestamp.
+  */
   static String staticDataToStringFormattedWithTs(Map<String, dynamic> map, final String pw, {final bool addTimeStamp = true, final bool isNew = false}) {
     String tsString = "";
     if (addTimeStamp) {
@@ -497,13 +508,16 @@ class DataContainer {
     }
   }
 
-  static SuccessState saveToFile(final String fileName, final String contents, {final void Function(String)? log}) {
+  static SuccessState saveToFile(final String fullFilePath, final String contents, {final bool noClobber = false, final void Function(String)? log}) {
     try {
-      File(fileName).writeAsStringSync(contents);
-      return SuccessState(true, path: fileName, message: "Data Saved OK", log: log);
+      if (noClobber && File(fullFilePath).existsSync()) {
+        return SuccessState(false, path: fullFilePath, message: "File already exists", log: log);
+      }
+      File(fullFilePath).writeAsStringSync(contents);
+      return SuccessState(true, path: fullFilePath, message: "Data Saved OK", log: log);
     } catch (e, s) {
       stderr.write("DataLoad:saveToFile: $e\n$s");
-      return SuccessState(false, path: fileName, message: e.toString(), exception: e as Exception, log: log);
+      return SuccessState(false, path: fullFilePath, message: e.toString(), exception: e as Exception, log: log);
     }
   }
 
@@ -615,7 +629,7 @@ class FileDataPrefix {
     return FileDataPrefix(false, 0, 0, false, true, reason, "", "");
   }
 
-  FileDataPrefix selectThisOrThat(FileDataPrefix other, {Function(String log)? log}) {
+  FileDataPrefix selectWithNoErrorOrLatest(FileDataPrefix other, {Function(String log)? log}) {
     // return the one that is NOT in error.
     if (error && other.error) {
       if (log != null) {

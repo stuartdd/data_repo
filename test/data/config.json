@@ -57,19 +57,12 @@
             "transactions": "Transaction"
         },
         "file": {
-            "backupfile": {
-                "path": "test",
-                "sep": "/",
-                "pre": "mydb-",
-                "mask": "%d-%h%m",
-                "post": ".data",
-                "max": 10
-            },
-            "appStatePath": "test",
-            "appStateFile": "appState.json",
-            "postDataUrl": "http://192.168.1.1:8080/files/user/stuart/loc/mydb/name",
-            "getDataUrl": "http://192.168.1.1:8080/files/user/stuart/loc/mydb/name",
-            "datafile": "mydb.data",
-            "datafilePath": "test"
+            "serverPath": "http://192.168.1.1:8080",
+            "getDataUrl": "files/user/%dataFileName%",
+            "postDataUrl": "files/user/%dataFileName%",
+            "getTestFileUrl": "files/user/%testFileName%",
+            "getListDataUrl": "files/user/list",
+            "datafileName": "mydb.xxxx",
+            "datafilePath": "test/data"
         }
     }

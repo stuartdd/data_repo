@@ -45,6 +45,7 @@ enum ActionType {
   renameItem, // Edit the current items name (key) and type (MarkDown, List, Reference...)
   about, // Display About dialogue
   settings, // Display settings dialogue
+  chooseFile, // Display merged list of server and local files
   checkReferences,
   createFile,
   select,
@@ -365,6 +366,10 @@ class DetailAction {
       case ActionType.settings:
         {
           return "SETTINGS";
+        }
+      case ActionType.chooseFile:
+        {
+          return "CHOOSE_FILE";
         }
       case ActionType.checkReferences:
         {

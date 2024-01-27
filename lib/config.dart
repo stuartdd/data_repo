@@ -75,6 +75,12 @@ const defaultConfig = """  {
         }
     } """;
 
+enum FileExtensionState { asIs, forceJson, forceData, checkPassword }
+
+const fileExtensionJson = ".json";
+const fileExtensionData = ".data";
+const fileExtensionDataList = [fileExtensionData, fileExtensionJson];
+
 final getServerPathPath = Path.fromList(["file", "serverPath"]);
 final getDataUrlPath = Path.fromList(["file", "getDataUrl"]);
 final postDataUrlPath = Path.fromList(["file", "postDataUrl"]);
@@ -333,7 +339,7 @@ class AppThemeData {
       return sel ? secondary.lightest : secondary.light;
     }
     if (group) {
-      return sel ? primary.medDark: primary.dark;
+      return sel ? primary.medDark : primary.dark;
     }
     return sel ? primary.lightest : primary.light;
   }
@@ -473,8 +479,7 @@ class ConfigData {
     } else {
       log("__CONFIG FILE:__ Loaded: $_fullFileName");
     }
-    _data = DataContainer(resp.value, FileDataPrefix.empty(), "", "", "", "");
-
+    _data = DataContainer(resp.value, FileDataPrefix.empty(), "", "", "", null, "");
     if (_isDesktop) {
       _appStateLocalDir = _data.getStringFromJson(appStateLocalDirPath, fallback: _applicationDefaultDir);
     } else {
@@ -487,7 +492,7 @@ class ConfigData {
     _title = _data.getStringFromJson(titlePath, fallback: defaultAppTitle);
     _authorEmail = _data.getStringFromJson(authorEmailPath, fallback: defaultAuthorEmail);
     _dataFetchTimeoutMillis = _data.getNumFromJson(dataFetchTimeoutMillisPath, fallback: defaultFetchTimeoutMillis) as int;
-    log("__LOCAL DATA FILE:__ ${getDataFileLocal()}");
+    log("__LOCAL DATA FILE:__ ${getDataFileLocalPath()}");
     log("__REMOTE DATA GET:__ ${getGetDataFileUrl()}");
     log("__REMOTE DATA POST:__ ${getPostDataFileUrl()}");
     log("__LOCAL STATE FILE:__ ${getAppStateFileLocal()}");
@@ -528,8 +533,9 @@ class ConfigData {
     }
   }
 
-  String _substituteForUrl(String value) {
-    var s = value.replaceAll("%dataFileName%", _dataFileName);
+  String _substituteForUrl(String value, {final FileExtensionState mode = FileExtensionState.asIs, final String pw = ""}) {
+    var v = _replaceFileNameExtension(_dataFileName, mode, pw);
+    var s = value.replaceAll("%dataFileName%", v);
     s = s.replaceAll("%testFileName%", defaultRemoteTestFileName);
     return "$_serverPath/$s";
   }
@@ -541,16 +547,6 @@ class ConfigData {
 
   set onUpdate(void Function() onUpdateFunc) {
     _onUpdate = onUpdateFunc;
-  }
-
-  String _fileNameToThemeName(final String fileNane) {
-    StringBuffer sb = StringBuffer();
-    for (var e in fileNane.runes) {
-      if ((e >= 48 && e <= 57) || (e >= 65 && e <= 90) || (e >= 97 && e <= 122) || (e == 95) || (e == 46)) {
-        sb.writeCharCode(e);
-      }
-    }
-    return sb.toString();
   }
 
   String clearThemeForFile(final String fileName) {
@@ -572,13 +568,6 @@ class ConfigData {
 
   String get themeContext {
     return _themeContext;
-  }
-
-  String localFileExists(final String fileName) {
-    if (File(_pathFromStrings(getDataFileDir(), fileName)).existsSync()) {
-      return "Local file exists";
-    }
-    return "";
   }
 
   Map<String, dynamic> getMinimumDataContentMap() {
@@ -701,20 +690,65 @@ class ConfigData {
     return _getTestFileUrl;
   }
 
-  String getPostDataFileUrl() {
-    return _postDataFileUrl;
+  String getPostDataFileUrl({final FileExtensionState mode = FileExtensionState.asIs, final String pw = ""}) {
+    if (mode == FileExtensionState.asIs) {
+      return _postDataFileUrl;
+    }
+    return _substituteForUrl(_data.getStringFromJson(postDataUrlPath, fallback: defaultRemotePostUrl), mode: mode, pw: pw);
   }
 
-  String getDataFileLocal() {
-    return _pathFromStrings(_dataFileLocalDir, _dataFileName);
+  /*
+  LOCAL DATA FILE Accessors
+   */
+  String getDataFileNameForSaveAs(String pw, {bool fullPath = false}) {
+    if (pw.isEmpty) {
+      if (fullPath) {
+        return _pathFromStrings(_dataFileLocalDir, getDataFileName(mode: FileExtensionState.forceJson));
+      }
+      return getDataFileName(mode: FileExtensionState.forceJson);
+    } else {
+      if (fullPath) {
+        return _pathFromStrings(_dataFileLocalDir, getDataFileName(mode: FileExtensionState.forceData));
+      }
+      return getDataFileName(mode: FileExtensionState.forceData);
+    }
   }
 
-  String getDataFileLocalAlt(final String fileName) {
-    return _pathFromStrings(_dataFileLocalDir, fileName);
+  String getDataFileNameForCreate(String fileName, String pw, {bool fullPath = false}) {
+    if (fullPath) {
+      return _pathFromStrings(_dataFileLocalDir, _replaceFileNameExtension(fileName, FileExtensionState.checkPassword, pw));
+    }
+    return _replaceFileNameExtension(fileName, FileExtensionState.checkPassword, pw);
   }
 
-  String getDataFileName() {
-    return _dataFileName;
+  bool localFileExists(final String fileName) {
+    return (File(_pathFromStrings(getDataFileDir(), fileName)).existsSync());
+  }
+
+  String getDataFileNameAlt() {
+    final current = getDataFileName().toLowerCase();
+    if (current.endsWith(fileExtensionJson)) {
+      return getDataFileName(mode: FileExtensionState.forceData);
+    }
+    if (current.endsWith(fileExtensionData)) {
+      return getDataFileName(mode: FileExtensionState.forceJson);
+    }
+    return getDataFileName(mode: FileExtensionState.asIs);
+  }
+
+  bool canSaveAltFile() {
+    return !localFileExists(getDataFileNameAlt());
+  }
+
+  String getDataFileLocalPath({final FileExtensionState mode = FileExtensionState.asIs, final String pw = ""}) {
+    return _pathFromStrings(_dataFileLocalDir, getDataFileName(mode: mode, pw: pw));
+  }
+
+  String getDataFileName({final FileExtensionState mode = FileExtensionState.asIs, final String pw = ""}) {
+    if (mode == FileExtensionState.asIs) {
+      return _dataFileName;
+    }
+    return _replaceFileNameExtension(_dataFileName, mode, pw);
   }
 
   String getAppStateFileName() {
@@ -754,34 +788,40 @@ class ConfigData {
 
   String get title {
     if (isDesktop()) {
-      return "DT:$_title";
+      return "DT: $_title";
     }
-    return "MO:$_title";
+    return "MO: $_title";
   }
 
-  Future<List<String>> remoteDir(final List<String> extension, final Function(String) onFail) async {
+  Future<void> remoteDir(final List<String> extension, final Function(String) onFail, final Function(String) onFound) async {
     final getUrl = getListDataUrl();
     final List<String> list = List.empty(growable: true);
-    final res = await DataContainer.listHttpGet(getUrl, timeoutMillis: 2000, log: log, onFind: (value) {
-      final vlc = value.toLowerCase();
-      for (int i =0; i<extension.length;i++) {
-        if (vlc.endsWith(extension[i]) && !vlc.contains("config") && !vlc.startsWith(".")) {
-          list.add(value);
+    final res = await DataContainer.listHttpGet(
+      getUrl,
+      timeoutMillis: 2000,
+      log: log,
+      onFind: (value) {
+        final vlc = value.toLowerCase();
+        for (int i = 0; i < extension.length; i++) {
+          if (vlc.endsWith(extension[i]) && !vlc.contains("config") && !vlc.startsWith(".")) {
+            onFound(value);
+          }
         }
-      }
-    },);
+      },
+    );
     if (res.isFail) {
       onFail("__LIST_REMOTE__ ${res.message}");
-      return [];
     }
-    return list;
   }
 
-  List<String> dir(final List<String> extensions, final List<String> hidden, final Function(String) onFail) {
-    final l = List<String>.empty(growable: true);
+  List<String> dir(final List<String> extensions, final List<String> hidden, final List<String> merge, final Function(List<String>, bool) onFail) {
     final dir = Directory(_dataFileLocalDir);
+    final List<String> finalList = List.empty(growable: true);
+    for (final name in merge) {
+      finalList.add("R:$name");
+    }
     if (!dir.existsSync()) {
-      onFail("__LIST_DIR__ Path not found:$_dataFileLocalDir");
+      onFail(["Config Data Error:", "Element '$dataFileLocalDirPath'", "", "Path not found:", _dataFileLocalDir], true);
       return [];
     }
     final dirList = dir.listSync(recursive: false);
@@ -790,23 +830,69 @@ class ConfigData {
         final fileName = File(element.path).uri.pathSegments.last;
         if (!fileName.startsWith('.') && !hidden.contains(fileName)) {
           if (extensions.isEmpty) {
-            l.add(fileName);
+            if (!merge.contains(fileName)) {
+              finalList.add("L:$fileName");
+            }
           } else {
             final ext = fileName.split('.').last.toLowerCase();
             if (ext.isNotEmpty) {
-              if (extensions.contains(ext)) {
-                l.add(fileName);
+              if (extensions.contains(".$ext")) {
+                if (!merge.contains(fileName)) {
+                  finalList.add("L:$fileName");
+                }
               }
             }
           }
         }
       }
     }
-    return l;
+    return finalList;
   }
 
   @override
   String toString() {
-    return "Url:${getGetDataFileUrl()} File:${getDataFileLocal()}";
+    return "Url:${getGetDataFileUrl()} File:${getDataFileLocalPath()}";
+  }
+
+  static String _replaceFileNameExtension(final String fn, final FileExtensionState mode, final String pw) {
+    if (mode == FileExtensionState.asIs) {
+      return fn;
+    }
+    String ext = "";
+    switch (mode) {
+      case FileExtensionState.forceData:
+        {
+          ext = fileExtensionData;
+          break;
+        }
+      case FileExtensionState.forceJson:
+        {
+          ext = fileExtensionJson;
+          break;
+        }
+      case FileExtensionState.checkPassword:
+        {
+          ext = pw.isEmpty ? fileExtensionJson : fileExtensionData;
+          break;
+        }
+      default:
+        break;
+    }
+
+    final p = fn.lastIndexOf('.');
+    if (p == -1) {
+      return "$fn$ext";
+    }
+    return "${fn.substring(0, p)}$ext";
+  }
+
+  static String _fileNameToThemeName(final String fileNane) {
+    StringBuffer sb = StringBuffer();
+    for (var e in fileNane.runes) {
+      if ((e >= 48 && e <= 57) || (e >= 65 && e <= 90) || (e >= 97 && e <= 122) || (e == 95) || (e == 46)) {
+        sb.writeCharCode(e);
+      }
+    }
+    return sb.toString();
   }
 }

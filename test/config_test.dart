@@ -76,12 +76,45 @@ void main() {
     }
   });
 
-  test('Test Get From Server', () async {
+  test('Test Get Config data', () async {
     final cfg = ConfigData("test/data", "config.json", true, log);
-    expect(cfg.toString(), "Url:http://192.168.1.1:8080/files/user/stuart/loc/mydb/name/mydb.data File:test/mydb.data");
-    expect(cfg.getGetDataFileUrl(), "http://192.168.1.1:8080/files/user/stuart/loc/mydb/name/mydb.data");
-    expect(cfg.getDataFileLocal(), "test/mydb.data");
-    expect(cfg.getAppStateFileLocal(), "test/appState.json");
+
+    expect(cfg.toString(), "Url:http://192.168.1.1:8080/files/user/mydb.xxxx File:test/data/mydb.xxxx");
+    expect(cfg.getGetDataFileUrl(), "http://192.168.1.1:8080/files/user/mydb.xxxx");
+    expect(cfg.getPostDataFileUrl(), "http://192.168.1.1:8080/files/user/mydb.xxxx");
+    expect(cfg.getRemoteTestFileUrl(), "http://192.168.1.1:8080/files/user/remoteTestFile.rtf");
+    expect(cfg.getListDataUrl(), "http://192.168.1.1:8080/files/user/list");
+    expect(cfg.getDataFileLocalPath(), "test/data/mydb.xxxx");
+    expect(cfg.getAppStateFileLocal(), "test/data/data_repo_appState.json");
+
+    expect(cfg.getDataFileName(mode: FileExtensionState.asIs), "mydb.xxxx");
+    expect(cfg.getDataFileName(mode: FileExtensionState.forceData), "mydb.data");
+    expect(cfg.getDataFileName(mode: FileExtensionState.forceJson), "mydb.json");
+    expect(cfg.getDataFileName(mode: FileExtensionState.checkPassword), "mydb.json");
+    expect(cfg.getDataFileName(mode: FileExtensionState.checkPassword, pw: ""), "mydb.json");
+    expect(cfg.getDataFileName(mode: FileExtensionState.checkPassword, pw: "abc"), "mydb.data");
+
+    expect(cfg.getDataFileLocalPath(mode: FileExtensionState.asIs), "test/data/mydb.xxxx");
+    expect(cfg.getDataFileLocalPath(mode: FileExtensionState.forceData), "test/data/mydb.data");
+    expect(cfg.getDataFileLocalPath(mode: FileExtensionState.forceJson), "test/data/mydb.json");
+    expect(cfg.getDataFileLocalPath(mode: FileExtensionState.checkPassword, pw: ""), "test/data/mydb.json");
+    expect(cfg.getDataFileLocalPath(mode: FileExtensionState.checkPassword, pw: "abc"), "test/data/mydb.data");
+    expect(cfg.getDataFileNameForCreate("fred.dat", "abc"), "fred.data");
+    expect(cfg.getDataFileNameForCreate("fred.dat", ""), "fred.json");
+    expect(cfg.getDataFileNameForCreate("fred.dat", "abc", fullPath: true), "test/data/fred.data");
+    expect(cfg.getDataFileNameForCreate("fred.dat", "", fullPath: true), "test/data/fred.json");
+    expect(cfg.getDataFileNameForSaveAs("abc"), "mydb.data");
+    expect(cfg.getDataFileNameForSaveAs(""), "mydb.json");
+    expect(cfg.getDataFileNameForSaveAs("abc", fullPath: true), "test/data/mydb.data");
+    expect(cfg.getDataFileNameForSaveAs("", fullPath: true), "test/data/mydb.json");
+
+    expect(cfg.getPostDataFileUrl(), "http://192.168.1.1:8080/files/user/mydb.xxxx");
+    expect(cfg.getPostDataFileUrl(mode: FileExtensionState.asIs), "http://192.168.1.1:8080/files/user/mydb.xxxx");
+    expect(cfg.getPostDataFileUrl(mode: FileExtensionState.forceData), "http://192.168.1.1:8080/files/user/mydb.data");
+    expect(cfg.getPostDataFileUrl(mode: FileExtensionState.forceJson), "http://192.168.1.1:8080/files/user/mydb.json");
+    expect(cfg.getPostDataFileUrl(mode: FileExtensionState.checkPassword, pw: ""), "http://192.168.1.1:8080/files/user/mydb.json");
+    expect(cfg.getPostDataFileUrl(mode: FileExtensionState.checkPassword, pw: "abc"), "http://192.168.1.1:8080/files/user/mydb.data");
+
   });
 
   test('Test Screen', () async {

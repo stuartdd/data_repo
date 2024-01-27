@@ -13,11 +13,14 @@
     "postDataUrl": "files/user/stuart/loc/mydb/name/%dataFileName%",
     "getTestFileUrl": "files/user/stuart/loc/mydb/name/%testFileName%",
     "getListDataUrl": "files/user/stuart/loc/mydb",
-    "datafileName": "stuff.json",
+    "datafileName": "my.data",
     "datafilePath": "../data_repo_server/local"
   },
   "theme": {
     "stuff.json": {
+      "hideDataPath": true
+    },
+    "real.json": {
       "hideDataPath": true
     }
   }

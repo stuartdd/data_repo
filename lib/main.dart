@@ -62,7 +62,7 @@ void main() async {
     final isDesktop = ApplicationState.appIsDesktop();
     // Read the config file and ans specify app or desktop
     _configData = ConfigData(applicationDefaultDir, defaultConfigFileName, isDesktop, logger.log);
-    _isolator = Isolator(applicationDefaultDir,_configData.shouldIsolate);
+    _isolator = Isolator(applicationDefaultDir, _configData.shouldIsolate);
     _applicationState = ApplicationState.fromFile(_configData.getAppStateFileLocal(), logger.log);
 
     if (isDesktop) {
@@ -169,6 +169,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  bool _remoteServerAvailable = false;
+  List<String> _serverFileList = List.empty();
   String _initialPassword = "";
   String _search = "";
   String _lastSearch = "";
@@ -185,7 +187,6 @@ class _MyHomePageState extends State<MyHomePage> {
   MyTreeNode _selectedTreeNode = MyTreeNode.empty();
   Path _selectedPath = Path.empty();
   String _currentSelectedGroupsPrefix = "";
-
   final PathPropertiesList _pathPropertiesList = PathPropertiesList(log: logger.log);
   final TextEditingController _searchEditingController = TextEditingController(text: "");
   final TextEditingController _passwordEditingController = TextEditingController(text: "");
@@ -280,7 +281,7 @@ class _MyHomePageState extends State<MyHomePage> {
       } else {
         setWindowTitle("${_configData.title}: ${_loadedData.fileName}");
       }
-      if (_loadedData.isNotEmpty && (_configData.getDataFileLocal() != _loadedData.localSourcePath || _configData.getGetDataFileUrl() != _loadedData.remoteSourcePath)) {
+      if (_loadedData.isNotEmpty && (_configData.getDataFileLocalPath() != _loadedData.localSourcePath || _configData.getGetDataFileUrl() != _loadedData.remoteSourcePath)) {
         Future.delayed(
           const Duration(milliseconds: 300),
           () {
@@ -296,7 +297,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 if (button == "RESTART") {
                   setState(() {
                     _clearData("Config updated - RESTART");
-                    logger.log("__RESTART__ Local file ${_configData.getDataFileLocal()}");
+                    logger.log("__RESTART__ Local file ${_configData.getDataFileLocalPath()}");
                     logger.log("__RESTART__ Remote file ${_configData.getGetDataFileUrl()}");
                     setWindowTitle("${_configData.title}: ${_configData.getDataFileName()}");
                   });
@@ -362,7 +363,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _handleFutureAction(DetailAction detailActionData, int ms) {
-    Future.delayed(Duration(milliseconds: ms), () {
+    Future.delayed(Duration(milliseconds: ms), () async {
       if (mounted) {
         switch (detailActionData.action) {
           case ActionType.settings:
@@ -394,6 +395,69 @@ class _MyHomePageState extends State<MyHomePage> {
                 logger.log,
                 () {
                   _setFocus("Settings");
+                },
+              );
+              break;
+            }
+          case ActionType.chooseFile:
+            {
+              final localFileList = _configData.dir(
+                fileExtensionDataList,
+                [defaultConfigFileName, _configData.getAppStateFileName()],
+                _serverFileList,
+                (reasons, fatal) {
+                  // Error - Path not found
+                  Timer(
+                    const Duration(microseconds: 200),
+                    () {
+                      showModalButtonsDialog(
+                        context,
+                        _configData.getAppThemeData(),
+                        "Get File List Error",
+                        reasons,
+                        fatal ? ["Exit"] : ["OK"],
+                        Path.empty(),
+                        (path, button) {
+                          if (fatal) {
+                            _exitReturnCode = 1;
+                          }
+                        },
+                        () {
+                          _setFocus("Choose File");
+                        },
+                      );
+                    },
+                  );
+                },
+              );
+              showFilesListDialog(
+                context,
+                _configData.getAppThemeData(),
+                localFileList,
+                true,
+                (fileName) {
+                  // OnSelect
+                  if (fileName != _configData.getDataFileName()) {
+                    _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
+                    _configData.update(callOnUpdate: true);
+                    logger.log("__CONFIG__ File name updated to:'$fileName'");
+                    _configData.save(logger.log);
+                  } else {
+                    logger.log("__CONFIG__ File name not updated. No change");
+                  }
+                  _initialPassword = _passwordEditingController.text;
+                  _passwordEditingController.text = "";
+                  _loadDataState();
+                },
+                (action) {
+                  // Create Local File
+                  if (action == SimpleButtonActions.ok) {
+                    _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
+                  }
+                },
+                () {
+                  // On Close - Refocus to Search or Password fields
+                  _setFocus("showLocalFilesDialog");
                 },
               );
               break;
@@ -467,18 +531,18 @@ class _MyHomePageState extends State<MyHomePage> {
                 optionsDataTypeEmpty,
                 false,
                 true,
-                (button, pw, type) {
+                (button, pw, type) async {
                   if (button == SimpleButtonActions.ok) {
+                    var usePw = pw;
                     if (_loadedData.hasPassword) {
                       // Confirm PW (Save un-encrypted)
                       logger.log("__SAVE__ Data as plain text");
-                      _loadedData.password = "";
+                      usePw = "";
                     } else {
                       // New password (Save encrypted)
                       logger.log("__SAVE__ Data as ENCRYPTED text");
-                      _loadedData.password = pw;
                     }
-                    _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
+                    _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(usePw), usePw, false); // Don't save to remote!
                   }
                 },
                 (initial, value, initialType, valueType) {
@@ -498,6 +562,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   return "";
                 },
                 () {
+                  // Cancel and when dialog closed.
                   _setFocus("saveAlt");
                 },
               );
@@ -740,19 +805,20 @@ class _MyHomePageState extends State<MyHomePage> {
                   "Encrypted extension = .data",
                 ],
                 (action, fileName, password) {
-                  final fn = password.isEmpty ? "$fileName.json" : "$fileName.data";
+                  final fn = _configData.getDataFileNameForCreate(fileName, password);
                   if (fn.toLowerCase() == defaultConfigFileName.toLowerCase()) {
                     return "Cannot use '$fileName'";
                   }
                   if (fn.toLowerCase() == _configData.getAppStateFileName().toLowerCase()) {
                     return "Cannot use '$fileName'";
                   }
-                  if (_configData.localFileExists(fn).isNotEmpty) {
+                  if (_configData.localFileExists(fn)) {
                     return "${password.isNotEmpty ? "Encrypted" : ""} file '$fn' Exists";
                   }
                   if (action == SimpleButtonActions.ok) {
                     final content = DataContainer.staticDataToStringFormattedWithTs(_configData.getMinimumDataContentMap(), password, addTimeStamp: true, isNew: true);
-                    final success = DataContainer.saveToFile(_configData.getDataFileLocalAlt(fn), content, log: logger.log);
+                    final createFileName = _configData.getDataFileNameForCreate(fn, password, fullPath: true);
+                    final success = DataContainer.saveToFile(createFileName, content, noClobber: true, log: logger.log);
                     _globalSuccessState = success;
                     if (success.isFail) {
                       logger.log("__CREATE__ Failed. ${success.message}");
@@ -777,7 +843,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     } else {
                       Future.delayed(const Duration(milliseconds: 1), () {
                         if (mounted) {
-                          showModalButtonsDialog(context, _configData.getAppThemeData(), "Create File:", ["Make this your NEW file", "or", "Continue with EXISTING file"], ["NEW", "EXISTING"], Path.empty(), (path, button) {
+                          showModalButtonsDialog(context, _configData.getAppThemeData(), "Create File:", ["Make '$fn' your NEW file", "or", "Continue with EXISTING file"], ["NEW", "EXISTING"], Path.empty(), (path, button) {
                             setState(() {
                               if (button == "NEW") {
                                 _configData.setValueForJsonPath(dataFileLocalNamePath, fn);
@@ -862,7 +928,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       case ActionType.save: // Save as it is (encrypted or un-encrypted)
         {
-          _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
+          _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password), _loadedData.password, true);
           return Path.empty();
         }
       case ActionType.checkReferences:
@@ -938,8 +1004,20 @@ class _MyHomePageState extends State<MyHomePage> {
     return Path.empty();
   }
 
-  Future<void> _saveDataStateAsync(final String content) async {
-    final localSaveState = DataContainer.saveToFile(_configData.getDataFileLocal(), content, log: logger.log);
+  Future<void> _saveDataStateAsync(final String content, final String pw, final bool saveToRemote) async {
+    final newFileName = _configData.getDataFileNameForSaveAs(pw); // May change extension!
+    final currentFileName = _configData.getDataFileName();
+    final bool noClobber;
+    if (newFileName != currentFileName) {
+      noClobber = true;
+      if (_configData.localFileExists(newFileName)) {
+        _globalSuccessState = SuccessState(false, message: "File $newFileName already exists");
+        return;
+      }
+    } else {
+      noClobber = false;
+    }
+    final localSaveState = DataContainer.saveToFile(_configData.getDataFileNameForSaveAs(pw, fullPath: true), content, noClobber: noClobber, log: logger.log);
     int success = 0;
     final String lm;
     final String rm;
@@ -949,19 +1027,23 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       lm = "Local Save FAIL";
     }
-    final remoteSaveState = await DataContainer.sendHttpPost(_configData.getPostDataFileUrl(), content, log: logger.log);
-    if (remoteSaveState.isSuccess) {
-      success++;
-      rm = "Remote Save OK";
+    if (saveToRemote) {
+      final remoteSaveState = await DataContainer.sendHttpPost(_configData.getPostDataFileUrl(), content, log: logger.log);
+      if (remoteSaveState.isSuccess) {
+        success++;
+        rm = "Remote Save OK";
+      } else {
+        rm = "Remote Save FAIL";
+      }
     } else {
-      rm = "Remote Save FAIL";
+      rm = "";
     }
     setState(() {
       logger.log("__SAVE:__ $lm. $rm");
-      if (success > 1) {
+      if (success == 2) {
         _dataRequiresSyncing = false;
       }
-      if (success > 0) {
+      if (success != 0) {
         _dataWasUpdated = false;
         _pathPropertiesList.clear();
         _globalSuccessState = SuccessState(true, message: "$lm. $rm");
@@ -985,7 +1067,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final String pw;
     if (_loadedData.isEmpty) {
       pw = _initialPassword;
-      localPath = _configData.getDataFileLocal();
+      localPath = _configData.getDataFileLocalPath();
       remotePath = _configData.getGetDataFileUrl();
       fileName = _configData.getDataFileName();
     } else {
@@ -1015,7 +1097,7 @@ class _MyHomePageState extends State<MyHomePage> {
       fileDataPrefixLocal = FileDataPrefix.error("Local load failed", log: logger.log);
     }
 
-    fileDataPrefixFinal = fileDataPrefixLocal.selectThisOrThat(fileDataPrefixRemote, log: logger.log);
+    fileDataPrefixFinal = fileDataPrefixLocal.selectWithNoErrorOrLatest(fileDataPrefixRemote, log: logger.log);
     //
     // File is now loaded!
     //
@@ -1035,7 +1117,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final DataContainer data;
     try {
-      data = DataContainer(fileDataPrefixFinal.content, fileDataPrefixFinal, successReadRemote.path, successReadLocal.path, fileName, pw, log: logger.log);
+      data = DataContainer(fileDataPrefixFinal.content, fileDataPrefixFinal, successReadRemote.path, successReadLocal.path, fileName, () {
+        return _configData.canSaveAltFile();
+      }, pw, log: logger.log);
     } catch (r) {
       setState(() {
         if (r is Exception) {
@@ -1358,7 +1442,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Path.empty(),
           (path, button) async {
             if (button == "SAVE") {
-              await _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password));
+              await _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password), _loadedData.password, true);
             }
             if (button == "CANCEL") {
               shouldExit = false;
@@ -1499,68 +1583,69 @@ class _MyHomePageState extends State<MyHomePage> {
       _handleAction(DetailAction.actionOnly(ActionType.showLog));
     }
 
-    final remoteFileListButton = DetailIconButtonManager(
-      iconData: Icons.cloud_download,
-      tooltip: 'Choose Remote File',
-      visible: false,
-      appThemeData: appThemeData,
-      onPressed: (button) async {
-        // Load the file list from the server...
-        final remoteFileList = await _configData.remoteDir(
-          ["data", "json"],
-          (failReason) {
-            // Fail
-            showModalButtonsDialog(
-              context,
-              _configData.getAppThemeData(),
-              "Configuration Error",
-              ["Element: '$getListDataUrlPath'", "Value: ${_configData.getListDataUrl()}", "", failReason],
-              ["OK"],
-              Path.empty(),
-              (path, response) {},
-              () {
-                _setFocus("_configData.remoteDir");
-              },
-            );
-          },
-        );
-        if (remoteFileList.isEmpty) {
-          return;
-        }
-        Future.delayed(
-          const Duration(microseconds: 200),
-          () {
-            showFilesListDialog(
-              context,
-              _configData.getAppThemeData(),
-              remoteFileList,
-              false,
-              (fileName) {
-                if (fileName != _configData.getDataFileName()) {
-                  _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
-                  _configData.update(callOnUpdate: true);
-                  logger.log("__CONFIG__ File name updated to:'$fileName'");
-                  _configData.save(logger.log);
-                } else {
-                  logger.log("__CONFIG__ File name not updated. No change");
-                }
-                _initialPassword = _passwordEditingController.text;
-                _passwordEditingController.text = "";
-                _loadDataState();
-              },
-              (action) {
-                if (action == SimpleButtonActions.ok) {
-                  _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
-                }
-              },
-              () {
-                _setFocus("showLocalFilesDialog");
-              },
-            );
-          },
-        );
-      },
-    );
+    // final remoteFileListButton = DetailIconButtonManager(
+    //   iconData: Icons.cloud_download,
+    //   tooltip: 'Choose Remote File',
+    //   visible: false,
+    //   appThemeData: appThemeData,
+    //   onPressed: (button) async {
+    //     // Load the file list from the server...
+    //     final remoteFileList = await _configData.remoteDir(
+    //       ["data", "json"],
+    //       (failReason) {
+    //         // Fail
+    //         showModalButtonsDialog(
+    //           context,
+    //           _configData.getAppThemeData(),
+    //           "Configuration Error",
+    //           ["Element: '$getListDataUrlPath'", "Value: ${_configData.getListDataUrl()}", "", failReason],
+    //           ["OK"],
+    //           Path.empty(),
+    //           (path, response) {},
+    //           () {
+    //             _setFocus("_configData.remoteDir");
+    //           },
+    //         );
+    //       },
+    //     );
+    //     if (remoteFileList.isEmpty) {
+    //       return;
+    //     }
+    //     Future.delayed(
+    //       const Duration(microseconds: 200),
+    //       () {
+    //         showFilesListDialog(
+    //           context,
+    //           _configData.getAppThemeData(),
+    //           remoteFileList,
+    //           false,
+    //           (fileName) {
+    //             if (fileName != _configData.getDataFileName()) {
+    //               _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
+    //               _configData.update(callOnUpdate: true);
+    //               logger.log("__CONFIG__ File name updated to:'$fileName'");
+    //               _configData.save(logger.log);
+    //             } else {
+    //               logger.log("__CONFIG__ File name not updated. No change");
+    //             }
+    //             _initialPassword = _passwordEditingController.text;
+    //             _passwordEditingController.text = "";
+    //             _loadDataState();
+    //           },
+    //           (action) {
+    //             if (action == SimpleButtonActions.ok) {
+    //               _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
+    //             }
+    //           },
+    //           () {
+    //             _setFocus("showLocalFilesDialog");
+    //           },
+    //         );
+    //       },
+    //     );
+    //   },
+    // );
+    // remoteFileListButton.setVisible(_remoteServerAvailable);
 
     final indicatorIconManager = IndicatorIconManager(
       const [Icons.access_time_filled, Icons.access_time],
@@ -1577,11 +1662,27 @@ class _MyHomePageState extends State<MyHomePage> {
             if (response.isEmpty) {
               logger.log("__REMOTE__ Test file loaded OK");
               widget.setVisible(false);
-              remoteFileListButton.setVisible(true);
+              if (!_remoteServerAvailable) {
+                setState(()  {
+                  _serverFileList = List.empty(growable: true);
+                  _remoteServerAvailable = true;
+                  _configData.remoteDir(fileExtensionDataList, (message) {
+                    debugPrint("ERROR: $message");
+                  },(file) {
+                    _serverFileList.add(file);
+                    debugPrint("ADD: $file");
+                  },);
+                });
+              }
             } else {
               logger.log("__REMOTE__ $response");
-              remoteFileListButton.setVisible(false);
               widget.setVisible(true);
+              if (_remoteServerAvailable) {
+                setState(() {
+                  _serverFileList = List.empty();
+                  _remoteServerAvailable = false;
+                });
+              }
             }
           }, prefix: "TestFile: '${_configData.getRemoteTestFileName}'  ");
         }
@@ -1589,35 +1690,15 @@ class _MyHomePageState extends State<MyHomePage> {
       },
     );
 
-    final DisplaySplitView displayData = createSplitView(
-      _loadedData,
-      _filteredNodeDataRoot,
-      _treeNodeDataRoot,
-      _selectedTreeNode,
-      _isEditDataDisplay,
-      _configData.isDesktop(),
-      _applicationState.screen.divPos,
-      appThemeData,
-      _pathPropertiesList,
-      _selectNodeState,
-      _expandNodeState,
-      (value) {
-        return handleOnResolve(value);
-      },
-      (divPos) {
-        // On divider change
-        _applicationState.updateDividerPosState(divPos);
-      },
-      (detailActionData) {
-        // On selected detail page action
-        return _handleAction(detailActionData);
-      },
-      logger.log,
-      _applicationState.isDataSorted,
-      _configData.getRootNodeName(),
-      _configData.getDataFileName(),
-      _search
-    );
+    final DisplaySplitView displayData = createSplitView(_loadedData, _filteredNodeDataRoot, _treeNodeDataRoot, _selectedTreeNode, _isEditDataDisplay, _configData.isDesktop(), _applicationState.screen.divPos, appThemeData, _pathPropertiesList, _selectNodeState, _expandNodeState, (value) {
+      return handleOnResolve(value);
+    }, (divPos) {
+      // On divider change
+      _applicationState.updateDividerPosState(divPos);
+    }, (detailActionData) {
+      // On selected detail page action
+      return _handleAction(detailActionData);
+    }, logger.log, _applicationState.isDataSorted, _configData.getRootNodeName(), _configData.getDataFileName(), _search);
     _treeViewScrollController = displayData.scrollController;
 
     final List<Widget> toolBarItems = List.empty(growable: true);
@@ -1658,7 +1739,7 @@ class _MyHomePageState extends State<MyHomePage> {
       toolBarItems.add(DetailIconButton(
         appThemeData: appThemeData,
         iconData: Icons.file_open,
-        tooltip: 'Load Data',
+        tooltip: 'Load Current File',
         onPressed: (button) {
           _initialPassword = _passwordEditingController.text;
           _passwordEditingController.text = "";
@@ -1666,69 +1747,51 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ));
 
-      final localFileList = _configData.dir(
-        ["data", "json"],
-        [defaultConfigFileName, _configData.getAppStateFileName()],
-        (p0) {
-          // Error - Path not found
-          Timer(
-            const Duration(microseconds: 200),
-            () {
-              showModalButtonsDialog(
-                context,
-                _configData.getAppThemeData(),
-                "Configuration Error",
-                ["Element: '$dataFileLocalDirPath'", _configData.getDataFileDir(), "Directory Does not exist", "", "Cannot continue"],
-                ["Exit"],
-                Path.empty(),
-                (p0, p1) {},
-                () {
-                  _exitReturnCode = 1;
-                },
-              );
-            },
-          );
-        },
-      );
-
+      // toolBarItems.add(DetailIconButton(
+      //     appThemeData: appThemeData,
+      //     iconData: Icons.rule_folder,
+      //     tooltip: 'Choose Local File',
+      //     onPressed: (button) {
+      //       showFilesListDialog(
+      //         context,
+      //         _configData.getAppThemeData(),
+      //         localFileList,
+      //         true,
+      //         (fileName) {
+      //           // OnSelect
+      //           if (fileName != _configData.getDataFileName()) {
+      //             _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
+      //             _configData.update(callOnUpdate: true);
+      //             logger.log("__CONFIG__ File name updated to:'$fileName'");
+      //             _configData.save(logger.log);
+      //           } else {
+      //             logger.log("__CONFIG__ File name not updated. No change");
+      //           }
+      //           _initialPassword = _passwordEditingController.text;
+      //           _passwordEditingController.text = "";
+      //           _loadDataState();
+      //         },
+      //         (action) {
+      //           // Create Local File
+      //           if (action == SimpleButtonActions.ok) {
+      //             _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
+      //           }
+      //         },
+      //         () {
+      //           // On Close - Refocus to Search or Password fields
+      //           _setFocus("showLocalFilesDialog");
+      //         },
+      //       );
+      //     }));
+      //     toolBarItems.add(remoteFileListButton.widget);
       toolBarItems.add(DetailIconButton(
-          appThemeData: appThemeData,
-          iconData: Icons.rule_folder,
-          tooltip: 'Choose Local File',
-          onPressed: (button) {
-            showFilesListDialog(
-              context,
-              _configData.getAppThemeData(),
-              localFileList,
-              true,
-              (fileName) {
-                // OnSelect
-                if (fileName != _configData.getDataFileName()) {
-                  _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
-                  _configData.update(callOnUpdate: true);
-                  logger.log("__CONFIG__ File name updated to:'$fileName'");
-                  _configData.save(logger.log);
-                } else {
-                  logger.log("__CONFIG__ File name not updated. No change");
-                }
-                _initialPassword = _passwordEditingController.text;
-                _passwordEditingController.text = "";
-                _loadDataState();
-              },
-              (action) {
-                // Create Local File
-                if (action == SimpleButtonActions.ok) {
-                  _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
-                }
-              },
-              () {
-                // On Close - Refocus to Search or Password fields
-                _setFocus("showLocalFilesDialog");
-              },
-            );
-          }));
-
-      toolBarItems.add(remoteFileListButton.widget);
+        onPressed: (button) {
+          _handleAction(DetailAction.actionOnly(ActionType.chooseFile));
+        },
+        iconData: _remoteServerAvailable ? Icons.cloud_download : Icons.rule_folder,
+        tooltip: _remoteServerAvailable ? "Choose Remote and Local" : "Choose Local Only",
+        appThemeData: appThemeData,
+      ));
     } else {
       //
       // Data is loaded
@@ -1917,12 +1980,12 @@ class _MyHomePageState extends State<MyHomePage> {
                       return Icons.check_circle_outline;
                     }),
                     MenuOptionDetails.separator(appThemeData.hiLight.med, enabled: _isEditDataDisplay),
-                    MenuOptionDetails("Save Data", "Save '%{4}' %{2}%{0}", ActionType.save, () {
+                    MenuOptionDetails("Sync Data", "Save '%{4}' to Local and Remote Storage %{0}", ActionType.save, () {
                       return Icons.lock_open;
                     }),
-                    MenuOptionDetails("Save %{1}", "Save '%{4}' %{2}%{1}", ActionType.saveAlt, () {
+                    MenuOptionDetails("Save %{1}", "Save '%{5}' to Local Storage only %{1}", ActionType.saveAlt, () {
                       return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;
-                    }),
+                    }, enabled: _loadedData.canSaveAltFile()),
                     MenuOptionDetails("Create data file", "Create a new data file", ActionType.createFile, () {
                       return _dataWasUpdated ? Icons.disabled_by_default_outlined : Icons.post_add;
                     }, enabled: !_dataWasUpdated),
@@ -1950,9 +2013,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   [
                     _loadedData.hasPassword ? 'ENCRYPTED' : 'UN-ENCRYPTED',
                     _loadedData.hasPassword ? 'UN-ENCRYPTED' : 'ENCRYPTED',
-                    _configData.isDesktop() ? "to local and remote storage " : "",
+                    "",
                     _selectedPath.last,
                     _loadedData.fileName,
+                    _configData.getDataFileNameAlt(),
                   ],
                   (selectedAction, path) {
                     _handleAction(DetailAction(selectedAction, true, path));

@@ -38,10 +38,10 @@ void main() {
     expect(fHigh.content, "{high}");
     expect(fHigh.tag, "high");
 
-    expect(fLow.selectThisOrThat(fHigh), fHigh);
-    expect(fLow.selectThisOrThat(fHigh).content, "{high}");
-    expect(fHigh.selectThisOrThat(fLow), fHigh);
-    expect(fHigh.selectThisOrThat(fLow).content, "{high}");
+    expect(fLow.selectWithNoErrorOrLatest(fHigh), fHigh);
+    expect(fLow.selectWithNoErrorOrLatest(fHigh).content, "{high}");
+    expect(fHigh.selectWithNoErrorOrLatest(fLow), fHigh);
+    expect(fHigh.selectWithNoErrorOrLatest(fLow).content, "{high}");
     expect(fHigh.isEqual(fLow), false);
 
     final fError1 = FileDataPrefix.fromFileContent(sErr1, "err");
@@ -53,17 +53,17 @@ void main() {
     expect(fError2.content, "");
     expect(fError2.tag, "");
 
-    expect(fLow.selectThisOrThat(fError1), fLow);
-    expect(fLow.selectThisOrThat(fError1).content, "{low}");
-    expect(fHigh.selectThisOrThat(fError1), fHigh);
-    expect(fHigh.selectThisOrThat(fError1).content, "{high}");
-    expect(fError1.selectThisOrThat(fLow), fLow);
-    expect(fError1.selectThisOrThat(fLow).content, "{low}");
-    expect(fError1.selectThisOrThat(fHigh), fHigh);
-    expect(fError1.selectThisOrThat(fHigh).content, "{high}");
+    expect(fLow.selectWithNoErrorOrLatest(fError1), fLow);
+    expect(fLow.selectWithNoErrorOrLatest(fError1).content, "{low}");
+    expect(fHigh.selectWithNoErrorOrLatest(fError1), fHigh);
+    expect(fHigh.selectWithNoErrorOrLatest(fError1).content, "{high}");
+    expect(fError1.selectWithNoErrorOrLatest(fLow), fLow);
+    expect(fError1.selectWithNoErrorOrLatest(fLow).content, "{low}");
+    expect(fError1.selectWithNoErrorOrLatest(fHigh), fHigh);
+    expect(fError1.selectWithNoErrorOrLatest(fHigh).content, "{high}");
 
-    expect(fError1.selectThisOrThat(fError2).toString(), "false:0:0:false:true:Cannot select file data");
-    expect(fError2.selectThisOrThat(fError1).toString(), "false:0:0:false:true:Cannot select file data");
+    expect(fError1.selectWithNoErrorOrLatest(fError2).toString(), "false:0:0:false:true:Cannot select file data");
+    expect(fError2.selectWithNoErrorOrLatest(fError1).toString(), "false:0:0:false:true:Cannot select file data");
 
     expect(fError2.isEqual(fError1), true);
     expect(fError1.isEqual(fError1), true);
@@ -95,9 +95,9 @@ void main() {
     expect(p1.toString(), "true:9:7:true:false:braces");
     expect(p2.toString(), "false:0:0:false:false:abc");
     expect(p1.isEqual(p2), false);
-    expect(p1.selectThisOrThat(p2), p1);
+    expect(p1.selectWithNoErrorOrLatest(p2), p1);
     expect(p2.isEqual(p1), false);
-    expect(p2.selectThisOrThat(p1), p1);
+    expect(p2.selectWithNoErrorOrLatest(p1), p1);
   });
 
   test('Factory fromFileContent not equal or gt error', () async {
@@ -108,9 +108,9 @@ void main() {
     expect(p1.toString(), "true:9:7:true:false:braces");
     expect(p2.toString(), "false:0:0:false:true:No data after Timestamp");
     expect(p1.isEqual(p2), false);
-    expect(p1.selectThisOrThat(p2), p1);
+    expect(p1.selectWithNoErrorOrLatest(p2), p1);
     expect(p2.isEqual(p1), false);
-    expect(p2.selectThisOrThat(p1), p1);
+    expect(p2.selectWithNoErrorOrLatest(p1), p1);
   });
 
   test('Factory fromFileContent equal', () async {
@@ -120,9 +120,9 @@ void main() {
     expect(p1.toString(), "false:0:0:false:false:xx");
     expect(p2.toString(), "true:9:7:true:false:braces");
     expect(p1.isEqual(p2), false);
-    expect(p1.selectThisOrThat(p2), p2);
+    expect(p1.selectWithNoErrorOrLatest(p2), p2);
     expect(p2.isEqual(p1), false);
-    expect(p2.selectThisOrThat(p1), p2);
+    expect(p2.selectWithNoErrorOrLatest(p1), p2);
   });
 
   test('Factory fromFileContent equal', () async {
@@ -132,9 +132,9 @@ void main() {
     expect(p1.toString(), "true:9:7:true:false:braces1");
     expect(p2.toString(), "true:9:7:true:false:braces2");
     expect(p1.isEqual(p2), true);
-    expect(p1.selectThisOrThat(p2), p2);
+    expect(p1.selectWithNoErrorOrLatest(p2), p2);
     expect(p2.isEqual(p1), true);
-    expect(p2.selectThisOrThat(p1), p1);
+    expect(p2.selectWithNoErrorOrLatest(p1), p1);
   });
 
   test('Factory fromFileContent OK', () async {
