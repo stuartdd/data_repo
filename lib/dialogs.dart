@@ -332,7 +332,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
   );
 }
 
-Future<void> showFilesListDialog(final BuildContext context, final AppThemeData appThemeData, List<String> files, final bool canCreateFile, final Function(String) onSelect, final void Function(SimpleButtonActions) onAction, final Function() onClose) async {
+Future<void> showFilesListDialog(final BuildContext context, final AppThemeData appThemeData, List<FileListEntry> files, final bool canCreateFile, final Function(String) onSelect, final void Function(SimpleButtonActions) onAction, final Function() onClose) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -342,7 +342,7 @@ Future<void> showFilesListDialog(final BuildContext context, final AppThemeData 
         createButton = DetailTextButton(
           gaps: 0,
           appThemeData: appThemeData,
-          text: "Create a new file",
+          text: "Create a new LOCAL file",
           onPressed: (button) {
             onAction(SimpleButtonActions.ok);
             Navigator.of(context).pop();
@@ -353,27 +353,47 @@ Future<void> showFilesListDialog(final BuildContext context, final AppThemeData 
         createButton = const SizedBox(height: 0);
       }
 
+      final help = Row(children: [
+        const Text("Key:"),
+        Icon(FileListEntry.localIcon),
+        const SizedBox(width: 3),
+        const Text("Local"),
+        const SizedBox(width: 10),
+        Icon(FileListEntry.remoteIcon),
+        const SizedBox(width: 3),
+        const Text("Remote"),
+        const SizedBox(width: 10),
+        Icon(FileListEntry.syncedIcon),
+        const SizedBox(width: 3),
+        const Text("Both"),
+      ]);
+
       return AlertDialog(
         shape: appThemeData.rectangleBorderShape,
         actionsPadding: EdgeInsets.fromLTRB(appThemeData.buttonGap * 3, 0, 0, appThemeData.buttonGap),
         insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
         backgroundColor: appThemeData.dialogBackgroundColor,
-        title: Text('Choose ${canCreateFile ? "Local" : "Remote"} File', style: appThemeData.tsMedium),
+        title: Text('Choose a File', style: appThemeData.tsMedium),
         content: SingleChildScrollView(
           child: ListBody(children: [
+            help,
             appThemeData.horizontalLine,
             for (int i = 0; i < files.length; i++) ...[
-              Row(children: [
-                Icon(files[i].startsWith("R:") ? Icons.cloud_download : Icons.file_open),
-                TextButton(
-                  child: Text(files[i].substring(2), style: appThemeData.tsMediumBold),
-                  onPressed: () {
-                    onSelect(files[i].substring(2));
-                    Navigator.of(context).pop();
-                    onClose();
-                  },
-                ),
-              ],),
+              Row(
+                children: [
+                  Icon(files[i].locationIcon),
+                  const SizedBox(width: 10),
+                  Icon(files[i].stateIcon),
+                  TextButton(
+                    child: Text(files[i].name, style: appThemeData.tsMediumBold),
+                    onPressed: () {
+                      onSelect(files[i].name);
+                      Navigator.of(context).pop();
+                      onClose();
+                    },
+                  ),
+                ],
+              ),
               appThemeData.horizontalLine,
             ],
             appThemeData.verticalGapBox(1),

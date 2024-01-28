@@ -109,6 +109,66 @@ final appColoursSecondaryPathC = Path.fromList([defaultThemeRootName, Path.subst
 final appColoursHiLightPathC = Path.fromList([defaultThemeRootName, Path.substituteElement, "colours", "hilight"]);
 final appColoursErrorPathC = Path.fromList([defaultThemeRootName, Path.substituteElement, "colours", "error"]);
 
+class FileListEntry {
+  final String name;
+  final bool _remote;
+  bool _local;
+  FileListEntry._(this.name, this._local, this._remote);
+
+  factory FileListEntry.local(final String name) {
+    return FileListEntry._(name, true, false);
+  }
+
+  factory FileListEntry.remote(final String name) {
+    return FileListEntry._(name, false, true);
+  }
+
+  bool equals(String toName) {
+    return name == toName;
+  }
+
+  void setLocal() {
+    _local = true;
+  }
+
+  @override
+  String toString() {
+    return "${_local ? 'L' : '-'}${_remote ? 'R' : '-'} : $name";
+  }
+
+  static IconData get localIcon {
+    return Icons.file_open;
+  }
+
+  static IconData get remoteIcon {
+    return Icons.cloud_download;
+  }
+
+  static IconData get syncedIcon {
+    return Icons.cloud_sync;
+  }
+
+  IconData get locationIcon {
+    if (_local && _remote) {
+      return remoteIcon;
+    }
+    if (_local) {
+      return localIcon;
+    }
+    return syncedIcon;
+  }
+
+  IconData get stateIcon {
+    if (name.endsWith(fileExtensionData)) {
+      return Icons.lock;
+    }
+    if (name.endsWith(fileExtensionJson)) {
+      return Icons.lock_open;
+    }
+    return Icons.question_mark;
+  }
+}
+
 class AboutData {
   final String title;
   final String author;
@@ -795,7 +855,6 @@ class ConfigData {
 
   Future<void> remoteDir(final List<String> extension, final Function(String) onFail, final Function(String) onFound) async {
     final getUrl = getListDataUrl();
-    final List<String> list = List.empty(growable: true);
     final res = await DataContainer.listHttpGet(
       getUrl,
       timeoutMillis: 2000,
@@ -814,12 +873,9 @@ class ConfigData {
     }
   }
 
-  List<String> dir(final List<String> extensions, final List<String> hidden, final List<String> merge, final Function(List<String>, bool) onFail) {
+  List<FileListEntry> dir(final List<String> extensions, final List<String> hidden, final List<FileListEntry> remote, final Function(List<String>, bool) onFail) {
     final dir = Directory(_dataFileLocalDir);
-    final List<String> finalList = List.empty(growable: true);
-    for (final name in merge) {
-      finalList.add("R:$name");
-    }
+    final List<FileListEntry> finalList = List.from(remote, growable: true);
     if (!dir.existsSync()) {
       onFail(["Config Data Error:", "Element '$dataFileLocalDirPath'", "", "Path not found:", _dataFileLocalDir], true);
       return [];
@@ -830,16 +886,12 @@ class ConfigData {
         final fileName = File(element.path).uri.pathSegments.last;
         if (!fileName.startsWith('.') && !hidden.contains(fileName)) {
           if (extensions.isEmpty) {
-            if (!merge.contains(fileName)) {
-              finalList.add("L:$fileName");
-            }
+            _mergeFileList(finalList, fileName);
           } else {
             final ext = fileName.split('.').last.toLowerCase();
             if (ext.isNotEmpty) {
               if (extensions.contains(".$ext")) {
-                if (!merge.contains(fileName)) {
-                  finalList.add("L:$fileName");
-                }
+                _mergeFileList(finalList, fileName);
               }
             }
           }
@@ -847,6 +899,16 @@ class ConfigData {
       }
     }
     return finalList;
+  }
+
+  void _mergeFileList(final List<FileListEntry> into, String localName) {
+    for (var fle in into) {
+      if (fle.equals(localName)) {
+        fle.setLocal();
+        return;
+      }
+    }
+    into.add(FileListEntry.local(localName));
   }
 
   @override

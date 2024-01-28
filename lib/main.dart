@@ -170,7 +170,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   bool _remoteServerAvailable = false;
-  List<String> _serverFileList = List.empty();
+  List<FileListEntry> _serverFileList = List.empty();
   String _initialPassword = "";
   String _search = "";
   String _lastSearch = "";
@@ -1663,21 +1663,26 @@ class _MyHomePageState extends State<MyHomePage> {
               logger.log("__REMOTE__ Test file loaded OK");
               widget.setVisible(false);
               if (!_remoteServerAvailable) {
-                setState(()  {
+                setState(() {
+                  debugPrint("STATE:Connected to server");
                   _serverFileList = List.empty(growable: true);
                   _remoteServerAvailable = true;
-                  _configData.remoteDir(fileExtensionDataList, (message) {
-                    debugPrint("ERROR: $message");
-                  },(file) {
-                    _serverFileList.add(file);
-                    debugPrint("ADD: $file");
-                  },);
+                  _configData.remoteDir(
+                    fileExtensionDataList,
+                    (message) {
+                      debugPrint("ERROR: $message");
+                    },
+                    (file) {
+                      _serverFileList.add(FileListEntry.remote(file));
+                    },
+                  );
                 });
               }
             } else {
               logger.log("__REMOTE__ $response");
               widget.setVisible(true);
               if (_remoteServerAvailable) {
+                debugPrint("STATE:Dis-Connected from server");
                 setState(() {
                   _serverFileList = List.empty();
                   _remoteServerAvailable = false;
@@ -1747,43 +1752,6 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ));
 
-      // toolBarItems.add(DetailIconButton(
-      //     appThemeData: appThemeData,
-      //     iconData: Icons.rule_folder,
-      //     tooltip: 'Choose Local File',
-      //     onPressed: (button) {
-      //       showFilesListDialog(
-      //         context,
-      //         _configData.getAppThemeData(),
-      //         localFileList,
-      //         true,
-      //         (fileName) {
-      //           // OnSelect
-      //           if (fileName != _configData.getDataFileName()) {
-      //             _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
-      //             _configData.update(callOnUpdate: true);
-      //             logger.log("__CONFIG__ File name updated to:'$fileName'");
-      //             _configData.save(logger.log);
-      //           } else {
-      //             logger.log("__CONFIG__ File name not updated. No change");
-      //           }
-      //           _initialPassword = _passwordEditingController.text;
-      //           _passwordEditingController.text = "";
-      //           _loadDataState();
-      //         },
-      //         (action) {
-      //           // Create Local File
-      //           if (action == SimpleButtonActions.ok) {
-      //             _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
-      //           }
-      //         },
-      //         () {
-      //           // On Close - Refocus to Search or Password fields
-      //           _setFocus("showLocalFilesDialog");
-      //         },
-      //       );
-      //     }));
-      //     toolBarItems.add(remoteFileListButton.widget);
       toolBarItems.add(DetailIconButton(
         onPressed: (button) {
           _handleAction(DetailAction.actionOnly(ActionType.chooseFile));
@@ -1818,11 +1786,11 @@ class _MyHomePageState extends State<MyHomePage> {
           },
         ));
       }
-      if (_dataRequiresSyncing && !_dataWasUpdated) {
+      if (_dataRequiresSyncing && !_dataWasUpdated && _remoteServerAvailable) {
         toolBarItems.add(DetailIconButton(
           appThemeData: appThemeData,
-          iconData: Icons.sync,
-          tooltip: "Synchronise data",
+          iconData: Icons.cloud_sync,
+          tooltip: "Sync Local & Remote",
           onPressed: (button) {
             _handleAction(DetailAction(ActionType.save, false, Path.empty()));
           },
@@ -1981,7 +1949,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     }),
                     MenuOptionDetails.separator(appThemeData.hiLight.med, enabled: _isEditDataDisplay),
                     MenuOptionDetails("Sync Data", "Save '%{4}' to Local and Remote Storage %{0}", ActionType.save, () {
-                      return Icons.lock_open;
+                      return Icons.cloud_sync;
                     }),
                     MenuOptionDetails("Save %{1}", "Save '%{5}' to Local Storage only %{1}", ActionType.saveAlt, () {
                       return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;

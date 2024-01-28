@@ -22,6 +22,9 @@
     },
     "real.json": {
       "hideDataPath": true
+    },
+    "default": {
+      "hideDataPath": true
     }
   }
 }

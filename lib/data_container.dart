@@ -405,6 +405,7 @@ class DataContainer {
   }
 
   static Future<SuccessState> sendHttpPost(final String url, final String body, {void Function(String)? log}) async {
+    debugPrint("POST:$url");
     try {
       final uri = Uri.parse(url);
       var response = await http.post(uri, headers: {"Content-Type": "application/json"}, body: body);
@@ -419,6 +420,7 @@ class DataContainer {
   }
 
   static Future<void> testHttpGet(final String url, Function(String) callMe, {String prefix = ""}) async {
+    debugPrint("TEST:$url");
     try {
       String resp = "";
       final uri = Uri.parse(url);
@@ -439,6 +441,7 @@ class DataContainer {
   }
 
   static Future<SuccessState> listHttpGet(final String url, {final void Function(String)? log, final void Function(String)? onFind, final int timeoutMillis = 2000, final String prefix = ""}) async {
+    debugPrint("LIST:$url");
     try {
       final uri = Uri.parse(url);
       final response = await http.get(uri).timeout(
@@ -476,6 +479,7 @@ class DataContainer {
   }
 
   static Future<SuccessState> receiveHttpGet(final String url, {final void Function(String)? log, final int timeoutMillis = 2000, final String prefix = ""}) async {
+    debugPrint("GET:$url");
     try {
       final uri = Uri.parse(url);
       final response = await http.get(uri).timeout(
