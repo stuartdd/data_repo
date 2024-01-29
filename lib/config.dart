@@ -150,12 +150,12 @@ class FileListEntry {
 
   IconData get locationIcon {
     if (_local && _remote) {
-      return remoteIcon;
+      return syncedIcon;
     }
     if (_local) {
       return localIcon;
     }
-    return syncedIcon;
+    return remoteIcon;
   }
 
   IconData get stateIcon {
@@ -785,6 +785,10 @@ class ConfigData {
     return (File(_pathFromStrings(getDataFileDir(), fileName)).existsSync());
   }
 
+  bool localDataFileExists() {
+    return (File(_pathFromStrings(getDataFileDir(), getDataFileName())).existsSync());
+  }
+
   String getDataFileNameAlt() {
     final current = getDataFileName().toLowerCase();
     if (current.endsWith(fileExtensionJson)) {
@@ -798,6 +802,18 @@ class ConfigData {
 
   bool canSaveAltFile() {
     return !localFileExists(getDataFileNameAlt());
+  }
+
+  String removeLocalFile() {
+    try {
+      (File(getDataFileLocalPath())).deleteSync();
+    } catch(e) {
+      return "$e";
+    }
+    if (localDataFileExists()) {
+      return "File still exists";
+    }
+    return "";
   }
 
   String getDataFileLocalPath({final FileExtensionState mode = FileExtensionState.asIs, final String pw = ""}) {
@@ -874,10 +890,10 @@ class ConfigData {
   }
 
   List<FileListEntry> dir(final List<String> extensions, final List<String> hidden, final List<FileListEntry> remote, final Function(List<String>, bool) onFail) {
-    final dir = Directory(_dataFileLocalDir);
+    final dir = Directory(getDataFileDir());
     final List<FileListEntry> finalList = List.from(remote, growable: true);
     if (!dir.existsSync()) {
-      onFail(["Config Data Error:", "Element '$dataFileLocalDirPath'", "", "Path not found:", _dataFileLocalDir], true);
+      onFail(["Config Data Error:", "Element '$dataFileLocalDirPath'", "", "Path not found:", getDataFileDir()], true);
       return [];
     }
     final dirList = dir.listSync(recursive: false);

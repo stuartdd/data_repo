@@ -366,6 +366,73 @@ class _MyHomePageState extends State<MyHomePage> {
     Future.delayed(Duration(milliseconds: ms), () async {
       if (mounted) {
         switch (detailActionData.action) {
+          case ActionType.removeLocal:
+            {
+              Future.delayed(
+                const Duration(microseconds: 200),
+                () {
+                  showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove Local file:", ["Remove '${_configData.getDataFileName()}'", "", "Restart the app", "", "ARE YOU SURE ?"], ["YES", "NO"], Path.empty(), (path, button) {
+                    if (button == "YES") {
+                      Future.delayed(
+                        const Duration(milliseconds: 400),
+                        () {
+                          final String message = _configData.removeLocalFile();
+                          if (message.isEmpty) {
+                            _clearDataState("Application RESTART");
+                          } else {
+                            logger.log("__REMOVE__ Failed $message");
+                            showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove Failed", [message], ["OK"], Path.empty(), (p0, p1) {}, () {
+                              _setFocus("Remove Local Fail");
+                            });
+                          }
+                        },
+                      );
+                    }
+                  }, () {
+                    _setFocus("Remove Local");
+                  });
+                },
+              );
+              break;
+            }
+          case ActionType.changePassword:
+            {
+              showModalInputDialog(
+                context,
+                _configData.getAppThemeData(),
+                screenSize,
+                "",
+                false,
+                true,
+                (button, value, option) {
+                  // OnAction
+                  debugPrint("Button $button, Value $value, Option $option");
+                  _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(value), value, true); // Save to remote!
+                  if (_globalSuccessState.isSuccess) {
+                    _clearDataState("Application RESTART");
+                  } else {
+                    Future.delayed(
+                      const Duration(microseconds: 200),
+                      () {
+                        showModalButtonsDialog(context, _configData.getAppThemeData(), "Failed to save file", [_globalSuccessState.message, "", "Password NOT changed"], ["OK"], Path.empty(), (path, button) {}, () {
+                          _setFocus("Change Password Failed");
+                        });
+                      },
+                    );
+                  }
+                },
+                (initial, value, initialType, valueType) {
+                  // On External Validate
+                  return "";
+                },
+                () {
+                  // On Close
+                  _setFocus("New PW");
+                },
+                title: "Change Password Save & Restart",
+              );
+              break;
+            }
           case ActionType.settings:
             {
               showConfigDialog(
@@ -407,7 +474,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _serverFileList,
                 (reasons, fatal) {
                   // Error - Path not found
-                  Timer(
+                  Future.delayed(
                     const Duration(microseconds: 200),
                     () {
                       showModalButtonsDialog(
@@ -525,10 +592,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 context,
                 _configData.getAppThemeData(),
                 screenSize,
-                _loadedData.hasPassword ? "Confirm Password" : "New Password",
                 "",
-                [],
-                optionsDataTypeEmpty,
                 false,
                 true,
                 (button, pw, type) async {
@@ -551,13 +615,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     if (_loadedData.password != value) {
                       return "Invalid Password";
                     }
-                  } else {
-                    if (value.isEmpty) {
-                      return "Password required";
-                    }
-                    if (value.length < 5) {
-                      return "Password length";
-                    }
                   }
                   return "";
                 },
@@ -565,6 +622,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   // Cancel and when dialog closed.
                   _setFocus("saveAlt");
                 },
+                title: _loadedData.hasPassword ? "Confirm Password" : "New Password",
               );
               break;
             }
@@ -656,10 +714,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 context,
                 _configData.getAppThemeData(),
                 screenSize,
-                "Change $title '${detailActionData.getLastPathElement()}'",
                 detailActionData.getDisplayValue(false),
-                detailActionData.value ? optionGroupRenameElement : [],
-                detailActionData.oldValueType,
                 true,
                 false,
                 (action, text, type) {
@@ -676,6 +731,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 () {
                   _setFocus("renameItem");
                 },
+                options: detailActionData.value ? optionGroupRenameElement : [],
+                currentOption: detailActionData.oldValueType,
+                title: "Change $title '${detailActionData.getLastPathElement()}'",
               );
               break;
             }
@@ -685,10 +743,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 context,
                 _configData.getAppThemeData(),
                 screenSize,
-                "Update Value '${detailActionData.getLastPathElement()}'",
                 detailActionData.oldValue,
-                detailActionData.oldValueType.dataValueTypeFixed ? [] : optionGroupUpdateElement,
-                detailActionData.oldValueType,
                 false,
                 false,
                 (action, text, type) {
@@ -750,31 +805,45 @@ class _MyHomePageState extends State<MyHomePage> {
                 () {
                   _setFocus("editItemData");
                 },
+                options: detailActionData.oldValueType.dataValueTypeFixed ? [] : optionGroupUpdateElement,
+                currentOption: detailActionData.oldValueType,
+                title: "Update Value '${detailActionData.getLastPathElement()}'",
               );
               break;
             }
           case ActionType.addGroup:
             {
-              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "New Group Owned by: ${_selectedPath.last}", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
-                if (action == SimpleButtonActions.ok) {
-                  _handleAddState(_selectedPath, text, optionTypeDataGroup);
-                }
-              }, (initial, value, initialType, valueType) {
-                if (value.trim().isEmpty) {
-                  return "Cannot be empty";
-                }
-                if (value.contains(".")) {
-                  return "Cannot contain '.";
-                }
-                return "";
-              }, () {
-                _setFocus("addGroup");
-              });
+              showModalInputDialog(
+                context,
+                _configData.getAppThemeData(),
+                screenSize,
+                "",
+                false,
+                false,
+                (action, text, type) {
+                  if (action == SimpleButtonActions.ok) {
+                    _handleAddState(_selectedPath, text, optionTypeDataGroup);
+                  }
+                },
+                (initial, value, initialType, valueType) {
+                  if (value.trim().isEmpty) {
+                    return "Cannot be empty";
+                  }
+                  if (value.contains(".")) {
+                    return "Cannot contain '.";
+                  }
+                  return "";
+                },
+                () {
+                  _setFocus("addGroup");
+                },
+                title: "New Group Owned by: ${_selectedPath.last}",
+              );
               break;
             }
           case ActionType.addDetail:
             {
-              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "New Detail Name Owned by: ${_selectedPath.last}", "", [], optionsDataTypeEmpty, false, false, (action, text, type) {
+              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "", false, false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataValue);
                 }
@@ -788,7 +857,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 return "";
               }, () {
                 _setFocus("addDetail");
-              });
+              }, title: "New Detail Name Owned by: ${_selectedPath.last}");
               break;
             }
           case ActionType.createFile:
@@ -1583,70 +1652,6 @@ class _MyHomePageState extends State<MyHomePage> {
       _handleAction(DetailAction.actionOnly(ActionType.showLog));
     }
 
-    // final remoteFileListButton = DetailIconButtonManager(
-    //   iconData: Icons.cloud_download,
-    //   tooltip: 'Choose Remote File',
-    //   visible: false,
-    //   appThemeData: appThemeData,
-    //   onPressed: (button) async {
-    //     // Load the file list from the server...
-    //     final remoteFileList = await _configData.remoteDir(
-    //       ["data", "json"],
-    //       (failReason) {
-    //         // Fail
-    //         showModalButtonsDialog(
-    //           context,
-    //           _configData.getAppThemeData(),
-    //           "Configuration Error",
-    //           ["Element: '$getListDataUrlPath'", "Value: ${_configData.getListDataUrl()}", "", failReason],
-    //           ["OK"],
-    //           Path.empty(),
-    //           (path, response) {},
-    //           () {
-    //             _setFocus("_configData.remoteDir");
-    //           },
-    //         );
-    //       },
-    //     );
-    //     if (remoteFileList.isEmpty) {
-    //       return;
-    //     }
-    //     Future.delayed(
-    //       const Duration(microseconds: 200),
-    //       () {
-    //         showFilesListDialog(
-    //           context,
-    //           _configData.getAppThemeData(),
-    //           remoteFileList,
-    //           false,
-    //           (fileName) {
-    //             if (fileName != _configData.getDataFileName()) {
-    //               _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
-    //               _configData.update(callOnUpdate: true);
-    //               logger.log("__CONFIG__ File name updated to:'$fileName'");
-    //               _configData.save(logger.log);
-    //             } else {
-    //               logger.log("__CONFIG__ File name not updated. No change");
-    //             }
-    //             _initialPassword = _passwordEditingController.text;
-    //             _passwordEditingController.text = "";
-    //             _loadDataState();
-    //           },
-    //           (action) {
-    //             if (action == SimpleButtonActions.ok) {
-    //               _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
-    //             }
-    //           },
-    //           () {
-    //             _setFocus("showLocalFilesDialog");
-    //           },
-    //         );
-    //       },
-    //     );
-    //   },
-    // );
-    // remoteFileListButton.setVisible(_remoteServerAvailable);
-
     final indicatorIconManager = IndicatorIconManager(
       const [Icons.access_time_filled, Icons.access_time],
       color: _configData.getAppThemeData().screenForegroundColour(true),
@@ -1695,7 +1700,7 @@ class _MyHomePageState extends State<MyHomePage> {
       },
     );
 
-    final DisplaySplitView displayData = createSplitView(_loadedData, _filteredNodeDataRoot, _treeNodeDataRoot, _selectedTreeNode, _isEditDataDisplay, _configData.isDesktop(), _applicationState.screen.divPos, appThemeData, _pathPropertiesList, _selectNodeState, _expandNodeState, (value) {
+    final DisplaySplitView displayData = createSplitView(_loadedData, _filteredNodeDataRoot, _treeNodeDataRoot, _selectedTreeNode, _isEditDataDisplay, _configData.isDesktop(), _applicationState.screen.divPos, screenSize.width, appThemeData, _pathPropertiesList, _selectNodeState, _expandNodeState, (value) {
       return handleOnResolve(value);
     }, (divPos) {
       // On divider change
@@ -1703,6 +1708,15 @@ class _MyHomePageState extends State<MyHomePage> {
     }, (detailActionData) {
       // On selected detail page action
       return _handleAction(detailActionData);
+    }, (id) {
+      // On Choose File
+      if (id == "L") {
+        _handleAction(DetailAction.actionOnly(ActionType.chooseFile));
+      } else {
+        if (id == "C") {
+          _setSearchExpressionState("");
+        }
+      }
     }, logger.log, _applicationState.isDataSorted, _configData.getRootNodeName(), _configData.getDataFileName(), _search);
     _treeViewScrollController = displayData.scrollController;
 
@@ -1954,6 +1968,12 @@ class _MyHomePageState extends State<MyHomePage> {
                     MenuOptionDetails("Save %{1}", "Save '%{5}' to Local Storage only %{1}", ActionType.saveAlt, () {
                       return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;
                     }, enabled: _loadedData.canSaveAltFile()),
+                    MenuOptionDetails("Change Password", "Change Password '%{4}', Save and Restart'", ActionType.changePassword, enabled: !_dataWasUpdated && _loadedData.hasPassword, () {
+                      return Icons.password;
+                    }),
+                    MenuOptionDetails("Remove File", "Remove Local file '%{4}' and Restart", ActionType.removeLocal, enabled: _configData.localDataFileExists(), () {
+                      return Icons.delete;
+                    }),
                     MenuOptionDetails("Create data file", "Create a new data file", ActionType.createFile, () {
                       return _dataWasUpdated ? Icons.disabled_by_default_outlined : Icons.post_add;
                     }, enabled: !_dataWasUpdated),

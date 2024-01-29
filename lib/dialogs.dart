@@ -132,10 +132,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
     appThemeData: appThemeData,
     onSubmit: (vx, vt) {},
     onValidate: (ix, vx, it, vt) {
-      var message = "";
-      if (vx.isNotEmpty && vx.length <= 4) {
-        message = "Must be longer than 4";
-      }
+      var message = validatePassword(vx, allowEmpty: true);
       if (message.isEmpty) {
         password = vx;
       } else {
@@ -469,7 +466,7 @@ Future<void> showModalButtonsDialog(final BuildContext context, final AppThemeDa
         shape: appThemeData.rectangleBorderShape,
         backgroundColor: appThemeData.dialogBackgroundColor,
         insetPadding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-        title: Text(title, style: appThemeData.tsMedium),
+        title: Text(title, style: appThemeData.tsMediumBold),
         content: SingleChildScrollView(
           child: ListBody(
             children: [
@@ -549,7 +546,7 @@ Future<void> showMyAboutDialog(final BuildContext context, final Color foregroun
   );
 }
 
-Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String title, final String currentValue, final List<OptionsTypeData> options, final OptionsTypeData currentOption, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate, final Function() onClose) async {
+Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String currentValue, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate, final Function() onClose, {final List<OptionsTypeData> options = const [], final OptionsTypeData currentOption = optionsDataTypeEmpty , final String title = ""}) async {
   var updatedText = currentValue;
   var updatedType = currentOption;
   var shouldDisplayMarkdownHelp = false;
@@ -646,7 +643,15 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
             }
           },
           onValidate: (ix, vx, it, vt) {
-            final validMsg = externalValidate(ix, vx, it, vt);
+            String validMsg;
+            if (isPassword) {
+              validMsg = validatePassword(vx);
+              if (validMsg.isEmpty) {
+                validMsg = externalValidate(ix, vx, it, vt);
+              }
+            } else {
+              validMsg = externalValidate(ix, vx, it, vt);
+            }
             if (validMsg.isNotEmpty) {
               okButtonManager.setEnabled(false);
             } else {
@@ -669,4 +674,21 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
       );
     },
   );
+
+}
+
+String validatePassword(final String pw, {final bool allowEmpty = false}) {
+  if (pw.isEmpty) {
+    if (allowEmpty) {
+      return "";
+    }
+    return "Password cannot be empty";
+  }
+  if (pw.length < 5) {
+    return "Password more than 4 chars";
+  }
+  if (pw.length > 15) {
+    return "Password: less than 15 chars";
+  }
+  return "";
 }

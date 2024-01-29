@@ -46,6 +46,8 @@ enum ActionType {
   about, // Display About dialogue
   settings, // Display settings dialogue
   chooseFile, // Display merged list of server and local files
+  changePassword, // Change password if file is encrypted and restart
+  removeLocal, // Remove local file and restart
   checkReferences,
   createFile,
   select,
@@ -86,7 +88,6 @@ const DisplayTypeData markDownData = DisplayTypeData(displayType: DisplayType.ma
 
 // End Display type data
 //
-
 const optionsDataTypeEmpty = OptionsTypeData(String, "string", "empty");
 const OptionsTypeData optionTypeDataNotFound = OptionsTypeData(String, "error", "Type Not Found");
 const OptionsTypeData optionTypeDataString = OptionsTypeData(String, "text", "Text", functionalTypeName: "Text");
@@ -359,6 +360,14 @@ class DetailAction {
   String toString() {
     final s = "Type:'${value ? "Value" : "Map"}' Path:'$path' V1:'$oldValue' ";
     switch (action) {
+      case ActionType.changePassword:
+        {
+          return "CHANGE_PW";
+        }
+      case ActionType.removeLocal:
+        {
+          return "REMOVE_LOCAL";
+        }
       case ActionType.clearTheme:
         {
           return "CLEAR_THEME";
