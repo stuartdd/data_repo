@@ -394,6 +394,10 @@ class AppThemeData {
     return textPainter.size;
   }
 
+  Icon scaledIcon(final IconData iconData, {final bool enabled = true}) {
+    return Icon(iconData, size: iconSize, color: screenForegroundColour(enabled));
+  }
+
   selectedAndHiLightColour(final bool sel, final bool upd, final bool group) {
     if (upd) {
       return sel ? secondary.lightest : secondary.light;
@@ -447,7 +451,7 @@ class AppThemeData {
     return SizedBox(width: buttonGap * count);
   }
 
-  Widget iconGapBox(final int count) {
+  Widget iconGapBox(final double count) {
     return SizedBox(width: iconGap * count);
   }
 

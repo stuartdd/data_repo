@@ -540,7 +540,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _configData.repoName,
                 "Dart+Flutter",
                 "GNU GENERAL PUBLIC LICENSE|Version 3|29 June 2007",
-                "Manage structured data stored secularly in a local 'ReST' style web application.|Data can be stored using 64bit AES encryption.|A fallback copy is retained for when the server is not available.",
+                "Manage structured data stored secularly in a local 'ReST' style web application.|Data can be stored using 64bit AES encryption.|A fallback (local) copy is retained for when the server is not available.",
               );
 
               showMyAboutDialog(

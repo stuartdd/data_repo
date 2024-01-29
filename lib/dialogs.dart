@@ -195,18 +195,20 @@ Widget _copyMoveSummaryList(GroupCopyMoveSummaryList summaryList, final AppTheme
     final tag = summary.isValue ? "Value:" : "Group:";
     final r1 = Row(
       children: [
-        IconButton(
-            onPressed: () {
+        DetailIconButton(
+            appThemeData: appThemeData,
+            onPressed: (m) {
               onAction(SimpleButtonActions.select, summaryList.list[i].copyFromPath);
             },
-            tooltip: "Go To",
-            icon: const Icon(Icons.open_in_new)),
-        IconButton(
-            onPressed: () {
+            iconData: Icons.open_in_new,
+            tooltip: "Go To"),
+        DetailIconButton(
+            appThemeData: appThemeData,
+            onPressed: (m) {
               onAction(SimpleButtonActions.listRemove, summaryList.list[i].copyFromPath);
             },
             tooltip: "Delete from this list",
-            icon: const Icon(Icons.delete)),
+            iconData: Icons.delete),
         summary.isError ? Text(summary.error, style: appThemeData.tsMediumError) : Text("OK: Can $head", style: appThemeData.tsMedium),
       ],
     );
@@ -349,20 +351,20 @@ Future<void> showFilesListDialog(final BuildContext context, final AppThemeData 
       } else {
         createButton = const SizedBox(height: 0);
       }
-
       final help = Row(children: [
-        const Text("Key:"),
-        Icon(FileListEntry.localIcon),
-        const SizedBox(width: 3),
-        const Text("Local"),
-        const SizedBox(width: 10),
-        Icon(FileListEntry.remoteIcon),
-        const SizedBox(width: 3),
-        const Text("Remote"),
-        const SizedBox(width: 10),
-        Icon(FileListEntry.syncedIcon),
-        const SizedBox(width: 3),
-        const Text("Both"),
+        Text("Key:", style: appThemeData.tsMediumBold),
+        appThemeData.iconGapBox(0.5),
+        appThemeData.scaledIcon(FileListEntry.localIcon),
+        appThemeData.iconGapBox(0.1),
+        Text("Local", style: appThemeData.tsMediumBold),
+        appThemeData.iconGapBox(0.6),
+        appThemeData.scaledIcon(FileListEntry.remoteIcon),
+        appThemeData.iconGapBox(0.1),
+        Text("Remote", style: appThemeData.tsMediumBold),
+        appThemeData.iconGapBox(0.5),
+        appThemeData.scaledIcon(FileListEntry.syncedIcon),
+        appThemeData.iconGapBox(0.1),
+        Text("Both", style: appThemeData.tsMediumBold),
       ]);
 
       return AlertDialog(
@@ -378,9 +380,9 @@ Future<void> showFilesListDialog(final BuildContext context, final AppThemeData 
             for (int i = 0; i < files.length; i++) ...[
               Row(
                 children: [
-                  Icon(files[i].locationIcon),
-                  const SizedBox(width: 10),
-                  Icon(files[i].stateIcon),
+                  appThemeData.scaledIcon(files[i].locationIcon),
+                  appThemeData.iconGapBox(0.5),
+                  appThemeData.scaledIcon(files[i].stateIcon),
                   TextButton(
                     child: Text(files[i].name, style: appThemeData.tsMediumBold),
                     onPressed: () {
@@ -546,7 +548,7 @@ Future<void> showMyAboutDialog(final BuildContext context, final Color foregroun
   );
 }
 
-Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String currentValue, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate, final Function() onClose, {final List<OptionsTypeData> options = const [], final OptionsTypeData currentOption = optionsDataTypeEmpty , final String title = ""}) async {
+Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String currentValue, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate, final Function() onClose, {final List<OptionsTypeData> options = const [], final OptionsTypeData currentOption = optionsDataTypeEmpty, final String title = ""}) async {
   var updatedText = currentValue;
   var updatedType = currentOption;
   var shouldDisplayMarkdownHelp = false;
@@ -674,7 +676,6 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
       );
     },
   );
-
 }
 
 String validatePassword(final String pw, {final bool allowEmpty = false}) {
