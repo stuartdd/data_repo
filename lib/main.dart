@@ -371,26 +371,47 @@ class _MyHomePageState extends State<MyHomePage> {
               Future.delayed(
                 const Duration(microseconds: 200),
                 () {
-                  showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove Local file:", ["Remove '${_configData.getDataFileName()}'", "", "Restart the app", "", "ARE YOU SURE ?"], ["YES", "NO"], Path.empty(), (path, button) {
-                    if (button == "YES") {
-                      Future.delayed(
-                        const Duration(milliseconds: 400),
-                        () {
-                          final String message = _configData.removeLocalFile();
-                          if (message.isEmpty) {
-                            _clearDataState("Application RESTART");
-                          } else {
-                            logger.log("__REMOVE__ Failed $message");
-                            showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove Failed", [message], ["OK"], Path.empty(), (p0, p1) {}, () {
-                              _setFocus("Remove Local Fail");
-                            });
-                          }
-                        },
-                      );
-                    }
-                  }, () {
-                    _setFocus("Remove Local");
-                  });
+                  showModalInputDialog(
+                    context,
+                    _configData.getAppThemeData(),
+                    screenSize,
+                    "",
+                    false,
+                    _loadedData.hasPassword,
+                    false,
+                    true,
+                    (actionButton, value, option) {
+                      if (actionButton == SimpleButtonActions.ok) {
+                        Future.delayed(
+                          const Duration(milliseconds: 400),
+                          () {
+                            final String message = _configData.removeLocalFile();
+                            if (message.isEmpty) {
+                              _clearDataState("Application RESTART");
+                            } else {
+                              logger.log("__REMOVE__ Failed $message");
+                              showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove Failed", [message], ["OK"], Path.empty(), (p0, p1) {}, () {
+                                _setFocus("Remove Local Fail");
+                              });
+                            }
+                          },
+                        );
+                      }
+                    },
+                    (initial, value, initialType, valueType) {
+                      if (value == _loadedData.password) {
+                        return "";
+                      }
+                      return "Invalid Password";
+                    },
+                    () {
+                      // onClose
+                      _setFocus("Remove file");
+                    },
+                    title: "Remove '${_configData.getDataFileName()}'",
+                    hints: ["", "Remove the local file", "and restart the application"],
+                    showInputField: _loadedData.hasPassword,
+                  );
                 },
               );
               break;
@@ -404,9 +425,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 "",
                 false,
                 true,
+                true,
+                false,
                 (button, value, option) {
                   // OnAction
-                  debugPrint("Button $button, Value $value, Option $option");
                   _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(value), value, true); // Save to remote!
                   if (_globalSuccessState.isSuccess) {
                     _clearDataState("Application RESTART");
@@ -595,6 +617,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 "",
                 false,
                 true,
+                false,
+                _loadedData.hasPassword,
                 (button, pw, type) async {
                   if (button == SimpleButtonActions.ok) {
                     var usePw = pw;
@@ -717,6 +741,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 detailActionData.getDisplayValue(false),
                 true,
                 false,
+                false,
+                false,
                 (action, text, type) {
                   if (action == SimpleButtonActions.ok) {
                     _handleRenameState(detailActionData, text, type);
@@ -744,6 +770,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 _configData.getAppThemeData(),
                 screenSize,
                 detailActionData.oldValue,
+                false,
+                false,
                 false,
                 false,
                 (action, text, type) {
@@ -820,6 +848,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 "",
                 false,
                 false,
+                false,
+                false,
                 (action, text, type) {
                   if (action == SimpleButtonActions.ok) {
                     _handleAddState(_selectedPath, text, optionTypeDataGroup);
@@ -843,7 +873,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.addDetail:
             {
-              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "", false, false, (action, text, type) {
+              showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "", false, false, false, false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
                   _handleAddState(_selectedPath, text, optionTypeDataValue);
                 }
@@ -865,7 +895,7 @@ class _MyHomePageState extends State<MyHomePage> {
               showFileNamePasswordDialog(
                 context,
                 _configData.getAppThemeData(),
-                "New File",
+                "New Local File",
                 [
                   "Password if encryption is required:",
                   "Enter a valid file name:",
@@ -882,7 +912,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     return "Cannot use '$fileName'";
                   }
                   if (_configData.localFileExists(fn)) {
-                    return "${password.isNotEmpty ? "Encrypted" : ""} file '$fn' Exists";
+                    return "${password.isNotEmpty ? "Encrypted File" : "File"} already '$fn' Exists";
                   }
                   if (action == SimpleButtonActions.ok) {
                     final content = DataContainer.staticDataToStringFormattedWithTs(_configData.getMinimumDataContentMap(), password, addTimeStamp: true, isNew: true);
@@ -1243,10 +1273,15 @@ class _MyHomePageState extends State<MyHomePage> {
     _search = "";
     _lastSearch = "";
     _dataWasUpdated = false;
+    _checkReferences = true;
     _dataRequiresSyncing = false;
     _pathPropertiesList.clear();
     _globalSuccessState = SuccessState(true, message: reason);
     _currentSelectedGroupsPrefix = "";
+    _serverFileList = List.empty();
+    _remoteServerAvailable = false;
+    _treeNodeDataRoot = MyTreeNode.empty();
+    _filteredNodeDataRoot = MyTreeNode.empty();
     logger.log("__DATA_CLEARED__ $reason");
   }
 
@@ -1746,7 +1781,8 @@ class _MyHomePageState extends State<MyHomePage> {
           height: _configData.getAppThemeData().textInputFieldHeight,
           hint: "Password:",
           isPw: true,
-          onChange: (v) {},
+          onChangePw: (v) {},
+          onChangeCf: (v) {},
           onSubmit: (v) {
             _initialPassword = v;
             _passwordEditingController.text = "";
@@ -1862,7 +1898,8 @@ class _MyHomePageState extends State<MyHomePage> {
               width: screenSize.width / 3,
               height: _configData.getAppThemeData().textInputFieldHeight,
               hint: "Search:",
-              onChange: (v) {},
+              onChangePw: (v) {},
+              onChangeCf: (v) {},
               onSubmit: (v) {
                 _setSearchExpressionState(v);
               },

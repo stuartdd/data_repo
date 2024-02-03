@@ -54,8 +54,6 @@ mages ``![alt text](images/image.jpg "Comment")``
 [Link](https://www.markdownguide.org/basic-syntax/#images-1) ``[Link](https://www.markdownguide.org/basic-syntax/#images-1)``
 """;
 
-
-
 class InterfaceNotImplementedException implements Exception {
   final String message;
   InterfaceNotImplementedException(this.message);
@@ -626,8 +624,8 @@ class _OptionListWidgetState extends State<OptionListWidget> {
   }
 }
 
-Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, final bool isDarkMode, final TextEditingController controller, {final double width = 0, final double height = 0, final bool isPw = false, final String hint = "", final EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(5, 5, 0, 0), final FocusNode? focusNode, final bool autoFocus = true, required final Function(String)? onChange, required final Function(String)? onSubmit}) {
-  return SizedBox(
+Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, final bool isDarkMode, final TextEditingController controllerPw, {final double width = 0, final double height = 0, final bool isPw = false, final TextEditingController? controllerCf, final String hint = "", final EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(5, 5, 0, 0), final FocusNode? focusNode, final bool autoFocus = true, required final Function(String) onChangePw, required final Function(String) onChangeCf, required final Function(String) onSubmit}) {
+  final field1 = SizedBox(
     height: height < 1 ? null : height,
     width: width < 1 ? null : width,
     child: Theme(
@@ -645,20 +643,49 @@ Widget inputTextField(final TextStyle ts, final TextSelectionThemeData theme, fi
         autofocus: autoFocus,
         focusNode: focusNode,
         onSubmitted: (value) {
-          if (onSubmit != null) {
-            onSubmit(value);
-          }
+          onSubmit(value);
         },
         onChanged: (value) {
-          if (onChange != null) {
-            onChange(value);
-          }
+          onChangePw(value);
         },
         obscureText: isPw,
-        controller: controller,
+        controller: controllerPw,
       ),
     ),
   );
+  if (controllerCf != null) {
+    final field2 = SizedBox(
+      height: height < 1 ? null : height,
+      width: width < 1 ? null : width,
+      child: Theme(
+        data: ThemeData(
+          textSelectionTheme: theme,
+        ),
+        child: TextField(
+          style: ts,
+          decoration: InputDecoration(
+            hintText: hint,
+            focusedBorder: OutlineInputBorder(borderSide: BorderSide(width: 2, color: isDarkMode ? Colors.white : Colors.black)),
+            border: const OutlineInputBorder(),
+            contentPadding: padding,
+          ),
+          onSubmitted: (value) {},
+          onChanged: (value) {
+            onChangeCf(value);
+          },
+          obscureText: isPw,
+          controller: controllerCf,
+        ),
+      ),
+    );
+
+    return Column(children: [
+      field1,
+      Text("Confirm Password", style: ts),
+      field2,
+    ]);
+  }
+  return field1;
 }
 
 void markdownOnTapLink(String text, String? href, String title, Path Function(DetailAction) dataAction) {
@@ -779,17 +806,19 @@ class _MarkDownInputField extends State<MarkDownInputField> {
 }
 
 class ValidatedInputField extends StatefulWidget {
-  ValidatedInputField({super.key, this.initialValue = "", this.isPassword = false, this.isRename = false, this.autoFocus = true, required this.onSubmit, required this.onValidate, required this.prompt, this.options = const [], this.initialOption = optionsDataTypeEmpty, required this.appThemeData});
+  ValidatedInputField({super.key, this.initialValue = "", this.isPassword = false, this.isPasswordConfirm = false, this.isRename = false, this.autoFocus = true, required this.onSubmit, required this.onValidate, required this.prompt, this.options = const [], this.initialOption = optionsDataTypeEmpty, required this.appThemeData});
   final String initialValue;
   final List<OptionsTypeData> options;
   final OptionsTypeData initialOption;
   final String prompt;
   final bool isPassword;
+  final bool isPasswordConfirm;
   final bool isRename;
   final bool autoFocus;
   final void Function(String, OptionsTypeData) onSubmit;
-  final String Function(String, String, OptionsTypeData, OptionsTypeData) onValidate;
-  final controller = TextEditingController();
+  final String Function(String, String, OptionsTypeData, OptionsTypeData, String) onValidate;
+  final controllerPw = TextEditingController();
+  final controllerCf = TextEditingController();
   final AppThemeData appThemeData;
   late final void Function(String)? _reValidate;
 
@@ -807,6 +836,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
   String validateResponse = "";
   String initial = "";
   String current = "";
+  String confirm = "";
   OptionsTypeData initialOption = optionTypeDataNotFound;
   OptionsTypeData currentOption = optionTypeDataNotFound;
   bool obscurePw = true;
@@ -816,10 +846,12 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
     super.initState();
     initial = widget.initialValue.trim();
     current = initial;
+    confirm = "";
     initialOption = widget.initialOption;
     currentOption = initialOption;
-    widget.controller.text = current;
-    validateResponse = widget.onValidate(initial, current, initialOption, currentOption);
+    widget.controllerPw.text = current;
+    widget.controllerCf.text = "";
+    validateResponse = widget.onValidate(initial, current, initialOption, currentOption, confirm);
     obscurePw = widget.isPassword;
     widget._reValidate = (id) {
       _validate();
@@ -828,7 +860,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
 
   void _validate() {
     setState(() {
-      validateResponse = widget.onValidate(initial, current.trim(), initialOption, currentOption);
+      validateResponse = widget.onValidate(initial, current.trim(), initialOption, currentOption, confirm);
     });
   }
 
@@ -847,7 +879,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
               } else {
                 current = sel.initialValue;
               }
-              widget.controller.text = current;
+              widget.controllerPw.text = current;
               currentOption = sel;
               _validate();
             }),
@@ -901,7 +933,8 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                 widget.appThemeData.tsMedium,
                 widget.appThemeData.textSelectionThemeData,
                 widget.appThemeData.darkMode,
-                widget.controller,
+                widget.controllerPw,
+                controllerCf: widget.isPasswordConfirm ? widget.controllerCf : null,
                 height: widget.appThemeData.textInputFieldHeight,
                 isPw: widget.isPassword && obscurePw,
                 autoFocus: widget.autoFocus,
@@ -912,8 +945,12 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                     widget.onSubmit(current, currentOption);
                   }
                 },
-                onChange: (value) {
+                onChangePw: (value) {
                   current = value;
+                  _validate();
+                },
+                onChangeCf: (value) {
+                  confirm = value;
                   _validate();
                 },
               ),

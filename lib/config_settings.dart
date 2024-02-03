@@ -382,8 +382,10 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
         onSubmit: (setValue) {
           onChanged(setValue);
         },
-        onChange: (setValue) {
+        onChangePw: (setValue) {
           onChanged(setValue);
+        },
+        onChangeCf: (setValue) {
         },
       ),
     );

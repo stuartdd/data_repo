@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 import 'package:flutter/material.dart';
 import 'config.dart';
 import 'data_types.dart';
@@ -107,7 +108,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
     prompt: "File Name",
     appThemeData: appThemeData,
     onSubmit: (vx, vt) {},
-    onValidate: (ix, vx, it, vt) {
+    onValidate: (ix, vx, it, vt, confirm) {
       var message = "";
       if (vx.length < 2) {
         message = "Must be longer than 2 characters";
@@ -128,11 +129,12 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
 
   final passwordInput = ValidatedInputField(
     isPassword: true,
+    isPasswordConfirm: true,
     prompt: "Password",
     appThemeData: appThemeData,
     onSubmit: (vx, vt) {},
-    onValidate: (ix, vx, it, vt) {
-      var message = validatePassword(vx, allowEmpty: true);
+    onValidate: (ix, vx, it, vt, confirm) {
+      var message = validatePassword(vx, confirm, allowEmpty: true);
       if (message.isEmpty) {
         password = vx;
       } else {
@@ -548,7 +550,7 @@ Future<void> showMyAboutDialog(final BuildContext context, final Color foregroun
   );
 }
 
-Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String currentValue, final bool isRename, final bool isPassword, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate, final Function() onClose, {final List<OptionsTypeData> options = const [], final OptionsTypeData currentOption = optionsDataTypeEmpty, final String title = ""}) async {
+Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String currentValue, final bool isRename, final bool isPassword, final bool isPasswordConfirm, final bool allowAnyPw, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate, final Function() onClose, {final List<OptionsTypeData> options = const [], final OptionsTypeData currentOption = optionsDataTypeEmpty, final String title = "", final List<String> hints = const [], final bool showInputField = true}) async {
   var updatedText = currentValue;
   var updatedType = currentOption;
   var shouldDisplayMarkdownHelp = false;
@@ -556,7 +558,7 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
 
   final okButtonManager = DetailTextButtonManager(
     text: "OK",
-    enabled: false,
+    enabled: !showInputField,
     appThemeData: appThemeData,
     onPressed: (button) {
       onAction(SimpleButtonActions.ok, updatedText, updatedType);
@@ -574,6 +576,16 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
     },
   );
 
+  final List<Widget> wHints = List.empty(growable: true);
+  wHints.add(Text(title, style: appThemeData.tsMediumBold));
+  for (var s in hints) {
+    if (s.isEmpty) {
+      wHints.add(appThemeData.horizontalLine);
+    } else {
+      wHints.add(Text(s, style: appThemeData.tsMedium));
+    }
+  }
+
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -582,7 +594,10 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
         return AlertDialog(
           shape: appThemeData.rectangleBorderShape,
           backgroundColor: appThemeData.dialogBackgroundColor,
-          title: Text(title, style: appThemeData.tsMedium),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: wHints,
+          ),
           content: MarkDownInputField(
             appThemeData: appThemeData,
             initialText: currentValue,
@@ -628,10 +643,14 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
       return AlertDialog(
         shape: appThemeData.rectangleBorderShape,
         backgroundColor: appThemeData.dialogBackgroundColor,
-        title: Text(title, style: appThemeData.tsMedium),
-        content: ValidatedInputField(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: wHints,
+        ),
+        content: showInputField ? ValidatedInputField(
           options: options,
           isPassword: isPassword,
+          isPasswordConfirm: isPasswordConfirm,
           isRename: isRename,
           initialOption: currentOption,
           initialValue: currentValue,
@@ -644,10 +663,10 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
               onClose();
             }
           },
-          onValidate: (ix, vx, it, vt) {
+          onValidate: (ix, vx, it, vt, confirm) {
             String validMsg;
             if (isPassword) {
-              validMsg = validatePassword(vx);
+              validMsg = validatePassword(vx, confirm, allowAny: allowAnyPw);
               if (validMsg.isEmpty) {
                 validMsg = externalValidate(ix, vx, it, vt);
               }
@@ -667,7 +686,7 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
             }
             return validMsg;
           },
-        ),
+        ) : null,
         actions: [
           Row(
             children: [cancelButton, okButtonManager.widget],
@@ -678,18 +697,65 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
   );
 }
 
-String validatePassword(final String pw, {final bool allowEmpty = false}) {
+const String special = "#@-_";
+
+String validatePassword(final String pw, final String confirm, {final bool allowAny = false, final bool allowEmpty = false}) {
+  if (allowAny) {
+    return "";
+  }
   if (pw.isEmpty) {
     if (allowEmpty) {
       return "";
     }
-    return "Password cannot be empty";
+    return "Cannot be empty";
   }
   if (pw.length < 5) {
-    return "Password more than 4 chars";
+    return "More than 4 chars";
   }
-  if (pw.length > 15) {
-    return "Password: less than 15 chars";
+  if (pw.length > 20) {
+    return "Less than 20 chars";
+  }
+  int ucCount = 0; // 65 to 90
+  int lcCount = 0; // 97 to 122
+  int numCount = 0; // 48 to 57
+  int otherCount = 0;
+  for (var c in pw.runes) {
+    if (c <= 32) {
+      return "No space chars";
+    }
+    if (c >= 65 && c <= 90) {
+      ucCount++;
+    } else {
+      if (c >= 97 && c <= 122) {
+        lcCount++;
+      } else {
+        if (c >= 48 && c <= 57) {
+          numCount++;
+        } else {
+          for (var x in special.runes) {
+            if (c == x) {
+              otherCount++;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+  if (ucCount == 0) {
+    return "At least 1 Uppercase";
+  }
+  if (lcCount < 3) {
+    return "More than 2 Lowercase";
+  }
+  if (numCount == 0) {
+    return "At least 1 Number";
+  }
+  if (otherCount == 0) {
+    return "At least 1 '$special'";
+  }
+  if (pw != confirm) {
+    return "Passwords not the same";
   }
   return "";
 }
