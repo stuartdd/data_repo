@@ -25,7 +25,8 @@ import 'path.dart';
 import 'config.dart';
 
 enum SettingDetailType { host, url, dir, file, int, double, bool, color, name }
-enum SettingDetailId { host, get, put, test, path, data, rootNodeName, timeout, primaryColor, secondaryColor, helpColor, errorColor, ignore}
+
+enum SettingDetailId { host, get, put, test, path, data, rootNodeName, timeout, primaryColor, secondaryColor, helpColor, errorColor, ignore }
 
 enum SettingState { ok, warning, error }
 
@@ -228,7 +229,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
         updateState();
       }
 
-      await DataContainer.testHttpGet(pathGet, prefix: "Remote File: '${scFileName!.stringValue}'  ", (resp) {
+      await DataContainer.testHttpGet(pathGet, maxContentLen: -1, prefix: "Remote File: '${scFileName!.stringValue}'  ", (resp) {
         if (resp.isNotEmpty) {
           if (getErrorNotLogged) {
             widget.log("__VALIDATE SETTINGS__ 'Get url' $resp");
@@ -332,7 +333,6 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
   }
 
   Widget _configInputField(SettingDetailType type, void Function(String) onChanged) {
-    
     if (type == SettingDetailType.bool) {
       final set = _stringToBool(widget.settingsControl.stringValue);
       final iconData = set ? Icon(Icons.circle_outlined, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true)) : Icon(Icons.circle_rounded, size: widget.appThemeData.iconSize, color: widget.appThemeData.screenForegroundColour(true));
@@ -385,8 +385,7 @@ class _ConfigInputSectionState extends State<ConfigInputSection> {
         onChangePw: (setValue) {
           onChanged(setValue);
         },
-        onChangeCf: (setValue) {
-        },
+        onChangeCf: (setValue) {},
       ),
     );
   }

@@ -419,7 +419,7 @@ class DataContainer {
     }
   }
 
-  static Future<void> testHttpGet(final String url, Function(String) callMe, {String prefix = ""}) async {
+  static Future<void> testHttpGet(final String url, final Function(String) callMe, {final String prefix = "", final maxContentLen = 100}) async {
     debugPrint("TEST:$url");
     try {
       String resp = "";
@@ -430,8 +430,10 @@ class DataContainer {
           return http.Response('${prefix}Timeout:', StatusCode.REQUEST_TIMEOUT);
         },
       );
-      if (response.contentLength == null || response.contentLength! > 100) {
-        callMe('${prefix}Invalid Length:');
+      if (maxContentLen > 0) {
+        if (response.contentLength == null || response.contentLength! > maxContentLen) {
+          callMe('${prefix}Invalid Length:');
+        }
       }
       if (response.statusCode != StatusCode.OK) {
         callMe("${prefix}Status:${response.statusCode} ${getStatusMessage(response.statusCode)}");

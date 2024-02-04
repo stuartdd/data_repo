@@ -34,8 +34,11 @@ then
 
     export outDir=~/development/apps/data_repo
     if [ ! -d $outDir ]; then
-        echo "Output path not found:$outDir"
-        exit 1
+      export outDir=~/flutter/apps/data_repo
+      if [ ! -d $outDir ]; then
+          echo "Output path not found:$outDir"
+          exit 1
+      fi
     fi
     cd $outDir
     export outDir=$(pwd)
