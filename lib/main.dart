@@ -343,7 +343,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (groupCopy) {
       return GroupCopyMoveSummary(from, _loadedData.copyInto(to, from, isValue, dryRun: true), isValue);
     }
-    return GroupCopyMoveSummary(from, _loadedData.remove(from, isValue, dryRun: true), isValue);
+    return GroupCopyMoveSummary(from, _loadedData.remove(from, dryRun: true), isValue);
   }
 
   GroupCopyMoveSummaryList _summariseGroupSelection(final PathPropertiesList pathPropertiesList, final bool groupCopy) {
@@ -429,7 +429,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 false,
                 (button, value, option) {
                   // OnAction
-                  _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(value), value, true); // Save to remote!
+                  _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(value), value, true, logger.log); // Save to remote!
                   if (_globalSuccessState.isSuccess) {
                     _clearDataState("Application RESTART");
                   } else {
@@ -630,7 +630,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       // New password (Save encrypted)
                       logger.log("__SAVE__ Data as ENCRYPTED text");
                     }
-                    _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(usePw), usePw, false); // Don't save to remote!
+                    _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(usePw), usePw, false, logger.log); // Don't save to remote!
                   }
                 },
                 (initial, value, initialType, valueType) {
@@ -686,7 +686,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                         if (action == SimpleButtonActions.move || action == SimpleButtonActions.delete) {
                           for (var k in groupMap.keys) {
-                            final resp = _loadedData.remove(Path.fromDotPath(k), groupMap[k]!.isValue, dryRun: false);
+                            final resp = _loadedData.remove(Path.fromDotPath(k), dryRun: false);
                             if (resp.isEmpty) {
                               groupMap[k]!.done = true;
                               _dataWasUpdated = true;
@@ -774,9 +774,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 false,
                 false,
                 false,
-                (action, text, type) {
+                (action, text, typeOption) {
                   if (action == SimpleButtonActions.ok) {
-                    _handleEditState(detailActionData, text, type);
+                    _handleEditState(detailActionData, text, typeOption);
                   } else {
                     if (action == SimpleButtonActions.link) {
                       _implementLinkStateAsync(text, detailActionData.path.last);
@@ -787,7 +787,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   //
                   // Validate a value type for Edit function
                   //
-                  if (valueType.dataValueType == bool) {
+                  if (valueType.fnType.type == FunctionalType.boolType) {
                     final valueTrimmedLc = valueTrimmed.toLowerCase();
                     if (valueTrimmedLc == "yes" || valueTrimmedLc == "no" || valueTrimmedLc == "true" || valueTrimmedLc == "false") {
                       return "";
@@ -795,7 +795,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       return "Must be 'Yes' or 'No";
                     }
                   }
-                  if (valueType.dataValueType == String) {
+                  if (valueType.fnType.type == FunctionalType.referenceType) {
                     if (valueType.equal(optionTypeDataReference)) {
                       if (valueTrimmed.isEmpty) {
                         return "Reference cannot be empty";
@@ -812,20 +812,20 @@ class _MyHomePageState extends State<MyHomePage> {
                     }
                     return "";
                   }
-                  if (valueType.dataValueType == double) {
+                  if (valueType.fnType.type == FunctionalType.doubleType) {
                     try {
                       final d = double.parse(valueTrimmed);
                       return valueType.inRangeDouble("Value ", d);
                     } catch (e) {
-                      return "That is not a ${valueType.description}";
+                      return "That is not a ${valueType.fnType.desc}";
                     }
                   }
-                  if (valueType.dataValueType == int) {
+                  if (valueType.fnType.type == FunctionalType.intType) {
                     try {
                       final i = int.parse(valueTrimmed);
                       return valueType.inRangeInt("Value ", i);
                     } catch (e) {
-                      return "That is not a ${valueType.description}";
+                      return "That is not a ${valueType.fnType.desc}";
                     }
                   }
                   return "";
@@ -1005,6 +1005,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Path _handleAction(DetailAction detailActionData) {
     switch (detailActionData.action) {
+      case ActionType.setSearch:
+        {
+          _setSearchExpressionState(detailActionData.additional);
+          return Path.empty();
+        }
       case ActionType.querySelect:
         {
           return _querySelect(detailActionData.path, detailActionData.additional);
@@ -1027,7 +1032,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       case ActionType.save: // Save as it is (encrypted or un-encrypted)
         {
-          _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password), _loadedData.password, true);
+          _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password), _loadedData.password, true, logger.log);
           return Path.empty();
         }
       case ActionType.checkReferences:
@@ -1103,20 +1108,20 @@ class _MyHomePageState extends State<MyHomePage> {
     return Path.empty();
   }
 
-  Future<void> _saveDataStateAsync(final String content, final String pw, final bool saveToRemote) async {
+  Future<void> _saveDataStateAsync(final String content, final String pw, final bool saveToRemote, void Function(String) log) async {
     final newFileName = _configData.getDataFileNameForSaveAs(pw); // May change extension!
     final currentFileName = _configData.getDataFileName();
     final bool noClobber;
     if (newFileName != currentFileName) {
       noClobber = true;
       if (_configData.localFileExists(newFileName)) {
-        _globalSuccessState = SuccessState(false, message: "File $newFileName already exists");
+        _globalSuccessState = SuccessState(false, message: "File $newFileName already exists", log: log);
         return;
       }
     } else {
       noClobber = false;
     }
-    final localSaveState = DataContainer.saveToFile(_configData.getDataFileNameForSaveAs(pw, fullPath: true), content, noClobber: noClobber, log: logger.log);
+    final localSaveState = DataContainer.saveToFile(_configData.getDataFileNameForSaveAs(pw, fullPath: true), content, noClobber: noClobber, log: log);
     int success = 0;
     final String lm;
     final String rm;
@@ -1127,7 +1132,7 @@ class _MyHomePageState extends State<MyHomePage> {
       lm = "Local Save FAIL";
     }
     if (saveToRemote) {
-      final remoteSaveState = await DataContainer.sendHttpPost(_configData.getPostDataFileUrl(), content, log: logger.log);
+      final remoteSaveState = await DataContainer.sendHttpPost(_configData.getPostDataFileUrl(), content, log: log);
       if (remoteSaveState.isSuccess) {
         success++;
         rm = "Remote Save OK";
@@ -1142,12 +1147,12 @@ class _MyHomePageState extends State<MyHomePage> {
       if (success == 2) {
         _dataRequiresSyncing = false;
       }
-      if (success != 0) {
+      if (success > 0) {
         _dataWasUpdated = false;
         _pathPropertiesList.clear();
         _globalSuccessState = SuccessState(true, message: "$lm. $rm");
       } else {
-        _globalSuccessState = SuccessState(false, message: "$lm. $rm");
+        _globalSuccessState = SuccessState(false, message: "$lm. $rm", log: log);
       }
     });
   }
@@ -1299,111 +1304,56 @@ class _MyHomePageState extends State<MyHomePage> {
     _treeNodeDataRoot = temp;
   }
 
-  void _handleAddState(final Path path, final String name, final OptionsTypeData type) async {
+  void _handleAddState(final Path path, final String newNameNoSuffix, final OptionsTypeData type) async {
     setState(() {
-      if (name.length < 2) {
-        _globalSuccessState = SuccessState(false, message: "__ADD__ Name is too short", log: logger.log);
+      final String msg;
+      if (type.fnType.type == FunctionalType.groupType) {
+        final Map<String, dynamic> m = {};
+        msg = _loadedData.add(path, newNameNoSuffix, m, dryRun: false, validate: (node, n, e, v) {
+          return type.validateType(node);
+        });
+      } else {
+        msg = _loadedData.add(path, newNameNoSuffix, "", dryRun: false, validate: (node, n, e, v) {
+          return type.validateType(v);
+        });
+      }
+      if (msg.isNotEmpty) {
+        _globalSuccessState = SuccessState(false, message: "__ADD__ $msg");
         return;
       }
-      final mapNodes = path.pathNodes(_loadedData.dataMap);
-      if (mapNodes.error) {
-        _globalSuccessState = SuccessState(false, message: "__ADD__ Path not found", log: logger.log);
-        return;
-      }
-      if (mapNodes.lastNodeIsData) {
-        _globalSuccessState = SuccessState(false, message: "__ADD__ Cannot add to a data node", log: logger.log);
-        return;
-      }
-      if (mapNodes.lastNodeAsMap!.containsKey(name)) {
-        _globalSuccessState = SuccessState(false, message: "__ADD__ Name already exists", log: logger.log);
-        return;
-      }
-      switch (type) {
-        case optionTypeDataValue:
-          mapNodes.lastNodeAsMap![name] = emptyString;
-          _dataWasUpdated = true;
-          _checkReferences = true;
-          _pathPropertiesList.setUpdated(path, shouldLog: false);
-          _pathPropertiesList.setRenamed(path.cloneAppend(name), shouldLog: false);
-          _pathPropertiesList.setUpdated(path.cloneAppend(name), shouldLog: false);
-          _reloadTreeFromMapAndCopyFlags();
-          _selectNode(path);
-          _globalSuccessState = SuccessState(true, message: "Data node '$name' added", log: logger.log);
-          break;
-        case optionTypeDataGroup:
-          final Map<String, dynamic> m = {};
-          mapNodes.lastNodeAsMap![name] = m;
-          _dataWasUpdated = true;
-          _checkReferences = true;
-          _pathPropertiesList.setUpdated(path, shouldLog: false);
-          _pathPropertiesList.setRenamed(path.cloneAppend(name), shouldLog: false);
-          _pathPropertiesList.setUpdated(path.cloneAppend(name), shouldLog: false);
-          _reloadTreeFromMapAndCopyFlags();
-          _selectNode(path.cloneAppend(name));
-          _globalSuccessState = SuccessState(true, message: "Group Node '$name' added", log: logger.log);
-          break;
-      }
+      _dataWasUpdated = true;
+      _checkReferences = true;
+      _pathPropertiesList.setUpdated(path, shouldLog: false);
+      _pathPropertiesList.setRenamed(path.cloneAppend(newNameNoSuffix), shouldLog: false);
+      _pathPropertiesList.setUpdated(path.cloneAppend(newNameNoSuffix), shouldLog: true);
+      _reloadTreeFromMapAndCopyFlags();
+      _selectNode(path);
+      _globalSuccessState = SuccessState(true, message: "Data node '$newNameNoSuffix' added", log: logger.log);
     });
   }
 
   String _checkRenameOk(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
-    if (detailActionData.oldValueType != newType) {
-      if (detailActionData.oldValueType == optionTypeDataMarkDown) {
-        if (detailActionData.additional.contains('\n')) {
-          return "Remove multiple lines";
-        }
-      }
-    }
-    if (newNameNoSuffix.length < 2) {
-      return "New Name is too short";
-    }
-    if (newNameNoSuffix.contains(".")) {
-      return "New Name Cannot contain '.'";
-    }
-    final newName = "$newNameNoSuffix${newType.nameSuffix}";
-    if (detailActionData.oldValue != newName) {
-      final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
-      if (mapNodes.error) {
-        return "Path not found";
-      }
-      if (mapNodes.alreadyContainsName(newName)) {
-        return "Name already exists";
-      }
-    }
-    return "";
+    return _loadedData.rename(detailActionData.path, newNameNoSuffix, extension: newType.nameSuffix, dryRun: true, validate: (node, n, e) {
+      return newType.validateType(node);
+    });
   }
 
-  void _handleRenameState(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
+  void _handleRenameState(final DetailAction detailActionData, final String newNameNoSuffix, final OptionsTypeData newType) {
     final newName = "$newNameNoSuffix${newType.nameSuffix}";
     final oldName = detailActionData.oldValue;
     if (oldName != newName) {
       setState(() {
-        if (newNameNoSuffix.length < 2) {
-          _globalSuccessState = SuccessState(false, message: "__RENAME__ New Name is too short");
+        final msg = _loadedData.rename(detailActionData.path, newNameNoSuffix, extension: newType.nameSuffix, dryRun: false, validate: (node, n, e) {
+          return newType.validateType(node);
+        });
+        if (msg.isNotEmpty) {
+          _globalSuccessState = SuccessState(false, message: "__RENAME__ $msg");
           return;
         }
-        final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
-        if (mapNodes.error) {
-          _globalSuccessState = SuccessState(false, message: "__RENAME__ Path not found");
-          return;
-        }
-        if (!mapNodes.lastNodeHasParent) {
-          _globalSuccessState = SuccessState(false, message: "__RENAME__ Cannot rename root node");
-          return;
-        }
-        if (mapNodes.alreadyContainsName(newName)) {
-          _globalSuccessState = SuccessState(false, message: "__RENAME__ Name already exists");
-          return;
-        }
-
-        mapNodes.lastNodeParent!.remove(oldName);
-        mapNodes.lastNodeParent![newName] = mapNodes.lastNodeAsData;
-
         _dataWasUpdated = true;
         _checkReferences = true;
-
-        var newPath = detailActionData.path.cloneRename(newName);
-        var parentPath = newPath.cloneParentPath();
+        final newPath = detailActionData.path.cloneRename(newName);
+        final parentPath = detailActionData.path.cloneParentPath();
         _pathPropertiesList.setRenamed(newPath);
         _pathPropertiesList.setRenamed(parentPath, shouldLog: false);
         _reloadTreeFromMapAndCopyFlags();
@@ -1413,35 +1363,17 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Path _handleDelete(final Path path) {
-    final mapNodes = path.pathNodes(_loadedData.dataMap);
-    if (mapNodes.error) {
-      _globalSuccessState = SuccessState(false, message: "__DELETE__ Path not found");
-      return Path.empty();
-    }
-    if (!mapNodes.lastNodeHasParent) {
-      _globalSuccessState = SuccessState(false, message: "__DELETE__ Cannot delete root node");
-      return Path.empty();
-    }
-    final parentPath = path.cloneParentPath();
-    if (parentPath.isEmpty) {
-      _globalSuccessState = SuccessState(false, message: "__DELETE__ Parent path is empty");
-      return parentPath;
-    }
-    final parentNode = mapNodes.lastNodeParent;
-    parentNode!.remove(path.last);
-    return parentPath;
-  }
-
   void _handleDeleteState(final Path path, final String response) async {
     if (response == "OK") {
       setState(() {
-        final parentPath = _handleDelete(path);
-        if (parentPath.isEmpty) {
+        final msg = _loadedData.remove(path, dryRun: false);
+        if (msg.isNotEmpty) {
+          _globalSuccessState = SuccessState(false, message: "__REMOVE__ $msg");
           return;
         }
         _dataWasUpdated = true;
         _checkReferences = true;
+        final parentPath = path.cloneParentPath();
         _pathPropertiesList.setUpdated(parentPath);
         _reloadTreeFromMapAndCopyFlags();
         _selectNode(parentPath);
@@ -1450,8 +1382,14 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _handleEditState(DetailAction detailActionData, String newValue, OptionsTypeData type) {
-    if (detailActionData.oldValue != newValue || detailActionData.oldValueType != type) {
+  /*
+  Replace old node with name and value of type with new node (same name) different value and type.
+  This can only be done on leaf nodes.
+
+  New value is the String representation of the new node and must convert to the new type!
+   */
+  void _handleEditState(DetailAction detailActionData, String newValue, OptionsTypeData newType) {
+    if (detailActionData.oldValue != newValue || detailActionData.oldValueType != newType) {
       setState(() {
         final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
         if (mapNodes.error) {
@@ -1462,21 +1400,21 @@ class _MyHomePageState extends State<MyHomePage> {
           _globalSuccessState = SuccessState(false, message: "__EDIT__ Cannot edit a map node");
           return;
         }
-        if (!mapNodes.lastNodeHasParent) {
+        if (mapNodes.lastNodeIsRoot) {
           _globalSuccessState = SuccessState(false, message: "__EDIT__ Cannot edit a root node");
           return;
         }
-        final parentNode = mapNodes.lastNodeParent;
+        final parentNode = mapNodes.parentOfLastNode;
         final key = detailActionData.path.last;
         _dataWasUpdated = true;
         _checkReferences = true;
         final nvTrim = newValue.trim();
         try {
-          if (type.dataValueType == bool) {
+          if (newType.fnType.type == FunctionalType.boolType) {
             final lvTrimLc = nvTrim.toLowerCase();
             parentNode![key] = (lvTrimLc == "true" || lvTrimLc == "yes" || nvTrim == "1");
           } else {
-            if (type.dataValueType == double || type.dataValueType == int) {
+            if (newType.fnType.type == FunctionalType.doubleType || newType.fnType.type == FunctionalType.intType) {
               try {
                 final iv = int.parse(nvTrim);
                 parentNode![key] = iv;
@@ -1546,7 +1484,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Path.empty(),
           (path, button) async {
             if (button == "SAVE") {
-              await _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password), _loadedData.password, true);
+              await _saveDataStateAsync(_loadedData.dataToStringFormattedWithTs(_loadedData.password), _loadedData.password, true, logger.log);
             }
             if (button == "CANCEL") {
               shouldExit = false;
@@ -1745,13 +1683,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return _handleAction(detailActionData);
     }, (id) {
       // On Choose File
-      if (id == "L") {
-        _handleAction(DetailAction.actionOnly(ActionType.chooseFile));
-      } else {
-        if (id == "C") {
-          _setSearchExpressionState("");
-        }
-      }
+      _handleAction(id);
     }, logger.log, _applicationState.isDataSorted, _configData.getRootNodeName(), _configData.getDataFileName(), _search);
     _treeViewScrollController = displayData.scrollController;
 
@@ -1901,7 +1833,7 @@ class _MyHomePageState extends State<MyHomePage> {
               onChangePw: (v) {},
               onChangeCf: (v) {},
               onSubmit: (v) {
-                _setSearchExpressionState(v);
+                _handleAction(DetailAction.actionAndString(ActionType.setSearch, v));
               },
             ),
           ),
@@ -1912,7 +1844,7 @@ class _MyHomePageState extends State<MyHomePage> {
             iconData: Icons.search,
             tooltip: 'Search',
             onPressed: (button) {
-              _setSearchExpressionState(_searchEditingController.text);
+              _handleAction(DetailAction.actionAndString(ActionType.setSearch, _searchEditingController.text));
             },
           ),
         );
@@ -1928,7 +1860,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _applicationState.getLastFindList(),
                 (selected) {
                   if (selected.isNotEmpty) {
-                    _setSearchExpressionState(selected);
+                    _handleAction(DetailAction.actionAndString(ActionType.setSearch, selected));
                   }
                 },
                 () {
@@ -1944,7 +1876,7 @@ class _MyHomePageState extends State<MyHomePage> {
             iconData: Icons.search_off,
             tooltip: 'Clear Search',
             onPressed: (button) {
-              _setSearchExpressionState("");
+              _handleAction(DetailAction.actionAndString(ActionType.setSearch, ""));
             },
           ),
         );

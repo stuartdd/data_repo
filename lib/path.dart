@@ -16,7 +16,8 @@
  */
 
 const _updatedNotForUnDo = "~";
-
+const pathSeparator = '.';
+const initialPathCapacity = 9;
 
 class PathProperties {
   String renamedFrom = "";
@@ -177,7 +178,6 @@ class PathPropertiesList {
     return false;
   }
 
-
   int get countGroupSelects {
     int counter = 0;
     for (var v in _list.values) {
@@ -242,21 +242,22 @@ class PathPropertiesList {
   }
 }
 
-const int initialSize = 9;
-
+/*
+A list of map nodes, one for each path entry from the root node to the 'last' path node..
+ */
 class PathNodes {
   final List<dynamic> nodes;
   final bool error;
   PathNodes(this.nodes, this.error);
 
-  factory PathNodes.from(final Map<String, dynamic> json, final Path path) {
+  factory PathNodes.from(final Map<String, dynamic> map, final Path path) {
     if (path.isEmpty) {
       return PathNodes([], true);
     }
-    if (json.isEmpty) {
+    if (map.isEmpty) {
       return PathNodes([], true);
     }
-    var nn = json;
+    var nn = map;
     final List<dynamic> nodes = List.empty(growable: true);
     for (var i = 0; i < path.length; i++) {
       final name = path.peek(i);
@@ -284,13 +285,16 @@ class PathNodes {
         return true;
       }
     } else {
-      if (lastNodeParent!.containsKey(name)) {
+      if (parentOfLastNode!.containsKey(name)) {
         return true;
       }
     }
     return false;
   }
 
+  /*
+  Is the last node a Map node Map<String, dynamic> or a data node <dynamic>.
+   */
   bool get lastNodeIsMap {
     if (nodes.isEmpty) {
       return false;
@@ -298,37 +302,46 @@ class PathNodes {
     return (nodes[nodes.length - 1] is Map<String, dynamic>);
   }
 
-  bool get lastNodeIsData {
-    if (nodes.isEmpty) {
-      return false;
-    }
-    return nodes[nodes.length - 1] is! Map<String, dynamic>;
-  }
-
   Map<String, dynamic>? get lastNodeAsMap {
-    if (nodes.isNotEmpty) {
+    if (lastNodeIsMap) {
       return nodes[nodes.length - 1] as Map<String, dynamic>;
     }
     return null;
   }
-
-  bool get lastNodeHasParent {
-    return (nodes.length > 1);
+  /*
+  Is the last node a Map node Map<String, dynamic> or a data node <dynamic>.
+   */
+  bool get lastNodeIsData {
+    if (nodes.isEmpty) {
+      return false;
+    }
+    return ((nodes[nodes.length - 1] is! Map) && (nodes[nodes.length - 1] is! List));
   }
 
-  Map<String, dynamic>? get lastNodeParent {
+  dynamic get lastNodeAsData {
+    if (lastNodeIsData) {
+      return nodes[nodes.length - 1];
+    }
+    return null;
+  }
+
+
+
+  /*
+  Is the last node the root node.
+  If it is then it will not have a parent node.
+   */
+  bool get lastNodeIsRoot {
+    return (nodes.length < 2);
+  }
+
+  Map<String, dynamic>? get parentOfLastNode {
     if (nodes.length > 1) {
       return nodes[nodes.length - 2] as Map<String, dynamic>;
     }
     return null;
   }
 
-  dynamic get lastNodeAsData {
-    if (nodes.isNotEmpty) {
-      return nodes[nodes.length - 1];
-    }
-    return null;
-  }
 
   bool get isEmpty {
     return nodes.isEmpty;
@@ -354,17 +367,23 @@ class PathNodes {
   }
 }
 
+/*
+Represents a node in a Map of Maps.
+ */
 class Path {
   static const String substituteElement = "*";
-  final List<String> pathList = List.filled(initialSize, "", growable: false);
+  final List<String> pathList = List.filled(initialPathCapacity, "", growable: false);
   int _count = 0;
 
   Path(List<String> list) {
     _count = 0;
-    for (int i = 0; i < list.length; i++) {
+    final len = (list.length > initialPathCapacity) ? initialPathCapacity : list.length;
+    for (int i = 0; i < len; i++) {
       if (list[i].isNotEmpty) {
         pathList[i] = list[i];
         _count++;
+      } else {
+        break;
       }
     }
   }
@@ -454,7 +473,7 @@ class Path {
   }
 
   factory Path.fromDotPath(final String dotPath) {
-    return Path(dotPath.split('.'));
+    return Path(dotPath.split(pathSeparator));
   }
 
   factory Path.fromList(final List<String> list) {
@@ -476,6 +495,9 @@ class Path {
     return true;
   }
 
+  /*
+  As the first path element is the root. a Single path must be the root node
+   */
   bool get hasParent {
     return (_count > 1);
   }
@@ -542,7 +564,7 @@ class Path {
     for (int i = 0; i < _count; i++) {
       sb.write(pathList[i]);
       if (i < (_count - 1)) {
-        sb.write(".");
+        sb.write(pathSeparator);
       }
     }
     return sb.toString();

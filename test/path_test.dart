@@ -29,8 +29,19 @@ void check(final PathProperties p, final bool empty, final bool chg, final bool 
   expect(p.groupSelect, grp);
 }
 
+void checkLenAndStr(final Path p, final int len, final String s) {
+  expect(p.length, len, reason: "Length was ${p.length} should be $len");
+  expect(p.toString(), s, reason: "toString was '${p.toString()}' should be '$s'");
+}
+
 void main() {
   //
+  test('Test from list', () async {
+    checkLenAndStr(Path.fromList(["A"]), 1, "A");
+    checkLenAndStr(Path.fromList(["A", "B"]), 2, "A.B");
+    checkLenAndStr(Path.fromList(["A", "B", "C", "D", "E", "F", "A", "B", "C", "D", "E", "F"]), initialPathCapacity, "A.B.C.D.E.F.A.B.C");
+    checkLenAndStr(Path.fromList(["A", "B", "C", "D", "E", "F", "", "B", "C", "D", "E", "F"]), 6, "A.B.C.D.E.F");
+  });
 
   test('Test Path cloneSub', () async {
     final p1 = Path.fromDotPath("A.B.C.D");
@@ -45,10 +56,8 @@ void main() {
     expect(p1.cloneSub(replaceElement: "Z", "").toString(), "A.B.C.D");
     expect(p1.cloneSub(replaceElement: "Z", "Y").toString(), "A.B.C.D");
 
-    final p2 = Path.fromList(["A",Path.substituteElement,"B"]);
+    final p2 = Path.fromList(["A", Path.substituteElement, "B"]);
     expect(p2.cloneSub("Y").toString(), "A.Y.B");
-    
-    
   });
 
   test('Test PathProperties List', () async {
@@ -202,8 +211,8 @@ void main() {
     expect(p.isEmpty, true);
     expect(p.length, 0);
     expect(p.lastNodeAsMap, null);
-    expect(p.lastNodeHasParent, false);
-    expect(p.lastNodeParent, null);
+    expect(p.lastNodeIsRoot, true);
+    expect(p.parentOfLastNode, null);
     expect(p.lastNodeIsMap, false);
     expect(p.lastNodeIsData, false);
     expect(p.toString(), "Error:");
@@ -215,8 +224,8 @@ void main() {
     expect(p.length, 1);
     expect(p.lastNodeIsMap, true);
     expect(p.lastNodeIsData, false);
-    expect(p.lastNodeHasParent, false);
-    expect(p.lastNodeParent, null);
+    expect(p.lastNodeIsRoot, true);
+    expect(p.parentOfLastNode, null);
     Map<String, dynamic>? pm = p.lastNodeAsMap;
     expect(pm == null, false);
     expect(pm!.length, 2);
@@ -228,7 +237,7 @@ void main() {
     expect(p.length, 1);
     expect(p.lastNodeIsMap, true);
     expect(p.lastNodeIsData, false);
-    expect(p.lastNodeParent, null);
+    expect(p.parentOfLastNode, null);
     pm = p.lastNodeAsMap;
     expect(pm == null, false);
     expect(pm!.length, 2);
@@ -241,8 +250,8 @@ void main() {
     expect(p.lastNodeIsMap, true);
     expect(p.lastNodeIsData, false);
     pm = p.lastNodeAsMap;
-    expect(p.lastNodeHasParent, true);
-    Map<String, dynamic>? parent = p.lastNodeParent;
+    expect(p.lastNodeIsRoot, false);
+    Map<String, dynamic>? parent = p.parentOfLastNode;
     expect(parent?.containsKey("B"), true);
     expect(parent?.containsKey("A1"), true);
     expect(parent == null, false);
@@ -256,8 +265,8 @@ void main() {
     expect(p.length, 4);
     expect(p.lastNodeIsMap, false);
     expect(p.lastNodeIsData, true);
-    expect(p.lastNodeHasParent, true);
-    parent = p.lastNodeParent;
+    expect(p.lastNodeIsRoot, false);
+    parent = p.parentOfLastNode;
     expect(parent == null, false);
     expect(parent?.containsKey("A111"), true);
     expect(parent?.containsKey("A112"), true);

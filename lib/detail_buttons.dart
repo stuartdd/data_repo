@@ -562,10 +562,10 @@ class OptionListWidget extends StatefulWidget {
   const OptionListWidget({super.key, required this.optionList, required this.selectedOption, required this.onSelect, required this.appThemeData});
   // Find the element type index for a given type name.
   //    -1 indicated not found
-  int _findIndexFroOption(String type) {
+  int _findIndexFroOption(FunctionalType type) {
     if (optionList.isNotEmpty) {
       for (int i = 0; i < optionList.length; i++) {
-        if (optionList[i].functionalType == type) {
+        if (optionList[i].fnType.type == type) {
           return i;
         }
       }
@@ -585,7 +585,7 @@ class _OptionListWidgetState extends State<OptionListWidget> {
   initState() {
     super.initState();
     _currentSelect = widget.selectedOption;
-    selIndex = widget._findIndexFroOption(_currentSelect.functionalType);
+    selIndex = widget._findIndexFroOption(_currentSelect.fnType.type);
     if (selIndex < 0) {
       selIndex = 0;
     }
@@ -612,7 +612,7 @@ class _OptionListWidgetState extends State<OptionListWidget> {
                   iconData: (i == selIndex) ? Icons.radio_button_checked : Icons.radio_button_unchecked,
                   appThemeData: widget.appThemeData),
               Text(
-                widget.optionList[i].description,
+                widget.optionList[i].fnType.name,
                 style: widget.appThemeData.tsMediumBold,
               )
             ],
@@ -888,7 +888,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
             : Container(
                 alignment: Alignment.topLeft,
                 child: Column(
-                  children: [Text(widget.prompt.replaceAll("[type]", currentOption.description), style: widget.appThemeData.tsMediumBold), widget.appThemeData.verticalGapBox(2)],
+                  children: [Text(widget.prompt.replaceAll("[type]", currentOption.fnType.hint), style: widget.appThemeData.tsMediumBold), widget.appThemeData.verticalGapBox(2)],
                 )),
         (widget.isPassword)
             ? Row(
@@ -918,14 +918,14 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                 ),
                 widget.appThemeData.verticalGapBox(1)
               ]),
-        (currentOption.dataValueType == bool && !widget.isRename)
+        (currentOption.fnType.type == FunctionalType.boolType && !widget.isRename)
             ? OptionListWidget(
                 // True or false
                 appThemeData: widget.appThemeData,
                 optionList: optionGroupUYesNo,
                 selectedOption: OptionsTypeData.toTrueFalseOptionsType(current),
                 onSelect: (option) {
-                  current = option.functionalType;
+                  current = option.initialValue;
                   _validate();
                 })
             : inputTextField(

@@ -58,7 +58,10 @@ class DataValueDisplayRow {
   }
 
   String get value {
-    if (_type.dataValueType == bool) {
+    if (_type.fnType.type == FunctionalType.trueType || _type.fnType.type == FunctionalType.falseType) {
+      return _type.fnType.desc;
+    }
+    if (_type.fnType.type == FunctionalType.boolType) {
       if (_stringValue == "true") {
         return "Yes";
       }
@@ -352,7 +355,7 @@ class _DetailWidgetState extends State<DetailWidget> {
             ListTile(
               title: Container(
                 padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(color: appThemeData.selectedAndHiLightColour(true, plp.renamed, true),border: Border.all(color: widget.appThemeData.screenForegroundColour(true), width: 1)),
+                decoration: BoxDecoration(color: appThemeData.selectedAndHiLightColour(true, plp.renamed, true), border: Border.all(color: widget.appThemeData.screenForegroundColour(true), width: 1)),
                 child: Row(
                   children: [
                     groupButton(plp, false, isEditDataDisplay, widget.dataValueRow.pathWithName, widget.appThemeData, widget.dataAction),
@@ -378,7 +381,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                 DetailIconButton(
                     appThemeData: appThemeData,
                     visible: widget.isEditDataDisplay,
-                    iconData: Icons.edit_rounded,
+                    iconData: Icons.settings,
                     tooltip: "Change Item Name",
                     onPressed: (p0) {
                       widget.dataAction(DetailAction(ActionType.renameItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));

@@ -110,7 +110,7 @@ DisplaySplitView createSplitView(
     final SuccessState Function(String) onResolve, // Called when a tree node in selected
     final Function(double) onDivChange, // Called when the split pane divider is moved
     final Path Function(DetailAction) onDataAction,
-    final Function(String) onErrorAction,
+    final Function(DetailAction) onErrorAction,
     final void Function(String) log,
     final int isSorted,
     final String rootNodeName,
@@ -122,13 +122,13 @@ DisplaySplitView createSplitView(
   if (data.isEmpty) {
     log("__DATA:__ No data loaded");
     return DisplaySplitView.error(appThemeData, ["No data has been loaded", "", "Current file:", "\"$currentFileName\"", ""], screenWidth, action: () {
-      onErrorAction("L");
+      onErrorAction(DetailAction.actionOnly(ActionType.chooseFile));
     }, actionText: "Choose a file to load");
   }
   if (filteredTreeNodeDataRoot.isEmpty) {
     log("__DATA:__ No data to display");
     return DisplaySplitView.error(appThemeData, ["No data found", "", "Search", currentSearch.isEmpty ? "?" : "\"$currentSearch\"", ""], screenWidth, action: () {
-      onErrorAction("C");
+      onErrorAction(DetailAction.actionAndString(ActionType.setSearch, ""));
     }, actionText: "Clear Search");
   }
 

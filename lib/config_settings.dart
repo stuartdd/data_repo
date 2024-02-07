@@ -215,7 +215,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
       final pathTest = widget.settingsControlList.substituteForUrl(scTestGet!.stringValue);
       final pathGet = widget.settingsControlList.substituteForUrl(scGet!.stringValue);
 
-      await DataContainer.testHttpGet(pathTest, prefix: "Remote Test File: '$defaultRemoteTestFileName'  ", (resp) {
+      await DataContainer.testHttpGet(pathTest, maxContentLen: 100, prefix: "Remote Test File: '$defaultRemoteTestFileName'  ", (resp) {
         if (resp.isNotEmpty) {
           if (testErrorNotLogged) {
             widget.log("__VALIDATE SETTINGS__ 'Test url' $resp");
@@ -229,7 +229,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
         updateState();
       }
 
-      await DataContainer.testHttpGet(pathGet, maxContentLen: -1, prefix: "Remote File: '${scFileName!.stringValue}'  ", (resp) {
+      await DataContainer.testHttpGet(pathGet, prefix: "Remote File: '${scFileName!.stringValue}'  ", (resp) {
         if (resp.isNotEmpty) {
           if (getErrorNotLogged) {
             widget.log("__VALIDATE SETTINGS__ 'Get url' $resp");

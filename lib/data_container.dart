@@ -118,17 +118,175 @@ class DataContainer {
     return _dataMap;
   }
 
-  String remove(Path path, bool isValue, {required bool dryRun}) {
-    final intoNode = getNodeFromJson(path);
-    if (intoNode == null) {
-      return "Into not found";
+  /*
+  Does the path to the node with the name OR the name+extension.
+  Does the parent node contain a node [name] or [name+extension]
+
+  Return error message or empty string
+   */
+  String _checkNodeAlreadyExist(final Path parentPath, final String name, final String extension) {
+    final dynamic pNode;
+    if (parentPath.isEmpty) {
+      pNode = _dataMap;
+    } else {
+      pNode = getNodeFromJson(parentPath);
+    }
+
+    if (pNode == null) {
+      return "Parent node not found";
+    }
+
+    if (pNode is List) {
+      return "List not supported";
+    }
+
+    if (pNode is! Map) {
+      return "Parent node not a Map";
+    }
+
+    if (pNode.containsKey(name)) {
+      return "Name already exists";
+    }
+
+    if (extension.isNotEmpty) {
+      if (pNode.containsKey("$name$extension")) {
+        return "Name already exists";
+      }
+    }
+    // Every thing is OK and the node does not exist.
+    return "";
+  }
+
+  String _validateNodeName(final String newName) {
+    if (newName.length < 2) {
+      return "Is too short";
+    }
+
+    if (newName.contains(pathSeparator)) {
+      return "Cannot contain '$pathSeparator'";
+    }
+
+    if (newName.contains(extensionSeparator)) {
+      return "Cannot contain '$extensionSeparator'";
+    }
+
+    return "";
+  }
+
+  String replace(final Path path, final dynamic value, {required bool dryRun}) {
+    if (value == null) {
+      return "Replace: Cannot replace with null";
+    }
+    final nodeList = PathNodes.from(_dataMap, path);
+    if (nodeList.error) {
+      return "Replace: Node not found";
+    }
+
+    if (nodeList.lastNodeIsRoot) {
+      return "Replace: Cannot replace root";
+    }
+
+    final parentNode = nodeList.parentOfLastNode;
+    if (parentNode == null) {
+      return "Replace: Parent node not found";
+    }
+
+    if (!dryRun) {
+      parentNode.remove(path.last);
+      parentNode[path.last] = value;
+    }
+    return "";
+  }
+
+  String add(final Path path, final String name, final dynamic value, {final String extension = noExtension, required bool dryRun, final String Function(Map<String, dynamic>, String, String, dynamic)? validate}) {
+    final msg = _validateNodeName(name);
+    if (msg.isNotEmpty) {
+      return "Add: $msg";
+    }
+
+    final msg2 = _checkNodeAlreadyExist(path, name, extension);
+    if (msg2.isNotEmpty) {
+      return "Add: $msg2";
+    }
+
+    final nodeList = PathNodes.from(_dataMap, path);
+    if (nodeList.error) {
+      return "Add: Node not found";
+    }
+
+    final parent = nodeList.lastNodeAsMap;
+    if (parent == null) {
+      return "Add: Parent is not map";
+    }
+
+    if (validate != null) {
+      final msg = validate(parent, name, extension, value);
+      if (msg.isNotEmpty) {
+        return "Add: $msg";
+      }
+    }
+
+    if (!dryRun) {
+      parent["$name$extension"] = value;
+    }
+
+    return "";
+  }
+
+  String rename(final Path path, final String newName, {final String extension = noExtension, required bool dryRun, final String Function(dynamic, String, String)? validate}) {
+    final msg1 = _validateNodeName(newName);
+    if (msg1.isNotEmpty) {
+      return "Rename: $msg1";
+    }
+
+    final msg2 = _checkNodeAlreadyExist(path.cloneParentPath(), newName, extension);
+    if (msg2.isNotEmpty) {
+      return "Rename: $msg2";
+    }
+
+    final nodeList = PathNodes.from(_dataMap, path);
+    if (nodeList.error) {
+      return "Rename: Node not found";
+    }
+
+    if (nodeList.lastNodeIsRoot) {
+      return "Rename: Cannot rename root";
+    }
+
+    final parentNode = nodeList.parentOfLastNode;
+    if (parentNode == null) {
+      return "Rename: Parent node not found";
+    }
+
+    if (validate != null && nodeList.lastNodeIsData) {
+      final msg = validate(nodeList.lastNodeAsData, newName, extension);
+      if (msg.isNotEmpty) {
+        return "Rename: $msg";
+      }
+    }
+
+    if (!dryRun) {
+      final n = parentNode.remove(path.last);
+      parentNode["$newName$extension"] = n;
+    }
+
+    return "";
+  }
+
+  String remove(Path path, {required bool dryRun}) {
+    if (!path.hasParent) {
+      return "Remove: cannot remove root node";
+    }
+    final removeNode = getNodeFromJson(path);
+    if (removeNode == null) {
+      return "Remove: cannot find node";
     }
     final parentNode = getNodeFromJson(path.cloneParentPath());
     if (parentNode == null) {
-      return "Into parent not found";
+      return "Remove: cannot find parent node";
     }
     if (parentNode is! Map<String, dynamic>) {
-      return "Into is not a group";
+      return "Remove: parent node is not a map";
     }
     if (!dryRun) {
       parentNode.remove(path.last);
@@ -142,7 +300,7 @@ class DataContainer {
       return "Into not found";
     }
     if (intoNode is! Map<String, dynamic>) {
-      return "Into is not a group";
+      return "Into is not a map";
     }
     final fromNode = getNodeFromJson(from);
     if (fromNode == null) {
@@ -419,7 +577,7 @@ class DataContainer {
     }
   }
 
-  static Future<void> testHttpGet(final String url, final Function(String) callMe, {final String prefix = "", final maxContentLen = 100}) async {
+  static Future<void> testHttpGet(final String url, final Function(String) callMe, {final String prefix = "", final maxContentLen = -1}) async {
     debugPrint("TEST:$url");
     try {
       String resp = "";

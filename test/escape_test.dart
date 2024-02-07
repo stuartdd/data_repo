@@ -33,4 +33,18 @@ void main() {
     expect(d.value, "No");
     expect(d.pathWithName.toString(), "dotPath.b");
   });
+
+  test('Test Boolean false', () async {
+    final d = DataValueDisplayRow("b", "false", optionTypeDataBool, true, Path.empty(), 1, Path.fromDotPath("dotPath.b"));
+    expect(d.name, "b");
+    expect(d.value, "No");
+    expect(d.pathWithName.toString(), "dotPath.b");
+  });
+
+  test('Test Boolean false', () async {
+    final d = DataValueDisplayRow("b", "true", optionTypeDataBool, true, Path.empty(), 1, Path.fromDotPath("dotPath.b"));
+    expect(d.name, "b");
+    expect(d.value, "Yes");
+    expect(d.pathWithName.toString(), "dotPath.b");
+  });
 }
