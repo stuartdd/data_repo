@@ -25,23 +25,23 @@ const String _prefix = ".data_repo_lock_";
 const int _range = 100000;
 
 class Isolator {
-  late final String name;
   final String path;
+  final bool shouldIsolate;
   bool locked = false;
+  late final String name;
 
-  Isolator(this.path, final bool shouldIsolate) {
+  Isolator(this.path, this.shouldIsolate) {
     _forEachLockFile(path, (fileName) {
       locked = true;
+      return;
     });
 
-    String r = "${_range + Random().nextInt(_range) - _range}";
-    name = "$path${Platform.pathSeparator}$_prefix$r";
-
-    if (locked) {
-      return;
-    }
     if (shouldIsolate) {
+      String r = "${_range + Random().nextInt(_range) - _range}";
+      name = "$path${Platform.pathSeparator}$_prefix$r";
       File(name).writeAsStringSync("LOCK");
+    } else {
+      name = "";
     }
   }
 
@@ -52,7 +52,9 @@ class Isolator {
   }
 
   close() {
-    _removeLockFile(name);
+    if (name.isNotEmpty) {
+      _removeLockFile(name);
+    }
   }
 
   bool shouldStop() {
@@ -79,7 +81,7 @@ class Isolator {
     try {
       File(fileName).deleteSync();
     } catch (e) {
-      debugPrint("$e");
+      debugPrint("Cannot remove lock file $fileName");
     }
   }
 }

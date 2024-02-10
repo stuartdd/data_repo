@@ -35,6 +35,12 @@ const someJson = """  {
         "file": {
             "serverPath": "http://192.168.1.243:8080",
             "datafileName": "data.json",
+            "data" : {
+              "data": true,
+              "moreData": "test",       
+              "moreList": [],        
+              "moreMap": {}        
+            },
             "datafilePath": "."
         }
     } """;
@@ -42,9 +48,50 @@ const someJson = """  {
 const replace1 = {"Hi": 2};
 
 void main() {
+  test('Test getters', () async {
+    final c = DataContainer.fromJson(someJson);
+    expect(c.doesPathExist(Path.fromDotPath("file.data.moreList.X")), false);
+    expect(c.doesPathExist(Path.fromDotPath("file.data.moreMap.X")), false);
+    expect(c.doesPathExist(Path.fromDotPath("file.data.moreData.X")), false);
+    expect(c.doesPathExist(Path.fromDotPath("data.intNode")), true);
+    expect(c.doesPathExist(Path.fromDotPath("dataX.intNode")), false);
+    expect(c.doesPathExist(Path.fromDotPath("data.intNodeX")), false);
+    expect(c.doesPathExist(Path.fromDotPath("dataX.intNodeX")), false);
+    expect(c.doesPathExist(Path.fromDotPath("file.data")), true);
+    expect(c.doesPathExist(Path.fromDotPath("file.data.data")), true);
+    expect(c.doesPathExist(Path.fromDotPath("file.data.moreData")), true);
+    expect(c.doesPathExist(Path.fromDotPath("file.data.moreList")), true);
+    expect(c.doesPathExist(Path.fromDotPath("file.data.moreMap")), true);
+    expect(c.doesPathExist(Path.fromDotPath("file.data.moreDataX")), false);
+
+    expect(c.getNodeFromJson(Path.fromDotPath("data.intNode")), 5);
+    expect(c.getNumFromJson(Path.fromDotPath("data.intNode")), 5);
+    expect(c.getNodeFromJson(Path.fromDotPath("data.decimalNode")), 5.1);
+    expect(c.getNumFromJson(Path.fromDotPath("data.decimalNode")), 5.1);
+    expect(c.getNodeFromJson(Path.fromDotPath("data.boolNode")), true);
+    expect(c.getBoolFromJson(Path.fromDotPath("data.boolNode")), true);
+    expect(c.getNodeFromJson(Path.fromDotPath("data.text")), "test");
+    expect(c.getStringFromJson(Path.fromDotPath("data.text")), "test");
+    expect(c.getStringFromJsonOptional(Path.fromDotPath("data.text")), "test");
+    expect(c.getStringFromJsonOptional(Path.fromDotPath("data.xxxx")), "");
+  });
+
   test('Test Remove', () async {
     final c = DataContainer.fromJson(someJson);
-    expect(c.dataMap is Map<String, dynamic>, true);
+
+    expect(c.remove(Path.fromDotPath("file.data.moreList"), dryRun: true), "");
+    expect(c.remove(Path.fromDotPath("file.data.moreList.X"), dryRun: true), "Remove: cannot find node");
+    expect(c.doesPathExist(Path.fromDotPath("file.data.moreList")), true);
+    expect(c.remove(Path.fromDotPath("file.data.moreList"), dryRun: false), "");
+    expect(c.doesPathExist(Path.fromDotPath("file.data.moreList")), false);
+
+    expect(c.remove(Path.fromDotPath("file.data.moreMap"), dryRun: true), "");
+    expect(c.remove(Path.fromDotPath("file.data.moreMap.X"), dryRun: true), "Remove: cannot find node");
+    expect(c.doesPathExist(Path.fromDotPath("file.data.moreMap")), true);
+    expect(c.remove(Path.fromDotPath("file.data.moreMap"), dryRun: false), "");
+    expect(c.doesPathExist(Path.fromDotPath("file.data.moreMap")), false);
+
+    expect(c.remove(Path.empty(), dryRun: true), "Remove: Path is empty");
     expect(c.getNodeFromJson(Path.fromDotPath("data.decimalNode")), 5.1);
     expect(c.remove(Path.fromDotPath("data.decimalNode"), dryRun: true), "");
     expect(c.remove(Path.fromDotPath("data.node"), dryRun: true), "Remove: cannot find node");
@@ -52,16 +99,20 @@ void main() {
     expect(c.remove(Path.fromDotPath("data.decimalNode"), dryRun: false), "");
     expect(c.getNodeFromJson(Path.fromDotPath("data.decimalNode")), null);
     final more = c.getNodeFromJson(Path.fromDotPath("more"));
-    expect("$more","{moreBool: true, moreText: test}");
-    expect(c.remove(Path.fromDotPath("more"), dryRun: false), "Remove: cannot remove root node");
+    expect("$more", "{moreBool: true, moreText: test}");
+    expect(c.remove(Path.fromDotPath("more"), dryRun: false), "");
+    expect(c.getNodeFromJson(Path.fromDotPath("more")), null);
+    expect(c.remove(Path.fromDotPath("file"), dryRun: false), "");
+    expect(c.getNodeFromJson(Path.fromDotPath("file")), null);
+    expect(c.remove(Path.fromDotPath("data"), dryRun: false), "Remove: cannot remove only root");
+    expect(c.getNodeFromJson(Path.fromDotPath("data")).toString(), "{intNode: 5, boolNode: true, text: test}");
   });
-
 
   test('Test Replace', () async {
     final c = DataContainer.fromJson(someJson);
-    expect(c.dataMap is Map<String, dynamic>, true);
+    expect(c.replace(Path.empty(), true, dryRun: true), "Replace: Path is empty");
+    expect(c.replace(Path.fromDotPath("data"), true, dryRun: true), "");
     expect(c.replace(Path.fromDotPath("data.decimal"), true, dryRun: true), "Replace: Node not found");
-    expect(c.replace(Path.fromDotPath("data"), true, dryRun: true), "Replace: Cannot replace root");
     expect(c.replace(Path.fromDotPath("data.decimalNode"), true, dryRun: true), "");
     expect(c.getNodeFromJson(Path.fromDotPath("data.decimalNode")), 5.1);
     expect(c.replace(Path.fromDotPath("data.decimalNode"), true, dryRun: false), "");
@@ -71,15 +122,18 @@ void main() {
     final nullData = c.getNodeFromJson(Path.fromDotPath("data.more"));
     expect(c.replace(Path.fromDotPath("data.decimalNode"), nullData, dryRun: false), "Replace: Cannot replace with null");
     final more = c.getNodeFromJson(Path.fromDotPath("more"));
-    expect("$more","{moreBool: true, moreText: test}");
+    expect("$more", "{moreBool: true, moreText: test}");
     expect(c.replace(Path.fromDotPath("data.decimalNode"), more, dryRun: false), "");
     final dn = c.getNodeFromJson(Path.fromDotPath("data.decimalNode"));
-    expect("$dn","{moreBool: true, moreText: test}");
+    expect("$dn", "{moreBool: true, moreText: test}");
+    expect(c.replace(Path.fromDotPath("more"), 10, dryRun: false), "");
+    expect(c.getNumFromJson(Path.fromDotPath("more")), 10);
   });
 
   test('Test Add', () async {
     final c = DataContainer.fromJson(someJson);
-    expect(c.dataMap is Map<String, dynamic>, true);
+    expect(c.add(Path.empty(), "newRoot", true, dryRun: false), "");
+    expect(c.add(Path.empty(), "newRoot", true, dryRun: true), "Add: Name already exists");
     expect(c.add(Path.fromDotPath("data"), "newNode", true, dryRun: true), "");
     expect(c.add(Path.fromDotPath("data"), "newNode", true, dryRun: false), "");
     expect(c.getNodeFromJson(Path.fromDotPath("data.newNode")), true);
@@ -105,22 +159,16 @@ void main() {
 
   test('Test Rename', () async {
     final c = DataContainer.fromJson(someJson);
-    expect(c.dataMap is Map<String, dynamic>, true);
-    expect(c.getNodeFromJson(Path.fromDotPath("data.intNode")), 5);
-    expect(c.getNumFromJson(Path.fromDotPath("data.intNode")), 5);
 
-    expect(c.getNodeFromJson(Path.fromDotPath("data.decimalNode")), 5.1);
-    expect(c.getNumFromJson(Path.fromDotPath("data.decimalNode")), 5.1);
+    expect(c.rename(Path.fromDotPath("data"), "more", dryRun: true), "Rename: Name already exists");
+    expect(c.doesPathExist(Path.fromDotPath("data")), true);
+    expect(c.rename(Path.fromDotPath("more"), "more", dryRun: true), "Rename: Name already exists");
+    expect(c.doesPathExist(Path.fromDotPath("data")), true);
+    expect(c.rename(Path.fromDotPath("more"), "less", dryRun: true), "");
+    expect(c.doesPathExist(Path.fromDotPath("data")), true);
+    expect(c.rename(Path.fromDotPath("more"), "less", dryRun: false), "");
+    expect(c.doesPathExist(Path.fromDotPath("less")), true);
 
-    expect(c.getNodeFromJson(Path.fromDotPath("data.boolNode")), true);
-    expect(c.getBoolFromJson(Path.fromDotPath("data.boolNode")), true);
-
-    expect(c.getNodeFromJson(Path.fromDotPath("data.text")), "test");
-    expect(c.getStringFromJson(Path.fromDotPath("data.text")), "test");
-    expect(c.getStringFromJsonOptional(Path.fromDotPath("data.text")), "test");
-    expect(c.getStringFromJsonOptional(Path.fromDotPath("data.xxxx")), "");
-
-    expect(c.rename(Path.fromDotPath("data"), "xxc", dryRun: true), "Rename: Cannot rename root");
     expect(c.rename(Path.fromDotPath("data.boolNode"), "decimalNode", dryRun: true), "Rename: Name already exists");
     expect(c.rename(Path.fromDotPath("data.boolNode"), "decimalNode", extension: positionalStringExtension, dryRun: true), "Rename: Name already exists");
     expect(c.rename(Path.fromDotPath("data.boolNode"), "boolNode", dryRun: true), "Rename: Name already exists");
@@ -128,8 +176,8 @@ void main() {
     expect(c.rename(Path.fromDotPath("data.boolNode"), "boolNodeX", dryRun: true), "");
     expect(c.rename(Path.fromDotPath("data.boolNode"), "boolNodeX", extension: positionalStringExtension, dryRun: true), "");
     expect(c.rename(Path.fromDotPath("data.boolNode"), "boolNodeX", dryRun: false), "");
-    expect(c.rename(Path.fromDotPath("data.boolNode"), "boolNodeX", extension: positionalStringExtension, dryRun: true), "Rename: Name already exists");
-    expect(c.rename(Path.fromDotPath("data.boolNode"), "boolNodeX", extension: positionalStringExtension, dryRun: false), "Rename: Name already exists");
+    expect(c.rename(Path.fromDotPath("data.boolNodeX"), "boolNodeX", extension: positionalStringExtension, dryRun: true), "Rename: Name already exists");
+    expect(c.rename(Path.fromDotPath("data.boolNodeX"), "boolNodeX", extension: positionalStringExtension, dryRun: false), "Rename: Name already exists");
     expect(c.getNodeFromJson(Path.fromDotPath("data.boolNodeX")), true);
 
     expect(c.rename(Path.fromDotPath("data.boolNodeX"), "x", dryRun: false), "Rename: Is too short");

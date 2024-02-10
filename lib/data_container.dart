@@ -157,6 +157,17 @@ class DataContainer {
     return "";
   }
 
+  String _validatePath(final Path path, final String action, {final bool allowRoot = false}) {
+    final pl = path.length;
+    if (pl == 0) {
+      return "Path is empty";
+    }
+    if (pl == 1 && !allowRoot) {
+      return "Cannot $action root";
+    }
+    return "";
+  }
+
   String _validateNodeName(final String newName) {
     if (newName.length < 2) {
       return "Is too short";
@@ -174,19 +185,25 @@ class DataContainer {
   }
 
   String replace(final Path path, final dynamic value, {required bool dryRun}) {
+    final msg = _validatePath(path, "replace", allowRoot: true);
+    if (msg.isNotEmpty) {
+      return "Replace: $msg";
+    }
+
     if (value == null) {
       return "Replace: Cannot replace with null";
     }
+
     final nodeList = PathNodes.from(_dataMap, path);
     if (nodeList.error) {
       return "Replace: Node not found";
     }
-
-    if (nodeList.lastNodeIsRoot) {
-      return "Replace: Cannot replace root";
+    final Map<String, dynamic>? parentNode;
+    if (nodeList.length == 1) {
+      parentNode = _dataMap;
+    } else {
+      parentNode = nodeList.parentOfLastNode;
     }
-
-    final parentNode = nodeList.parentOfLastNode;
     if (parentNode == null) {
       return "Replace: Parent node not found";
     }
@@ -198,64 +215,72 @@ class DataContainer {
     return "";
   }
 
-  String add(final Path path, final String name, final dynamic value, {final String extension = noExtension, required bool dryRun, final String Function(Map<String, dynamic>, String, String, dynamic)? validate}) {
-    final msg = _validateNodeName(name);
-    if (msg.isNotEmpty) {
-      return "Add: $msg";
+  String add(final Path parentPath, final String name, final dynamic value, {final String extension = noExtension, required bool dryRun, final String Function(Map<String, dynamic>, String, String, dynamic)? validate}) {
+    final msg1 = _validateNodeName(name);
+    if (msg1.isNotEmpty) {
+      return "Add: $msg1";
     }
 
-    final msg2 = _checkNodeAlreadyExist(path, name, extension);
+    final msg2 = _checkNodeAlreadyExist(parentPath, name, extension);
     if (msg2.isNotEmpty) {
       return "Add: $msg2";
     }
-
-    final nodeList = PathNodes.from(_dataMap, path);
-    if (nodeList.error) {
-      return "Add: Node not found";
-    }
-
-    final parent = nodeList.lastNodeAsMap;
-    if (parent == null) {
-      return "Add: Parent is not map";
+    final Map<String, dynamic>? parentNode;
+    if (parentPath.isEmpty) {
+      parentNode = _dataMap;
+    } else {
+      final nodeList = PathNodes.from(_dataMap, parentPath);
+      if (nodeList.error) {
+        return "Add: Node not found";
+      }
+      parentNode = nodeList.lastNodeAsMap;
+      if (parentNode == null) {
+        return "Add: Parent is not map";
+      }
     }
 
     if (validate != null) {
-      final msg = validate(parent, name, extension, value);
+      final msg = validate(parentNode, name, extension, value);
       if (msg.isNotEmpty) {
         return "Add: $msg";
       }
     }
 
     if (!dryRun) {
-      parent["$name$extension"] = value;
+      parentNode["$name$extension"] = value;
     }
 
     return "";
   }
 
   String rename(final Path path, final String newName, {final String extension = noExtension, required bool dryRun, final String Function(dynamic, String, String)? validate}) {
+    final msg0 = _validatePath(path, "rename", allowRoot: true);
+    if (msg0.isNotEmpty) {
+      return "Rename: $msg0";
+    }
+
     final msg1 = _validateNodeName(newName);
     if (msg1.isNotEmpty) {
       return "Rename: $msg1";
-    }
-
-    final msg2 = _checkNodeAlreadyExist(path.cloneParentPath(), newName, extension);
-    if (msg2.isNotEmpty) {
-      return "Rename: $msg2";
     }
 
     final nodeList = PathNodes.from(_dataMap, path);
     if (nodeList.error) {
       return "Rename: Node not found";
     }
-
-    if (nodeList.lastNodeIsRoot) {
-      return "Rename: Cannot rename root";
+    final Map<String, dynamic>? parentNode;
+    if (nodeList.length == 1) {
+      parentNode = _dataMap;
+    } else {
+      parentNode = nodeList.parentOfLastNode;
+    }
+    if (parentNode == null) {
+      return "Replace: Parent node not found";
     }
 
-    final parentNode = nodeList.parentOfLastNode;
-    if (parentNode == null) {
-      return "Rename: Parent node not found";
+    final msg2 = _checkNodeAlreadyExist(path.cloneParentPath(), newName, extension);
+    if (msg2.isNotEmpty) {
+      return "Rename: $msg2";
     }
 
     if (validate != null && nodeList.lastNodeIsData) {
@@ -269,25 +294,32 @@ class DataContainer {
       final n = parentNode.remove(path.last);
       parentNode["$newName$extension"] = n;
     }
-
     return "";
   }
 
   String remove(Path path, {required bool dryRun}) {
-    if (!path.hasParent) {
-      return "Remove: cannot remove root node";
+    final msg0 = _validatePath(path, "remove", allowRoot: true);
+    if (msg0.isNotEmpty) {
+      return "Remove: $msg0";
+    }
+    if (path.length == 1 && _dataMap.length < 2) {
+      return "Remove: cannot remove only root";
     }
     final removeNode = getNodeFromJson(path);
     if (removeNode == null) {
       return "Remove: cannot find node";
     }
-    final parentNode = getNodeFromJson(path.cloneParentPath());
-    if (parentNode == null) {
-      return "Remove: cannot find parent node";
+    final Map<String, dynamic> parentNode;
+    final parentPath = path.cloneParentPath();
+    if (parentPath.isEmpty) {
+      parentNode = dataMap;
+    } else {
+      parentNode = getNodeFromJson(parentPath);
+      if (parentNode == null) {
+        return "Remove: cannot find parent node";
+      }
     }
-    if (parentNode is! Map<String, dynamic>) {
-      return "Remove: parent node is not a map";
-    }
+
     if (!dryRun) {
       parentNode.remove(path.last);
     }
@@ -347,6 +379,27 @@ class DataContainer {
       }
     }
     return null;
+  }
+
+  bool doesPathExist(final Path path) {
+    if (path.isEmpty) {
+      throw JsonException(message: "doesPathExist: Empty Path", path);
+    }
+    dynamic node = _dataMap;
+    for (var i = 0; i < path.length; i++) {
+      final name = path.peek(i);
+      node = node[name];
+      if (node == null) {
+        return false;
+      }
+      if (i == (path.length - 1)) {
+        return true;
+      }
+      if (node is! Map) {
+        return false;
+      }
+    }
+    return false;
   }
 
   String getStringFromJsonOptional(final Path path, {final String sub1 = "", final String sub2 = ""}) {
@@ -439,7 +492,6 @@ class DataContainer {
     if (path.isEmpty) {
       return "Path is empty";
     }
-    debugPrint("setValueForJsonPath $path --> $value");
     dynamic node = _dataMap;
     dynamic parent = _dataMap;
     if (parent is! Map) {
