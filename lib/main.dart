@@ -366,7 +366,7 @@ class _MyHomePageState extends State<MyHomePage> {
     Future.delayed(Duration(milliseconds: ms), () async {
       if (mounted) {
         switch (detailActionData.action) {
-          case ActionType.removeLocal:
+          case ActionType.removeLocalFile:
             {
               Future.delayed(
                 const Duration(microseconds: 200),
@@ -582,7 +582,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           case ActionType.removeItem:
             {
-              showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove item", ["${detailActionData.valueName} '${detailActionData.getLastPathElement()}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState, () {
+              showModalButtonsDialog(context, _configData.getAppThemeData(), "Remove item", ["${detailActionData.valueName} '${detailActionData.path.last}'"], ["OK", "Cancel"], detailActionData.path, _handleDeleteState, () {
                 _setFocus("removeItem");
               });
               break;
@@ -595,7 +595,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 screenSize,
                 logger,
                 (dotPath) {
-                  final p = Path.fromDotPath(dotPath);
+                  var decoded = Uri.decodeFull(dotPath);
+                  final p = Path.fromDotPath(decoded);
                   if (p.isRational(_loadedData.dataMap)) {
                     _handleAction(DetailAction(ActionType.select, true, p.cloneParentPath()));
                     return true;
@@ -757,9 +758,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 () {
                   _setFocus("renameItem");
                 },
-                options: detailActionData.value ? optionGroupRenameElement : [],
-                currentOption: detailActionData.oldValueType,
-                title: "Change $title '${detailActionData.getLastPathElement()}'",
+                options: detailActionData.isValueData ? optionForRenameDataElement : [],
+                currentOption: detailActionData.currentValueType,
+                title: "Change $title '${detailActionData.path.last}'",
               );
               break;
             }
@@ -769,7 +770,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 context,
                 _configData.getAppThemeData(),
                 screenSize,
-                detailActionData.oldValue,
+                detailActionData.currentValue,
                 false,
                 false,
                 false,
@@ -787,7 +788,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   //
                   // Validate a value type for Edit function
                   //
-                  if (valueType.fnType.type == FunctionalType.boolType) {
+                  if (valueType.functionalType == FunctionalType.boolType) {
                     final valueTrimmedLc = valueTrimmed.toLowerCase();
                     if (valueTrimmedLc == "yes" || valueTrimmedLc == "no" || valueTrimmedLc == "true" || valueTrimmedLc == "false") {
                       return "";
@@ -795,8 +796,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       return "Must be 'Yes' or 'No";
                     }
                   }
-                  if (valueType.fnType.type == FunctionalType.referenceType) {
-                    if (valueType.equal(optionTypeDataReference)) {
+                  if (valueType.functionalType == FunctionalType.referenceType) {
+                    if (valueType.isEqual(functionalTypeDataReference)) {
                       if (valueTrimmed.isEmpty) {
                         return "Reference cannot be empty";
                       }
@@ -812,20 +813,20 @@ class _MyHomePageState extends State<MyHomePage> {
                     }
                     return "";
                   }
-                  if (valueType.fnType.type == FunctionalType.doubleType) {
+                  if (valueType.functionalType == FunctionalType.doubleType) {
                     try {
                       final d = double.parse(valueTrimmed);
                       return valueType.inRangeDouble("Value ", d);
                     } catch (e) {
-                      return "That is not a ${valueType.fnType.desc}";
+                      return "That is not a ${valueType.displayName}";
                     }
                   }
-                  if (valueType.fnType.type == FunctionalType.intType) {
+                  if (valueType.functionalType == FunctionalType.intType) {
                     try {
                       final i = int.parse(valueTrimmed);
                       return valueType.inRangeInt("Value ", i);
                     } catch (e) {
-                      return "That is not a ${valueType.fnType.desc}";
+                      return "That is not a ${valueType.displayName}";
                     }
                   }
                   return "";
@@ -833,61 +834,24 @@ class _MyHomePageState extends State<MyHomePage> {
                 () {
                   _setFocus("editItemData");
                 },
-                options: detailActionData.oldValueType.dataValueTypeFixed ? [] : optionGroupUpdateElement,
-                currentOption: detailActionData.oldValueType,
-                title: "Update Value '${detailActionData.getLastPathElement()}'",
+                options: detailActionData.currentValueType.dataValueTypeFixed ? [] : optionForUpdateDataElement,
+                currentOption: detailActionData.currentValueType,
+                title: "Update Value '${detailActionData.path.last}'",
               );
               break;
             }
           case ActionType.addGroup:
-            {
-              showModalInputDialog(
-                context,
-                _configData.getAppThemeData(),
-                screenSize,
-                "",
-                false,
-                false,
-                false,
-                false,
-                (action, text, type) {
-                  if (action == SimpleButtonActions.ok) {
-                    _handleAddState(_selectedPath, text, optionTypeDataGroup);
-                  }
-                },
-                (initial, value, initialType, valueType) {
-                  if (value.trim().isEmpty) {
-                    return "Cannot be empty";
-                  }
-                  if (value.contains(".")) {
-                    return "Cannot contain '.";
-                  }
-                  return "";
-                },
-                () {
-                  _setFocus("addGroup");
-                },
-                title: "New Group Owned by: ${_selectedPath.last}",
-              );
-              break;
-            }
           case ActionType.addDetail:
             {
               showModalInputDialog(context, _configData.getAppThemeData(), screenSize, "", false, false, false, false, (action, text, type) {
                 if (action == SimpleButtonActions.ok) {
-                  _handleAddState(_selectedPath, text, optionTypeDataValue);
+                  _handleAddState(_selectedPath, text, detailActionData.action);
                 }
-              }, (initial, value, initialType, valueType) {
-                if (value.trim().isEmpty) {
-                  return "Cannot be empty";
-                }
-                if (value.contains(".")) {
-                  return "Cannot contain '.";
-                }
-                return "";
+              }, (initial, text, initialType, type) {
+                return _checkAddOk(_selectedPath, text, detailActionData.action);
               }, () {
-                _setFocus("addDetail");
-              }, title: "New Detail Name Owned by: ${_selectedPath.last}");
+                _setFocus("add");
+              }, title: "New ${detailActionData.action == ActionType.addGroup ? 'Group' : 'Detail'} Owned by: ${_selectedPath.last}");
               break;
             }
           case ActionType.createFile:
@@ -1027,7 +991,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       case ActionType.link:
         {
-          _implementLinkStateAsync(detailActionData.oldValue, detailActionData.path.last);
+          _implementLinkStateAsync(detailActionData.currentValue, detailActionData.path.last);
           return Path.empty();
         }
       case ActionType.save: // Save as it is (encrypted or un-encrypted)
@@ -1092,7 +1056,7 @@ class _MyHomePageState extends State<MyHomePage> {
       case ActionType.groupSelect:
         {
           setState(() {
-            _pathPropertiesList.setGroupSelect(detailActionData.path, detailActionData.value);
+            _pathPropertiesList.setGroupSelect(detailActionData.path, detailActionData.isValueData);
           });
           break;
         }
@@ -1304,18 +1268,18 @@ class _MyHomePageState extends State<MyHomePage> {
     _treeNodeDataRoot = temp;
   }
 
-  void _handleAddState(final Path path, final String newNameNoSuffix, final OptionsTypeData type) async {
+  String _checkAddOk(final Path path, final String newNameNoSuffix, final ActionType addType) {
+    return _loadedData.add(path, newNameNoSuffix, null, dryRun: true);
+  }
+
+  void _handleAddState(final Path path, final String newNameNoSuffix, final ActionType addType) async {
     setState(() {
       final String msg;
-      if (type.fnType.type == FunctionalType.groupType) {
-        final Map<String, dynamic> m = {};
-        msg = _loadedData.add(path, newNameNoSuffix, m, dryRun: false, validate: (node, n, e, v) {
-          return type.validateType(node);
-        });
+      if (addType == ActionType.addGroup) {
+        final Map<String, dynamic> map = {};
+        msg = _loadedData.add(path, newNameNoSuffix, map, dryRun: false);
       } else {
-        msg = _loadedData.add(path, newNameNoSuffix, "", dryRun: false, validate: (node, n, e, v) {
-          return type.validateType(v);
-        });
+        msg = _loadedData.add(path, newNameNoSuffix, "", dryRun: false);
       }
       if (msg.isNotEmpty) {
         _globalSuccessState = SuccessState(false, message: "__ADD__ $msg");
@@ -1332,19 +1296,19 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  String _checkRenameOk(DetailAction detailActionData, String newNameNoSuffix, OptionsTypeData newType) {
-    return _loadedData.rename(detailActionData.path, newNameNoSuffix, extension: newType.nameSuffix, dryRun: true, validate: (node, n, e) {
-      return newType.validateType(node);
+  String _checkRenameOk(DetailAction detailActionData, String newNameNoSuffix, FunctionalTypeData newType) {
+    return _loadedData.rename(detailActionData.path, newNameNoSuffix, extension: newType.suffix, dryRun: true, validate: (node, n, e) {
+      return detailActionData.validateChange(newNameNoSuffix, newType);
     });
   }
 
-  void _handleRenameState(final DetailAction detailActionData, final String newNameNoSuffix, final OptionsTypeData newType) {
-    final newName = "$newNameNoSuffix${newType.nameSuffix}";
-    final oldName = detailActionData.oldValue;
+  void _handleRenameState(final DetailAction detailActionData, final String newNameNoSuffix, final FunctionalTypeData newType) {
+    final newName = "$newNameNoSuffix${newType.suffix}";
+    final oldName = detailActionData.currentValue;
     if (oldName != newName) {
       setState(() {
-        final msg = _loadedData.rename(detailActionData.path, newNameNoSuffix, extension: newType.nameSuffix, dryRun: false, validate: (node, n, e) {
-          return newType.validateType(node);
+        final msg = _loadedData.rename(detailActionData.path, newNameNoSuffix, extension: newType.suffix, dryRun: false, validate: (node, n, e) {
+          return detailActionData.validateChange(newNameNoSuffix, newType);
         });
         if (msg.isNotEmpty) {
           _globalSuccessState = SuccessState(false, message: "__RENAME__ $msg");
@@ -1388,8 +1352,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   New value is the String representation of the new node and must convert to the new type!
    */
-  void _handleEditState(DetailAction detailActionData, String newValue, OptionsTypeData newType) {
-    if (detailActionData.oldValue != newValue || detailActionData.oldValueType != newType) {
+  void _handleEditState(DetailAction detailActionData, String newValue, FunctionalTypeData newType) {
+    if (detailActionData.currentValue != newValue || detailActionData.currentValueType != newType) {
       setState(() {
         final mapNodes = detailActionData.path.pathNodes(_loadedData.dataMap);
         if (mapNodes.error) {
@@ -1410,11 +1374,11 @@ class _MyHomePageState extends State<MyHomePage> {
         _checkReferences = true;
         final nvTrim = newValue.trim();
         try {
-          if (newType.fnType.type == FunctionalType.boolType) {
+          if (newType.functionalType == FunctionalType.boolType) {
             final lvTrimLc = nvTrim.toLowerCase();
             parentNode![key] = (lvTrimLc == "true" || lvTrimLc == "yes" || nvTrim == "1");
           } else {
-            if (newType.fnType.type == FunctionalType.doubleType || newType.fnType.type == FunctionalType.intType) {
+            if (newType.functionalType == FunctionalType.doubleType || newType.functionalType == FunctionalType.intType) {
               try {
                 final iv = int.parse(nvTrim);
                 parentNode![key] = iv;
@@ -1434,7 +1398,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _pathPropertiesList.setUpdated(detailActionData.path.cloneParentPath(), shouldLog: false);
           _reloadTreeFromMapAndCopyFlags();
           _selectNode(detailActionData.path.cloneParentPath());
-          _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.getLastPathElement()} updated");
+          _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.path.last} updated");
         } catch (e, s) {
           debugPrintStack(stackTrace: s);
         }
@@ -1443,8 +1407,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   SuccessState handleOnResolve(String value) {
-    final type = OptionsTypeData.staticFindOptionTypeFromNameAndType(null, value);
-    if (type != optionTypeDataNotFound) {
+    final type = FunctionalTypeData.staticFindFunctionalTypeFromSuffixOrType(null, value);
+    if (type != functionalTypeDataNotFound) {
       return SuccessState(false, message: "Cannot reference '${type.displayName}' data", value: value);
     }
     final p = Path.fromDotPath(value);
@@ -1512,7 +1476,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return SuccessState(false, message: "Must be a String node");
     }
     final value = node.toString();
-    final ss = OptionsTypeData.staticFindOptionTypeFromNameAndType(null, value);
+    final ss = FunctionalTypeData.staticFindFunctionalTypeFromSuffixOrType(null, value);
     if (ss.hasSuffix) {
       return SuccessState(false, message: "Cannot ref ${ss.displayName}");
     }
@@ -1940,7 +1904,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     MenuOptionDetails("Change Password", "Change Password '%{4}', Save and Restart'", ActionType.changePassword, enabled: !_dataWasUpdated && _loadedData.hasPassword, () {
                       return Icons.password;
                     }),
-                    MenuOptionDetails("Remove File", "Remove Local file '%{4}' and Restart", ActionType.removeLocal, enabled: _configData.localDataFileExists(), () {
+                    MenuOptionDetails("Remove File", "Remove Local file '%{4}' and Restart", ActionType.removeLocalFile, enabled: _configData.localDataFileExists(), () {
                       return Icons.delete;
                     }),
                     MenuOptionDetails("Create data file", "Create a new data file", ActionType.createFile, () {

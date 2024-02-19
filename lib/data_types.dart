@@ -25,8 +25,6 @@ import 'path.dart';
 //    Other display types as required
 // This data is structured so
 //
-enum DisplayType { simpleDisplay, positionalString, markDown, referenceString }
-
 enum SimpleButtonActions { ok, select, cancel, validate, copy, move, delete, listRemove, listClear, link }
 
 enum ActionType {
@@ -47,7 +45,7 @@ enum ActionType {
   settings, // Display settings dialogue
   chooseFile, // Display merged list of server and local files
   changePassword, // Change password if file is encrypted and restart
-  removeLocal, // Remove local file and restart
+  removeLocalFile, // Remove local file and restart
   setSearch,
   checkReferences,
   createFile,
@@ -64,15 +62,9 @@ enum ActionType {
   showLog,
 }
 
-const int maxIntValue = -1 >>> 1;
+enum FunctionalType { errorType, emptyType, textType, boolType, doubleType, intType, positionalType, markdownType, linkType, referenceType, trueType, falseType, groupType }
 
-class DisplayTypeData {
-  final DisplayType displayType;
-  final String extension;
-  final int extensionLength;
-  final String description;
-  const DisplayTypeData({required this.displayType, required this.extension, required this.extensionLength, required this.description});
-}
+const int maxIntValue = -1 >>> 1;
 
 const emptyString = "";
 const extensionSeparator = ":";
@@ -82,204 +74,95 @@ const referenceExtension = "${extensionSeparator}rf";
 const linkExtension = "${extensionSeparator}ln";
 const noExtension = "";
 
-const DisplayTypeData simpleDisplayData = DisplayTypeData(displayType: DisplayType.simpleDisplay, extension: noExtension, extensionLength: noExtension.length, description: 'Simple Value [str,int,bool]');
-const DisplayTypeData positionalStringData = DisplayTypeData(displayType: DisplayType.positionalString, extension: positionalStringExtension, extensionLength: positionalStringExtension.length, description: 'Positional List');
-const DisplayTypeData referenceStringData = DisplayTypeData(displayType: DisplayType.referenceString, extension: referenceExtension, extensionLength: referenceExtension.length, description: 'Reference String');
-const DisplayTypeData linkData = DisplayTypeData(displayType: DisplayType.referenceString, extension: referenceExtension, extensionLength: referenceExtension.length, description: 'Reference String');
-const DisplayTypeData markDownData = DisplayTypeData(displayType: DisplayType.markDown, extension: markDownExtension, extensionLength: markDownExtension.length, description: 'Markdown Text');
+const functionalTypeDataNotFound = FunctionalTypeData(String, FunctionalType.errorType, false, "", "error", noExtension, "Error", "Type Not Found", -maxIntValue, maxIntValue);
+const functionalTypeDataUndefined = FunctionalTypeData(String, FunctionalType.emptyType, false, "", "empty", noExtension, "Undefined", "Undefined type", -maxIntValue, maxIntValue);
 
-// End Display type data
-//
-enum FunctionalType { errorType, emptyType, textType, boolType, doubleType, intType, positionalType, markdownType, linkType, referenceType, groupType, valueType, trueType, falseType }
-
-class FunctionalTypeData {
-  final Type native;
-  final FunctionalType type;
-  final String name;
-  final String desc;
-  final String hint;
-  const FunctionalTypeData(this.native, this.type, this.name, this.desc, this.hint);
-  /*
-  Can the value 'fit' in the type!
-  */
-  String validateType(dynamic v) {
-    switch (type) {
-      case FunctionalType.groupType:
-        {
-          if (v is! Map) {
-            return "Is not $desc";
-          }
-          break;
-        }
-      case FunctionalType.valueType:
-      case FunctionalType.referenceType:
-      case FunctionalType.linkType:
-      case FunctionalType.markdownType:
-      case FunctionalType.positionalType:
-      case FunctionalType.textType:
-      case FunctionalType.boolType:
-      case FunctionalType.intType:
-        {
-          if (v.runtimeType != native) {
-            return "Is not $desc";
-          }
-          break;
-        }
-      case FunctionalType.doubleType:
-        {
-          if (v.runtimeType != int && v.runtimeType != native) {
-            return "Is not $desc";
-          }
-          break;
-        }
-      case FunctionalType.emptyType:
-      case FunctionalType.errorType:
-        {
-          return "Is $desc type";
-        }
-      case FunctionalType.trueType:
-        {
-          if (v.runtimeType != native) {
-            return "Is not $desc";
-          }
-          if (v != true) {
-            return "Is Boolean but not $desc";
-          }
-          break;
-        }
-      case FunctionalType.falseType:
-        {
-          if (v.runtimeType != native) {
-            return "Is not $desc";
-          }
-          if (v != false) {
-            return "Is Boolean but not $desc";
-          }
-          break;
-        }
-    }
-    return "";
-  }
-}
-
-const optionsDataTypeEmpty = OptionsTypeData(FunctionalTypeData(String, FunctionalType.emptyType, "empty", "Empty", "Contains nothing"));
-const OptionsTypeData optionTypeDataNotFound = OptionsTypeData(FunctionalTypeData(String, FunctionalType.errorType, "error", "Error", "Type Not Found"));
-const OptionsTypeData optionTypeDataString = OptionsTypeData(FunctionalTypeData(String, FunctionalType.textType, "text", "Text", "Text"));
-const OptionsTypeData optionTypeDataBool = OptionsTypeData(FunctionalTypeData(bool, FunctionalType.boolType, "bool", "Boolean", "Yes or No"), initialValue: "true", min: 2, max: 3);
-const OptionsTypeData optionTypeDataDouble = OptionsTypeData(FunctionalTypeData(double, FunctionalType.doubleType, "double", "Decimal", "Decimal number"), initialValue: "0.0");
-const OptionsTypeData optionTypeDataInt = OptionsTypeData(FunctionalTypeData(int, FunctionalType.intType, "int", "Integer", "Integer number"), initialValue: "0");
+const functionalTypeDataGroup = FunctionalTypeData(String, FunctionalType.groupType, false, "", "String", noExtension, "Group", "Contains other elements", -maxIntValue, maxIntValue);
+const functionalTypeDataText = FunctionalTypeData(String, FunctionalType.textType, false, "", "String", noExtension, "Text", "Single line of Text", -maxIntValue, maxIntValue);
+const functionalTypeDataBool = FunctionalTypeData(bool, FunctionalType.boolType, false, "true", "bool", noExtension, "Boolean", "Yes or No", 2, 3);
+const functionalTypeDataDouble = FunctionalTypeData(double, FunctionalType.doubleType, false, "0.0", "double", noExtension, "Decimal", "Decimal number", -maxIntValue, maxIntValue);
+const functionalTypeDataInt = FunctionalTypeData(int, FunctionalType.intType, false, "0", "int", noExtension, "Integer", "Integer number", -maxIntValue, maxIntValue);
 
 // Values to identify special case String values as Positional Lists or Markdown
-const OptionsTypeData optionTypeDataPositional = OptionsTypeData(FunctionalTypeData(String, FunctionalType.positionalType, "positional", "Text", "Positional List"), nameSuffix: positionalStringExtension, dataValueTypeFixed: true);
-const OptionsTypeData optionTypeDataMarkDown = OptionsTypeData(FunctionalTypeData(String, FunctionalType.markdownType, "markdown", "Mark Down", "Multi Line Markdown"), nameSuffix: markDownExtension, dataValueTypeFixed: true);
-const OptionsTypeData optionTypeDataLink = OptionsTypeData(FunctionalTypeData(String, FunctionalType.linkType, "Link", "Link", "Web link or url"), nameSuffix: linkExtension, dataValueTypeFixed: true);
-const OptionsTypeData optionTypeDataReference = OptionsTypeData(FunctionalTypeData(String, FunctionalType.referenceType, "reference", "Reference", "Reference to another item"), nameSuffix: referenceExtension, dataValueTypeFixed: true);
-// Values for adding elements as groups or values
-const OptionsTypeData optionTypeDataGroup = OptionsTypeData(FunctionalTypeData(Map, FunctionalType.groupType, "group", "Group", "Contains a Group Name"), min: 2, max: 30, dataValueTypeFixed: true);
-const OptionsTypeData optionTypeDataValue = OptionsTypeData(FunctionalTypeData(String, FunctionalType.valueType, "value", "Value", "Contains a Value Name"), min: 2, max: 30, dataValueTypeFixed: true);
+const functionalTypeDataPositional = FunctionalTypeData(String, FunctionalType.positionalType, true, "", "positional", positionalStringExtension, "Positional", "Positional List", -maxIntValue, maxIntValue);
+const functionalTypeDataMarkDown = FunctionalTypeData(String, FunctionalType.markdownType, true, "", "markdown", markDownExtension, "Mark Down", "Multi Line Markdown", -maxIntValue, maxIntValue);
+const functionalTypeDataLink = FunctionalTypeData(String, FunctionalType.linkType, true, "", "Link", linkExtension, "Link", "Web link or url", -maxIntValue, maxIntValue);
+const functionalTypeDataReference = FunctionalTypeData(String, FunctionalType.referenceType, true, "", "reference", referenceExtension, "Reference", "Reference to another item", -maxIntValue, maxIntValue);
 // Value for function 'forTypeOrName(Type type, String name)' if no match found
-const OptionsTypeData optionTypeDataBoolYes = OptionsTypeData(FunctionalTypeData(bool, FunctionalType.trueType, "true", "Yes", "A Yes value"), min: 2, max: 3);
-const OptionsTypeData optionTypeDataBoolNo = OptionsTypeData(FunctionalTypeData(bool, FunctionalType.falseType, "false", "No", "A No value"), min: 2, max: 3);
+const functionalTypeDataBoolYes = FunctionalTypeData(bool, FunctionalType.trueType, false, "", "true", noExtension, "Yes", "A Yes value", 2, 3);
+const functionalTypeDataBoolNo = FunctionalTypeData(bool, FunctionalType.falseType, false, "", "false", noExtension, "No", "A No value", 2, 3);
 
 // Don't add simpleDisplayData to this list.
-const Map<String, OptionsTypeData> optionsTypeSuffixMap = {
-  positionalStringExtension: optionTypeDataPositional,
-  markDownExtension: optionTypeDataMarkDown,
-  referenceExtension: optionTypeDataReference,
-  linkExtension: optionTypeDataLink,
+const Map<String, FunctionalTypeData> _functionalTypeSuffixMap = {
+  positionalStringExtension: functionalTypeDataPositional,
+  markDownExtension: functionalTypeDataMarkDown,
+  referenceExtension: functionalTypeDataReference,
+  linkExtension: functionalTypeDataLink,
 };
 
-const Map<Type, OptionsTypeData> optionsTypeMap = {
-  String: optionTypeDataString,
-  int: optionTypeDataInt,
-  double: optionTypeDataDouble,
-  bool: optionTypeDataBool,
+const Map<Type, FunctionalTypeData> _functionalNativeTypeMap = {
+  String: functionalTypeDataText,
+  int: functionalTypeDataInt,
+  double: functionalTypeDataDouble,
+  bool: functionalTypeDataBool,
 };
 
-//
-// When renaming a data element the Options are derived from this class.
-//
-class OptionsTypeData {
-  final FunctionalTypeData fnType;
+const List<FunctionalTypeData> optionForRenameDataElement = [
+  functionalTypeDataPositional,
+  functionalTypeDataMarkDown,
+  functionalTypeDataReference,
+  functionalTypeDataLink,
+  functionalTypeDataText,
+];
+
+const List<FunctionalTypeData> optionForUpdateDataElement = [
+  functionalTypeDataText,
+  functionalTypeDataBool,
+  functionalTypeDataDouble,
+  functionalTypeDataInt,
+];
+
+const List<FunctionalTypeData> optionGroupUYesNo = [
+  functionalTypeDataBoolYes,
+  functionalTypeDataBoolNo,
+];
+
+class FunctionalTypeData {
+  final Type nativeType;
+  final FunctionalType functionalType;
   final bool dataValueTypeFixed;
-  final String nameSuffix;
-  final String initialValue; // Extension for special sub types like positional markdown link and reference.
+  final String initialValue;
+  final String typeName;
+  final String suffix;
+  final String displayName;
+  final String typeHint;
   final int min; // For length (string) or magnitude (int, double..)
   final int max;
-  const OptionsTypeData(this.fnType, {this.initialValue = "", this.nameSuffix = noExtension, this.min = -maxIntValue, this.max = maxIntValue, this.dataValueTypeFixed = false});
+  const FunctionalTypeData(this.nativeType, this.functionalType, this.dataValueTypeFixed, this.initialValue, this.typeName, this.suffix, this.displayName, this.typeHint, this.min, this.max);
 
-  static OptionsTypeData staticFindOptionTypeInList(Type type, String elementName, List<OptionsTypeData> l, OptionsTypeData fallback) {
-    final toFind = staticFindOptionTypeFromNameAndType(type, elementName);
-    if (toFind != optionTypeDataNotFound) {
-      for (int i = 0; i < l.length; i++) {
-        if (l[i].fnType.type == toFind.fnType.type) {
-          return toFind;
-        }
-      }
+  factory FunctionalTypeData.toTrueFalseOptionsType(String value) {
+    final vlc = value.trim().toLowerCase();
+    if (vlc == "true" || vlc == "yes" || vlc == "1") {
+      return functionalTypeDataBoolYes;
     }
-    return fallback;
+    return functionalTypeDataBoolNo;
   }
-
-  static OptionsTypeData staticFindOptionTypeFromNameAndType(Type? type, String elementName) {
-    final en = elementName.trim().toLowerCase();
-    for (var suf in optionsTypeSuffixMap.keys) {
+  
+  static FunctionalTypeData staticFindFunctionalTypeFromSuffixOrType(Type? nativeType, String elementNameWithSuffix) {
+    // Find by suffix first
+    final en = elementNameWithSuffix.trim().toLowerCase();
+    for (var suf in _functionalTypeSuffixMap.keys) {
       if (en.endsWith(suf)) {
-        return optionsTypeSuffixMap[suf]!;
+        return _functionalTypeSuffixMap[suf]!;
       }
     }
-    if (type != null) {
-      if (optionsTypeMap.containsKey(type)) {
-        return optionsTypeMap[type]!;
+    // Not a known suffix so use native type
+    if (nativeType != null) {
+      if (_functionalNativeTypeMap.containsKey(nativeType)) {
+        return _functionalNativeTypeMap[nativeType]!;
       }
     }
-    return optionTypeDataNotFound;
-  }
-
-  /*
-  Can the value 'fit' in the type!
-  */
-  String validateType(dynamic value) {
-    return fnType.validateType(value);
-  }
-
-  bool notEqual(OptionsTypeData other) {
-    return fnType.type != other.fnType.type || fnType.native != other.fnType.native;
-  }
-
-  bool equal(OptionsTypeData other) {
-    return !notEqual(other);
-  }
-
-  bool get isEmpty {
-    return equal(optionsDataTypeEmpty);
-  }
-
-  String get displayName {
-    return fnType.desc;
-  }
-
-  bool get hasSuffix {
-    return nameSuffix.isNotEmpty;
-  }
-
-  bool get hasNoSuffix {
-    return nameSuffix.isEmpty;
-  }
-
-  bool get isRef {
-    return nameSuffix == referenceExtension;
-  }
-
-  bool get isNotRef {
-    return nameSuffix != referenceExtension;
-  }
-
-  @override
-  String toString() {
-    if (nameSuffix.isNotEmpty) {
-      return "FunctionalType:'${fnType.type}' Fixed:[$dataValueTypeFixed] FunctionalSuffix:[$nameSuffix] Native:[${fnType.native}]  Fixed:[$dataValueTypeFixed] Hint:${fnType.hint}";
-    }
-    return "FunctionalType:'${fnType.type}' Native:[${fnType.native}] Hint:${fnType.hint}";
+    return functionalTypeDataNotFound;
   }
 
   String inRangeInt(String pref, int n) {
@@ -293,58 +176,43 @@ class OptionsTypeData {
     return "";
   }
 
+
+  bool get hasSuffix {
+    return suffix.isNotEmpty;
+  }
+
+  bool get hasNoSuffix {
+    return suffix.isEmpty;
+  }
+
+  bool get isEmptyType {
+    return functionalType == FunctionalType.emptyType;
+  }
+
+  bool get isRefType {
+    return functionalType == FunctionalType.referenceType;
+  }
+
+  bool isNotEqual(FunctionalTypeData other) {
+    return functionalType != other.functionalType || nativeType != other.nativeType;
+  }
+
+  bool isEqual(FunctionalTypeData other) {
+    return !isNotEqual(other);
+  }
+
+  @override
+  String toString() {
+    if (suffix.isNotEmpty) {
+      return "FunctionalType:'$functionalType' Fixed:[$dataValueTypeFixed] FunctionalSuffix:[$suffix] Native:[$nativeType]  Fixed:[$dataValueTypeFixed] Hint:$typeHint";
+    }
+    return "FunctionalType:'$functionalType' Native:[$nativeType] Hint:$typeHint";
+  }
+
   String inRangeDouble(String pref, double n) {
     return inRangeInt(pref, n.toInt());
   }
-
-  factory OptionsTypeData.toTrueFalseOptionsType(String value) {
-    final vlc = value.trim().toLowerCase();
-    if (vlc == "true" || vlc == "yes" || vlc == "1") {
-      return optionTypeDataBoolYes;
-    }
-    return optionTypeDataBoolNo;
-  }
 }
-
-// Values for Native types
-
-const List<OptionsTypeData> optionGroupNative = [
-  optionTypeDataString,
-  optionTypeDataBool,
-  optionTypeDataDouble,
-  optionTypeDataInt,
-];
-
-const List<OptionsTypeData> optionGroupSpecial = [
-  optionTypeDataPositional,
-  optionTypeDataMarkDown,
-  optionTypeDataReference,
-  optionTypeDataLink,
-];
-
-const List<OptionsTypeData> optionGroupOther = [
-  optionTypeDataGroup,
-  optionTypeDataValue,
-];
-
-const List<OptionsTypeData> optionGroupRenameElement = [
-  optionTypeDataPositional,
-  optionTypeDataMarkDown,
-  optionTypeDataReference,
-  optionTypeDataString,
-];
-
-const List<OptionsTypeData> optionGroupUpdateElement = [
-  optionTypeDataString,
-  optionTypeDataBool,
-  optionTypeDataDouble,
-  optionTypeDataInt,
-];
-
-const List<OptionsTypeData> optionGroupUYesNo = [
-  optionTypeDataBoolYes,
-  optionTypeDataBoolNo,
-];
 
 //
 // An action from a GUI component serviced by the maim State full GUI.
@@ -411,37 +279,41 @@ class MenuOptionDetails {
 //
 class DetailAction {
   final ActionType action;
-  final bool value; // Value or group node
+  final String currentValue; // The value as a String
+  final FunctionalTypeData currentValueType; // The type details of the node
+  final bool isValueData; // Value or group node
   final Path path; // Path to the Tree node
-  final String oldValue; // The value as a String
-  final OptionsTypeData oldValueType; // The type details of the node
   final String additional; // Some additional data if required
   final bool Function(String, String, String)? onCompleteActionNullable;
-  DetailAction(this.action, this.value, this.path, {this.oldValue = "", this.oldValueType = optionsDataTypeEmpty, this.onCompleteActionNullable, this.additional = ""});
+  DetailAction(this.action, this.isValueData, this.path, {this.currentValue = "", this.currentValueType = functionalTypeDataUndefined, this.onCompleteActionNullable, this.additional = ""});
 
   factory DetailAction.actionOnly(ActionType action) {
     return DetailAction(action, false, Path.empty());
+  }
+
+  factory DetailAction.actionAndPath(ActionType action, Path path) {
+    return DetailAction(action, false, path);
   }
 
   factory DetailAction.actionAndString(ActionType action, String additional) {
     return DetailAction(action, false, Path.empty(), additional: additional);
   }
 
-  String getLastPathElement() {
-    return path.last;
+  String validateChange(String nameNoSuffix, final FunctionalTypeData newType) {
+    return "";
   }
 
   String getDisplayValue(bool editMode) {
-    return oldValue.substring(0, oldValue.length - oldValueType.nameSuffix.length);
+    return currentValue.substring(0, currentValue.length - currentValueType.suffix.length);
   }
 
   String get valueName {
-    return value ? "Value" : "Group";
+    return isValueData ? "Value" : "Group";
   }
 
   @override
   String toString() {
-    final s = "Type:'${value ? "Value" : "Map"}' Path:'$path' V1:'$oldValue' ";
+    final s = "Type:'${isValueData ? "Value" : "Map"}' Path:'$path' V1:'$currentValue' ";
     switch (action) {
       case ActionType.setSearch:
         {
@@ -451,7 +323,7 @@ class DetailAction {
         {
           return "CHANGE_PW";
         }
-      case ActionType.removeLocal:
+      case ActionType.removeLocalFile:
         {
           return "REMOVE_LOCAL";
         }

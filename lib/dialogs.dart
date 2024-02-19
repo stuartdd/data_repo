@@ -524,8 +524,8 @@ Future<void> showMyAboutDialog(final BuildContext context, final Color foregroun
                 ActionType.link,
                 true,
                 Path.empty(),
-                oldValue: href,
-                oldValueType: optionTypeDataString,
+                currentValue: href,
+                currentValueType: functionalTypeDataText,
               ));
             }
           }),
@@ -550,7 +550,7 @@ Future<void> showMyAboutDialog(final BuildContext context, final Color foregroun
   );
 }
 
-Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String currentValue, final bool isRename, final bool isPassword, final bool isPasswordConfirm, final bool allowAnyPw, final void Function(SimpleButtonActions, String, OptionsTypeData) onAction, final String Function(String, String, OptionsTypeData, OptionsTypeData) externalValidate, final Function() onClose, {final List<OptionsTypeData> options = const [], final OptionsTypeData currentOption = optionsDataTypeEmpty, final String title = "", final List<String> hints = const [], final bool showInputField = true}) async {
+Future<void> showModalInputDialog(final BuildContext context, final AppThemeData appThemeData, final ScreenSize screenSize, final String currentValue, final bool isRename, final bool isPassword, final bool isPasswordConfirm, final bool allowAnyPw, final void Function(SimpleButtonActions, String, FunctionalTypeData) onAction, final String Function(String, String, FunctionalTypeData, FunctionalTypeData) externalValidate, final Function() onClose, {final List<FunctionalTypeData> options = const [], final FunctionalTypeData currentOption = functionalTypeDataUndefined, final String title = "", final List<String> hints = const [], final bool showInputField = true}) async {
   var updatedText = currentValue;
   var updatedType = currentOption;
   var shouldDisplayMarkdownHelp = false;
@@ -590,7 +590,7 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
     context: context,
     barrierDismissible: false, // user must tap button!
     builder: (BuildContext context) {
-      if (currentOption == optionTypeDataMarkDown && !isRename && !isPassword) {
+      if (currentOption == functionalTypeDataMarkDown && !isRename && !isPassword) {
         return AlertDialog(
           shape: appThemeData.rectangleBorderShape,
           backgroundColor: appThemeData.dialogBackgroundColor,
@@ -628,7 +628,7 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
               return shouldDisplayMarkdownPreview;
             },
             dataAction: (detailAction) {
-              onAction(SimpleButtonActions.link, detailAction.oldValue, optionTypeDataLink);
+              onAction(SimpleButtonActions.link, detailAction.currentValue, functionalTypeDataLink);
               return Path.empty();
             },
           ),
@@ -676,7 +676,7 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
             if (validMsg.isNotEmpty) {
               okButtonManager.setEnabled(false);
             } else {
-              if (it.notEqual(vt) || (ix != vx)) {
+              if (it.isNotEqual(vt) || (ix != vx)) {
                 okButtonManager.setEnabled(true);
                 updatedType = vt;
                 updatedText = vx;

@@ -309,15 +309,15 @@ List<DataValueDisplayRow> _dataDisplayValueListFromJson(Map<String, dynamic> jso
     if (element.value is Map) {
       final p = treeNodeRoot.findByPath(path.cloneAppend(element.key));
       if (p != null) {
-        _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as Map).length, path.cloneAppend(element.key)), sortOrder);
+        _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", functionalTypeDataGroup, false, path, (element.value as Map).length, path.cloneAppend(element.key)), sortOrder);
       }
     } else if (element.value is List) {
       final p = treeNodeRoot.findByPath(path.cloneAppend(element.key));
       if (p != null) {
-        _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", optionTypeDataGroup, false, path, (element.value as List).length, path.cloneAppend(element.key)), sortOrder);
+        _insertDisplayValueListInOrder(lm, DataValueDisplayRow(element.key, "", functionalTypeDataGroup, false, path, (element.value as List).length, path.cloneAppend(element.key)), sortOrder);
       }
     } else {
-      _insertDisplayValueListInOrder(lv, DataValueDisplayRow(element.key, element.value.toString(), OptionsTypeData.staticFindOptionTypeFromNameAndType(element.value.runtimeType, element.key), true, path, 0, path.cloneAppend(element.key)), sortOrder);
+      _insertDisplayValueListInOrder(lv, DataValueDisplayRow(element.key, element.value.toString(), FunctionalTypeData.staticFindFunctionalTypeFromSuffixOrType(element.value.runtimeType, element.key), true, path, 0, path.cloneAppend(element.key)), sortOrder);
     }
   }
   lm.addAll(lv);

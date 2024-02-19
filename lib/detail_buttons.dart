@@ -555,9 +555,9 @@ class _DetailTextButtonState extends State<DetailTextButton> implements ManageAb
 }
 
 class OptionListWidget extends StatefulWidget {
-  final List<OptionsTypeData> optionList;
-  final OptionsTypeData selectedOption;
-  final void Function(OptionsTypeData) onSelect;
+  final List<FunctionalTypeData> optionList;
+  final FunctionalTypeData selectedOption;
+  final void Function(FunctionalTypeData) onSelect;
   final AppThemeData appThemeData;
   const OptionListWidget({super.key, required this.optionList, required this.selectedOption, required this.onSelect, required this.appThemeData});
   // Find the element type index for a given type name.
@@ -565,7 +565,7 @@ class OptionListWidget extends StatefulWidget {
   int _findIndexFroOption(FunctionalType type) {
     if (optionList.isNotEmpty) {
       for (int i = 0; i < optionList.length; i++) {
-        if (optionList[i].fnType.type == type) {
+        if (optionList[i].functionalType == type) {
           return i;
         }
       }
@@ -578,17 +578,25 @@ class OptionListWidget extends StatefulWidget {
 }
 
 class _OptionListWidgetState extends State<OptionListWidget> {
-  OptionsTypeData _currentSelect = optionTypeDataNotFound;
+  FunctionalTypeData _currentSelect = functionalTypeDataNotFound;
   int selIndex = 0;
 
   @override
   initState() {
     super.initState();
     _currentSelect = widget.selectedOption;
-    selIndex = widget._findIndexFroOption(_currentSelect.fnType.type);
+    selIndex = widget._findIndexFroOption(_currentSelect.functionalType);
     if (selIndex < 0) {
       selIndex = 0;
     }
+  }
+
+  doPressed(int i) {
+    setState(() {
+      selIndex = i;
+      _currentSelect = widget.optionList[i];
+      widget.onSelect(_currentSelect);
+    });
   }
 
   @override
@@ -603,18 +611,18 @@ class _OptionListWidgetState extends State<OptionListWidget> {
             children: [
               DetailIconButton(
                   onPressed: (button) {
-                    setState(() {
-                      selIndex = i;
-                      _currentSelect = widget.optionList[i];
-                      widget.onSelect(_currentSelect);
-                    });
+                    doPressed(i);
                   },
                   iconData: (i == selIndex) ? Icons.radio_button_checked : Icons.radio_button_unchecked,
                   appThemeData: widget.appThemeData),
-              Text(
-                widget.optionList[i].fnType.name,
-                style: widget.appThemeData.tsMediumBold,
-              )
+              TextButton(
+                  onPressed: () {
+                    doPressed(i);
+                  },
+                  child: Text(
+                    widget.optionList[i].displayName,
+                    style: (i == selIndex) ? widget.appThemeData.tsLargeBold : widget.appThemeData.tsMedium,
+                  ))
             ],
           ),
           widget.appThemeData.verticalGapBox(2),
@@ -694,8 +702,8 @@ void markdownOnTapLink(String text, String? href, String title, Path Function(De
       ActionType.link,
       true,
       Path.empty(),
-      oldValue: href,
-      oldValueType: optionTypeDataString,
+      currentValue: href,
+      currentValueType: functionalTypeDataText,
     ));
   }
 }
@@ -725,7 +733,7 @@ class MarkDownInputField extends StatefulWidget {
   final AppThemeData appThemeData;
   final bool Function(bool) shouldDisplayHelp;
   final bool Function(bool) shouldDisplayPreview;
-  final String Function(String, String, OptionsTypeData, OptionsTypeData) onValidate;
+  final String Function(String, String, FunctionalTypeData, FunctionalTypeData) onValidate;
   final Path Function(DetailAction) dataAction;
 
   const MarkDownInputField({super.key, required this.initialText, required this.onValidate, required this.height, required this.width, required this.shouldDisplayHelp, required this.shouldDisplayPreview, required this.dataAction, required this.appThemeData});
@@ -791,7 +799,7 @@ class _MarkDownInputField extends State<MarkDownInputField> {
                     expands: true,
                     onChanged: (value) {
                       setState(() {
-                        widget.onValidate(widget.initialText, controller.text, optionTypeDataString, optionTypeDataString);
+                        widget.onValidate(widget.initialText, controller.text, functionalTypeDataText, functionalTypeDataText);
                       });
                     },
                   ),
@@ -806,17 +814,17 @@ class _MarkDownInputField extends State<MarkDownInputField> {
 }
 
 class ValidatedInputField extends StatefulWidget {
-  ValidatedInputField({super.key, this.initialValue = "", this.isPassword = false, this.isPasswordConfirm = false, this.isRename = false, this.autoFocus = true, required this.onSubmit, required this.onValidate, required this.prompt, this.options = const [], this.initialOption = optionsDataTypeEmpty, required this.appThemeData});
+  ValidatedInputField({super.key, this.initialValue = "", this.isPassword = false, this.isPasswordConfirm = false, this.isRename = false, this.autoFocus = true, required this.onSubmit, required this.onValidate, required this.prompt, this.options = const [], this.initialOption = functionalTypeDataUndefined, required this.appThemeData});
   final String initialValue;
-  final List<OptionsTypeData> options;
-  final OptionsTypeData initialOption;
+  final List<FunctionalTypeData> options;
+  final FunctionalTypeData initialOption;
   final String prompt;
   final bool isPassword;
   final bool isPasswordConfirm;
   final bool isRename;
   final bool autoFocus;
-  final void Function(String, OptionsTypeData) onSubmit;
-  final String Function(String, String, OptionsTypeData, OptionsTypeData, String) onValidate;
+  final void Function(String, FunctionalTypeData) onSubmit;
+  final String Function(String, String, FunctionalTypeData, FunctionalTypeData, String) onValidate;
   final controllerPw = TextEditingController();
   final controllerCf = TextEditingController();
   final AppThemeData appThemeData;
@@ -837,8 +845,8 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
   String initial = "";
   String current = "";
   String confirm = "";
-  OptionsTypeData initialOption = optionTypeDataNotFound;
-  OptionsTypeData currentOption = optionTypeDataNotFound;
+  FunctionalTypeData initialOption = functionalTypeDataNotFound;
+  FunctionalTypeData currentOption = functionalTypeDataNotFound;
   bool obscurePw = true;
 
   @override
@@ -848,7 +856,7 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
     current = initial;
     confirm = "";
     initialOption = widget.initialOption;
-    currentOption = initialOption;
+    currentOption = widget.initialOption;
     widget.controllerPw.text = current;
     widget.controllerCf.text = "";
     validateResponse = widget.onValidate(initial, current, initialOption, currentOption, confirm);
@@ -883,12 +891,12 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
               currentOption = sel;
               _validate();
             }),
-        currentOption.isEmpty
+        currentOption.isEmptyType
             ? const SizedBox(height: 0)
             : Container(
                 alignment: Alignment.topLeft,
                 child: Column(
-                  children: [Text(widget.prompt.replaceAll("[type]", currentOption.fnType.hint), style: widget.appThemeData.tsMediumBold), widget.appThemeData.verticalGapBox(2)],
+                  children: [Text(widget.prompt.replaceAll("[type]", currentOption.typeHint), style: widget.appThemeData.tsMediumBold), widget.appThemeData.verticalGapBox(2)],
                 )),
         (widget.isPassword)
             ? Row(
@@ -918,12 +926,12 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
                 ),
                 widget.appThemeData.verticalGapBox(1)
               ]),
-        (currentOption.fnType.type == FunctionalType.boolType && !widget.isRename)
+        (currentOption.functionalType == FunctionalType.boolType && !widget.isRename)
             ? OptionListWidget(
                 // True or false
                 appThemeData: widget.appThemeData,
                 optionList: optionGroupUYesNo,
-                selectedOption: OptionsTypeData.toTrueFalseOptionsType(current),
+                selectedOption: FunctionalTypeData.toTrueFalseOptionsType(current),
                 onSelect: (option) {
                   current = option.initialValue;
                   _validate();

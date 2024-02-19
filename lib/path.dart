@@ -393,7 +393,8 @@ class Path {
   }
 
   String get asMarkdownLink {
-    return "[${toString()}](${toString()})";
+    var encoded = Uri.encodeFull(toString());
+    return "([${toString()}]($encoded))";
   }
 
   bool isNotEqual(final Path other) {

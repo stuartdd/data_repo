@@ -25,7 +25,7 @@ import 'detail_buttons.dart';
 class DataValueDisplayRow {
   final String _name;
   final String _stringValue;
-  final OptionsTypeData _type;
+  final FunctionalTypeData _type;
   final bool _isValue;
   final Path _path;
   final int _mapSize;
@@ -33,7 +33,7 @@ class DataValueDisplayRow {
   const DataValueDisplayRow(this._name, this._stringValue, this._type, this._isValue, this._path, this._mapSize, this._pathWithName);
 
   String get name => _name;
-  OptionsTypeData get type => _type;
+  FunctionalTypeData get type => _type;
   Path get path => _path;
   Path get pathWithName => _pathWithName;
   bool get isValue => _isValue;
@@ -41,7 +41,7 @@ class DataValueDisplayRow {
 
   String get displayName {
     if (isValue && type.hasSuffix) {
-      return _name.substring(0, _name.length - _type.nameSuffix.length);
+      return _name.substring(0, _name.length - _type.suffix.length);
     }
     return _name;
   }
@@ -54,14 +54,14 @@ class DataValueDisplayRow {
     if (editMode) {
       return name;
     }
-    return name.substring(0, (_name.length - _type.nameSuffix.length));
+    return name.substring(0, (_name.length - _type.suffix.length));
   }
 
   String get value {
-    if (_type.fnType.type == FunctionalType.trueType || _type.fnType.type == FunctionalType.falseType) {
-      return _type.fnType.desc;
+    if (_type.functionalType == FunctionalType.trueType || _type.functionalType == FunctionalType.falseType) {
+      return _type.displayName;
     }
-    if (_type.fnType.type == FunctionalType.boolType) {
+    if (_type.functionalType == FunctionalType.boolType) {
       if (_stringValue == "true") {
         return "Yes";
       }
@@ -79,7 +79,7 @@ class DataValueDisplayRow {
 
   bool get isRef {
     if (_isValue) {
-      return type.isRef;
+      return type.isRefType;
     }
     return false;
   }
@@ -171,20 +171,20 @@ class _DetailWidgetState extends State<DetailWidget> {
     final bgColour = appThemeData.selectedAndHiLightColour(true, plp.updated, false);
     final fgColour = appThemeData.screenForegroundColour(true);
 
-    if (dataValueRow.type.equal(optionTypeDataPositional)) {
+    if (dataValueRow.type.isEqual(functionalTypeDataPositional)) {
       return Container(
         alignment: Alignment.center,
         child: _tableForString(dataValueRow.value, plp.updated, appThemeData.tsMedium, appThemeData.tsMediumBold, bgColour, fgColour, appThemeData.buttonHeight * 2),
       );
     }
 
-    if (dataValueRow.type.equal(optionTypeDataMarkDown)) {
+    if (dataValueRow.type.isEqual(functionalTypeDataMarkDown)) {
       return markdownDisplayWidget(true, dataValueRow.value, bgColour, (text, href, title) {
         markdownOnTapLink(text, href, title, widget.dataAction);
       });
     }
 
-    if (dataValueRow.type.equal(optionTypeDataReference)) {
+    if (dataValueRow.type.isEqual(functionalTypeDataReference)) {
       final r = widget.onResolve(dataValueRow.value);
       if (r.isSuccess) {
         return Container(
@@ -222,11 +222,11 @@ class _DetailWidgetState extends State<DetailWidget> {
   }
 
   Widget _detailForValue(final AppThemeData appThemeData, final PathProperties plp, final bool horizontal, final bool isEditDataDisplay) {
-    final double rm = widget.dataValueRow.type.equal(optionTypeDataMarkDown) ? 15 : 5;
+    final double rm = widget.dataValueRow.type.isEqual(functionalTypeDataMarkDown) ? 15 : 5;
     final String resolvedValue;
     final bool resolvedValueIsLink;
     final bool refIsResolved;
-    if (widget.dataValueRow.type.isRef) {
+    if (widget.dataValueRow.type.isRefType) {
       final v = widget.onResolve(widget.dataValueRow.value);
       if (v.isSuccess) {
         refIsResolved = true;
@@ -266,7 +266,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                 )
               : null,
           onTap: () {
-            widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
+            widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathWithName, currentValue: widget.dataValueRow.name, currentValueType: functionalTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
           },
         ),
         SizedBox(
@@ -285,7 +285,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                 iconData: Icons.settings,
                 tooltip: "Change Properties",
                 onPressed: (p0) {
-                  widget.dataAction(DetailAction(ActionType.renameItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
+                  widget.dataAction(DetailAction(ActionType.renameItem, true, widget.dataValueRow.pathWithName, currentValue: widget.dataValueRow.name, currentValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction, additional: widget.dataValueRow.value));
                 }),
             DetailIconButton(
                 appThemeData: appThemeData,
@@ -293,7 +293,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                 iconData: Icons.edit,
                 tooltip: "Change value",
                 onPressed: (p0) {
-                  widget.dataAction(DetailAction(ActionType.editItemData, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                  widget.dataAction(DetailAction(ActionType.editItemData, true, widget.dataValueRow.pathWithName, currentValue: widget.dataValueRow.value, currentValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
                 }),
             DetailIconButton(
                 appThemeData: appThemeData,
@@ -302,15 +302,15 @@ class _DetailWidgetState extends State<DetailWidget> {
                 tooltip: "Copy Value",
                 onPressed: (p0) async {
                   await Clipboard.setData(ClipboardData(text: resolvedValue));
-                  widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                  widget.dataAction(DetailAction(ActionType.clip, true, widget.dataValueRow.pathWithName, currentValue: widget.dataValueRow.value, currentValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
                 }),
             DetailIconButton(
                 appThemeData: appThemeData,
-                visible: resolvedValueIsLink && !widget.isEditDataDisplay && (widget.dataValueRow.type != optionTypeDataPositional) && refIsResolved,
+                visible: resolvedValueIsLink && !widget.isEditDataDisplay && (widget.dataValueRow.type != functionalTypeDataPositional) && refIsResolved,
                 iconData: Icons.launch_outlined,
                 tooltip: "Open in Browser",
                 onPressed: (p0) {
-                  widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.pathWithName, oldValue: resolvedValue, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                  widget.dataAction(DetailAction(ActionType.link, true, widget.dataValueRow.pathWithName, currentValue: resolvedValue, currentValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
                 }),
             DetailIconButton(
                 appThemeData: appThemeData,
@@ -322,11 +322,11 @@ class _DetailWidgetState extends State<DetailWidget> {
                 }),
             DetailIconButton(
                 appThemeData: appThemeData,
-                visible: widget.isEditDataDisplay && widget.dataValueRow.type.isRef && refIsResolved,
+                visible: widget.isEditDataDisplay && widget.dataValueRow.type.isRefType && refIsResolved,
                 iconData: Icons.double_arrow,
                 tooltip: "Go to Reference",
                 onPressed: (p0) {
-                  widget.dataAction(DetailAction(ActionType.select, true, Path.fromDotPath(widget.dataValueRow.value).cloneParentPath(), oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                  widget.dataAction(DetailAction(ActionType.select, true, Path.fromDotPath(widget.dataValueRow.value).cloneParentPath(), currentValue: widget.dataValueRow.value, currentValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
                 }),
             DetailIconButton(
                 appThemeData: appThemeData,
@@ -334,7 +334,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                 iconData: Icons.delete,
                 tooltip: "Delete Item",
                 onPressed: (p0) {
-                  widget.dataAction(DetailAction(ActionType.removeItem, true, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
+                  widget.dataAction(DetailAction(ActionType.removeItem, true, widget.dataValueRow.pathWithName, currentValue: widget.dataValueRow.value, currentValueType: widget.dataValueRow.type, onCompleteActionNullable: _onCompleteAction));
                 }),
           ],
         ),
@@ -371,7 +371,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                     )
                   : null,
               onTap: () {
-                widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
+                widget.dataAction(DetailAction(ActionType.select, false, widget.dataValueRow.pathWithName, currentValue: widget.dataValueRow.name, currentValueType: functionalTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
               },
             ),
             Row(
@@ -384,7 +384,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                     iconData: Icons.settings,
                     tooltip: "Change Item Name",
                     onPressed: (p0) {
-                      widget.dataAction(DetailAction(ActionType.renameItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.name, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
+                      widget.dataAction(DetailAction(ActionType.renameItem, false, widget.dataValueRow.pathWithName, currentValue: widget.dataValueRow.name, currentValueType: functionalTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
                     }),
                 DetailIconButton(
                     appThemeData: appThemeData,
@@ -392,7 +392,7 @@ class _DetailWidgetState extends State<DetailWidget> {
                     iconData: Icons.delete,
                     tooltip: "Delete Item",
                     onPressed: (p0) {
-                      widget.dataAction(DetailAction(ActionType.removeItem, false, widget.dataValueRow.pathWithName, oldValue: widget.dataValueRow.value, oldValueType: optionTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
+                      widget.dataAction(DetailAction(ActionType.removeItem, false, widget.dataValueRow.pathWithName, currentValue: widget.dataValueRow.value, currentValueType: functionalTypeDataGroup, onCompleteActionNullable: _onCompleteAction));
                     }),
               ],
             ),

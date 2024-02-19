@@ -124,7 +124,7 @@ class DataContainer {
 
   Return error message or empty string
    */
-  String _checkNodeAlreadyExist(final Path parentPath, final String name, final String extension) {
+  String _checkNodeAlreadyExist(final Path parentPath, final String name, final String extension, final bool checkWithoutExtension) {
     final dynamic pNode;
     if (parentPath.isEmpty) {
       pNode = _dataMap;
@@ -137,21 +137,22 @@ class DataContainer {
     }
 
     if (pNode is List) {
-      return "List not supported";
+      return "Parent as List not supported";
     }
 
     if (pNode is! Map) {
-      return "Parent node not a Map";
+      return "Parent is not a Map";
     }
 
-    if (pNode.containsKey(name)) {
-      return "Name already exists";
-    }
-
-    if (extension.isNotEmpty) {
-      if (pNode.containsKey("$name$extension")) {
-        return "Name already exists";
+    if (checkWithoutExtension) {
+      for(String n in pNode.keys) {
+        if (n.startsWith("$name$extensionSeparator")) {
+          return "Name currently exists";
+        }
       }
+    }
+    if (pNode.containsKey("$name$extension")) {
+      return "Name currently exists";
     }
     // Every thing is OK and the node does not exist.
     return "";
@@ -170,15 +171,15 @@ class DataContainer {
 
   String _validateNodeName(final String newName) {
     if (newName.length < 2) {
-      return "Is too short";
+      return "Name is too short";
     }
 
     if (newName.contains(pathSeparator)) {
-      return "Cannot contain '$pathSeparator'";
+      return "Name Cannot contain '$pathSeparator'";
     }
 
     if (newName.contains(extensionSeparator)) {
-      return "Cannot contain '$extensionSeparator'";
+      return "Name Cannot contain '$extensionSeparator'";
     }
 
     return "";
@@ -221,7 +222,7 @@ class DataContainer {
       return "Add: $msg1";
     }
 
-    final msg2 = _checkNodeAlreadyExist(parentPath, name, extension);
+    final msg2 = _checkNodeAlreadyExist(parentPath, name, extension, true);
     if (msg2.isNotEmpty) {
       return "Add: $msg2";
     }
@@ -278,7 +279,7 @@ class DataContainer {
       return "Replace: Parent node not found";
     }
 
-    final msg2 = _checkNodeAlreadyExist(path.cloneParentPath(), newName, extension);
+    final msg2 = _checkNodeAlreadyExist(path.cloneParentPath(), newName, extension, false);
     if (msg2.isNotEmpty) {
       return "Rename: $msg2";
     }
