@@ -333,7 +333,7 @@ Future<void> showCopyMoveDialog(final BuildContext context, final AppThemeData a
   );
 }
 
-Future<void> showFilesListDialog(final BuildContext context, final AppThemeData appThemeData, List<FileListEntry> files, final bool canCreateFile, final Function(String) onSelect, final void Function(SimpleButtonActions) onAction, final Function() onClose) async {
+Future<void> showFilesListDialog(final BuildContext context, final AppThemeData appThemeData, FileDataEntryList files, final bool canCreateFile, final String note, final Function(String) onSelect, final void Function(SimpleButtonActions) onAction, final Function() onClose) async {
   return showDialog<void>(
     context: context,
     barrierDismissible: false, // user must tap button!
@@ -353,18 +353,26 @@ Future<void> showFilesListDialog(final BuildContext context, final AppThemeData 
       } else {
         createButton = const SizedBox(height: 0);
       }
+      final notes = note.isNotEmpty ? Column(
+        children: [
+          appThemeData.horizontalLine,
+          appThemeData.verticalGapBox(1),
+          Text(note, style: appThemeData.tsLargeBold),
+          appThemeData.verticalGapBox(1),
+        ],
+      ) : const SizedBox(height: 0);
       final help = Row(children: [
         Text("Key:", style: appThemeData.tsMediumBold),
         appThemeData.iconGapBox(0.5),
-        appThemeData.scaledIcon(FileListEntry.localIcon),
+        appThemeData.scaledIcon(FileDateEntry.localIcon),
         appThemeData.iconGapBox(0.1),
         Text("Local", style: appThemeData.tsMediumBold),
         appThemeData.iconGapBox(0.6),
-        appThemeData.scaledIcon(FileListEntry.remoteIcon),
+        appThemeData.scaledIcon(FileDateEntry.remoteIcon),
         appThemeData.iconGapBox(0.1),
         Text("Remote", style: appThemeData.tsMediumBold),
         appThemeData.iconGapBox(0.5),
-        appThemeData.scaledIcon(FileListEntry.syncedIcon),
+        appThemeData.scaledIcon(FileDateEntry.syncedIcon),
         appThemeData.iconGapBox(0.1),
         Text("Both", style: appThemeData.tsMediumBold),
       ]);
@@ -378,17 +386,18 @@ Future<void> showFilesListDialog(final BuildContext context, final AppThemeData 
         content: SingleChildScrollView(
           child: ListBody(children: [
             help,
+            notes,
             appThemeData.horizontalLine,
             for (int i = 0; i < files.length; i++) ...[
               Row(
                 children: [
-                  appThemeData.scaledIcon(files[i].locationIcon),
+                  appThemeData.scaledIcon(files.at(i).locationIcon),
                   appThemeData.iconGapBox(0.5),
-                  appThemeData.scaledIcon(files[i].stateIcon),
+                  appThemeData.scaledIcon(files.at(i).stateIcon),
                   TextButton(
-                    child: Text(files[i].name, style: appThemeData.tsMediumBold),
+                    child: Text(files.at(i).name, style: appThemeData.tsMediumBold),
                     onPressed: () {
-                      onSelect(files[i].name);
+                      onSelect(files.at(i).name);
                       Navigator.of(context).pop();
                       onClose();
                     },
@@ -647,46 +656,48 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
           crossAxisAlignment: CrossAxisAlignment.start,
           children: wHints,
         ),
-        content: showInputField ? ValidatedInputField(
-          options: options,
-          isPassword: isPassword,
-          isPasswordConfirm: isPasswordConfirm,
-          isRename: isRename,
-          initialOption: currentOption,
-          initialValue: currentValue,
-          prompt: "Input: ${isRename ? "New Name" : "[type]"}",
-          appThemeData: appThemeData,
-          onSubmit: (text, type) {
-            if (okButtonManager.getEnabled()) {
-              onAction(SimpleButtonActions.ok, updatedText, updatedType);
-              Navigator.of(context).pop();
-              onClose();
-            }
-          },
-          onValidate: (ix, vx, it, vt, confirm) {
-            String validMsg;
-            if (isPassword) {
-              validMsg = validatePassword(vx, confirm, allowAny: allowAnyPw);
-              if (validMsg.isEmpty) {
-                validMsg = externalValidate(ix, vx, it, vt);
-              }
-            } else {
-              validMsg = externalValidate(ix, vx, it, vt);
-            }
-            if (validMsg.isNotEmpty) {
-              okButtonManager.setEnabled(false);
-            } else {
-              if (it.isNotEqual(vt) || (ix != vx)) {
-                okButtonManager.setEnabled(true);
-                updatedType = vt;
-                updatedText = vx;
-              } else {
-                okButtonManager.setEnabled(false);
-              }
-            }
-            return validMsg;
-          },
-        ) : null,
+        content: showInputField
+            ? ValidatedInputField(
+                options: options,
+                isPassword: isPassword,
+                isPasswordConfirm: isPasswordConfirm,
+                isRename: isRename,
+                initialOption: currentOption,
+                initialValue: currentValue,
+                prompt: "Input: ${isRename ? "New Name" : "[type]"}",
+                appThemeData: appThemeData,
+                onSubmit: (text, type) {
+                  if (okButtonManager.getEnabled()) {
+                    onAction(SimpleButtonActions.ok, updatedText, updatedType);
+                    Navigator.of(context).pop();
+                    onClose();
+                  }
+                },
+                onValidate: (ix, vx, it, vt, confirm) {
+                  String validMsg;
+                  if (isPassword) {
+                    validMsg = validatePassword(vx, confirm, allowAny: allowAnyPw);
+                    if (validMsg.isEmpty) {
+                      validMsg = externalValidate(ix, vx, it, vt);
+                    }
+                  } else {
+                    validMsg = externalValidate(ix, vx, it, vt);
+                  }
+                  if (validMsg.isNotEmpty) {
+                    okButtonManager.setEnabled(false);
+                  } else {
+                    if (it.isNotEqual(vt) || (ix != vx)) {
+                      okButtonManager.setEnabled(true);
+                      updatedType = vt;
+                      updatedText = vx;
+                    } else {
+                      okButtonManager.setEnabled(false);
+                    }
+                  }
+                  return validMsg;
+                },
+              )
+            : null,
         actions: [
           Row(
             children: [cancelButton, okButtonManager.widget],

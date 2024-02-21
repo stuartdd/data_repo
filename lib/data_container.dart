@@ -145,7 +145,7 @@ class DataContainer {
     }
 
     if (checkWithoutExtension) {
-      for(String n in pNode.keys) {
+      for (String n in pNode.keys) {
         if (n.startsWith("$name$extensionSeparator")) {
           return "Name currently exists";
         }
@@ -630,10 +630,9 @@ class DataContainer {
     }
   }
 
-  static Future<void> testHttpGet(final String url, final Function(String) callMe, {final String prefix = "", final maxContentLen = -1}) async {
+  static Future<void> testHttpGet(final String url, final Function(String) callMe, {final String prefix = "", final maxContentLen = 100, final minContentLen = 10}) async {
     debugPrint("TEST:$url");
     try {
-      String resp = "";
       final uri = Uri.parse(url);
       final response = await http.get(uri).timeout(
         const Duration(milliseconds: 1000),
@@ -641,23 +640,29 @@ class DataContainer {
           return http.Response('${prefix}Timeout:', StatusCode.REQUEST_TIMEOUT);
         },
       );
-      if (maxContentLen > 0) {
-        if (response.contentLength == null || response.contentLength! > maxContentLen) {
-          callMe('${prefix}Invalid Length:');
-        }
-      }
       if (response.statusCode != StatusCode.OK) {
         callMe("${prefix}Status:${response.statusCode} ${getStatusMessage(response.statusCode)}");
         return;
       }
-      callMe(resp);
+
+      if (response.contentLength == null) {
+        callMe('${prefix}Invalid Length:');
+        return;
+      }
+
+      final len = response.contentLength!;
+
+      if (len < 10 || len > 100) {
+        callMe('${prefix}Invalid Length:');
+        return;
+      }
+      callMe("");
     } catch (e) {
       callMe("$prefix$e");
     }
   }
 
-  static Future<SuccessState> listHttpGet(final String url, {final void Function(String)? log, final void Function(String)? onFind, final int timeoutMillis = 2000, final String prefix = ""}) async {
-    debugPrint("LIST:$url");
+  static Future<SuccessState> listHttpGet(final String url, {final void Function(String)? log, final int Function(String)? onFind, final int timeoutMillis = 2000, final String prefix = ""}) async {
     try {
       final uri = Uri.parse(url);
       final response = await http.get(uri).timeout(
@@ -667,30 +672,32 @@ class DataContainer {
         },
       );
       if (response.statusCode != StatusCode.OK) {
-        return SuccessState(false, path: url, message: "Remote Data loaded Failed. Status:${response.statusCode} Msg:${getStatusMessage(response.statusCode)}", log: log);
+        return SuccessState(false, path: url, message: "Remote File List Failed. Status:${response.statusCode} Msg:${getStatusMessage(response.statusCode)}", log: log);
       }
       final body = response.body.trim();
       if (body.isEmpty) {
-        return SuccessState(false, path: url, message: "Remote Data was empty:", log: log);
+        return SuccessState(false, path: url, message: "Remote File List was empty:", log: log);
       }
       final body100 = body.length > 100 ? body.substring(0, 100).toLowerCase() : body.toLowerCase();
       if (body100.contains("<html>") || body100.contains("<!doctype")) {
-        return SuccessState(false, path: url, message: "Remote Data Load contains html:", log: log);
+        return SuccessState(false, path: url, message: "Remote File List contains html:", log: log);
       }
+
       if (body.startsWith('{') || body.startsWith('[')) {
+        var count  = 0;
         final data = DataContainer.fromJson(body, log: log);
         data.visitEachSubNode((name, path, node) {
           if (path.length == 4 && path.peek(0) == "files" && path.toString().endsWith("name.name") && node is String) {
             if (onFind != null) {
-              onFind(node.toString());
+              count = count + onFind(node.toString());
             }
           }
         });
-        return SuccessState(true, path: url, value: body, message: "Remote Data loaded OK", log: log);
+        return SuccessState(true, path: url, value: body, message: "Remote Files: __${count}__ found", log: log);
       }
-      return SuccessState(false, path: url, message: "Remote Data Load was not JSON:", log: log);
+      return SuccessState(false, path: url, message: "Remote File List was not JSON:", log: log);
     } catch (e) {
-      return SuccessState(false, path: url, message: "Remote Data Load:", exception: e as Exception, log: log);
+      return SuccessState(false, path: url, message: "Remote File List Exception:", exception: e as Exception, log: log);
     }
   }
 

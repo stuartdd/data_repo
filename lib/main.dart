@@ -43,6 +43,7 @@ final logger = Logger(100, true);
 
 bool _inExitProcess = false;
 int _exitReturnCode = -1;
+bool _remoteServerAvailable = false;
 
 ScreenSize screenSize = ScreenSize();
 
@@ -52,6 +53,15 @@ _screenSize(BuildContext context) {
   final height = MediaQuery.of(context).size.height - (bi + pt) - 3; // Stops the scroll bar on RHS
   final width = MediaQuery.of(context).size.width;
   screenSize.update(width, height);
+}
+
+_probeServer() {
+  DataContainer.testHttpGet(_configData.getRemoteTestFileUrl(), (response) {
+    if (response.isNotEmpty) {
+      logger.log("__SERVER__ Probe: $response");
+    }
+    _remoteServerAvailable = response.isEmpty;
+  });
 }
 
 void main() async {
@@ -80,6 +90,11 @@ void main() async {
   }
 
   runApp(MyApp());
+
+  _probeServer();
+  Timer.periodic(const Duration(seconds: 5), (timer) {
+    _probeServer();
+  });
 
   if (!_isolator.locked) {
     Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -169,8 +184,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  bool _remoteServerAvailable = false;
-  List<FileListEntry> _serverFileList = List.empty();
   String _initialPassword = "";
   String _search = "";
   String _lastSearch = "";
@@ -383,7 +396,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     (actionButton, value, option) {
                       if (actionButton == SimpleButtonActions.ok) {
                         Future.delayed(
-                          const Duration(milliseconds: 400),
+                          const Duration(milliseconds: 217),
                           () {
                             final String message = _configData.removeLocalFile();
                             if (message.isEmpty) {
@@ -493,7 +506,6 @@ class _MyHomePageState extends State<MyHomePage> {
               final localFileList = _configData.dir(
                 fileExtensionDataList,
                 [defaultConfigFileName, _configData.getAppStateFileName()],
-                _serverFileList,
                 (reasons, fatal) {
                   // Error - Path not found
                   Future.delayed(
@@ -519,36 +531,54 @@ class _MyHomePageState extends State<MyHomePage> {
                   );
                 },
               );
-              showFilesListDialog(
-                context,
-                _configData.getAppThemeData(),
-                localFileList,
-                true,
-                (fileName) {
-                  // OnSelect
-                  if (fileName != _configData.getDataFileName()) {
-                    _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
-                    _configData.update(callOnUpdate: true);
-                    logger.log("__CONFIG__ File name updated to:'$fileName'");
-                    _configData.save(logger.log);
+              _configData.remoteDir(
+                fileExtensionDataList,
+                _remoteServerAvailable,
+                (fileListEntry) {
+                  // On found.
+                  localFileList.add(fileListEntry);
+                  return 1;
+                },
+                (message) {
+                  // on Done.
+                  if (message.isNotEmpty) {
+                    debugPrint(message);
                   } else {
-                    logger.log("__CONFIG__ File name not updated. No change");
+                    showFilesListDialog(
+                      context,
+                      _configData.getAppThemeData(),
+                      localFileList,
+                      true,
+                      _remoteServerAvailable ? "" : "Remote files not available",
+                      (fileName) {
+                        // OnSelect
+                        if (fileName != _configData.getDataFileName()) {
+                          _configData.setValueForJsonPath(dataFileLocalNamePath, fileName);
+                          _configData.update(callOnUpdate: true);
+                          logger.log("__CONFIG__ File name updated to:'$fileName'");
+                          _configData.save(logger.log);
+                        } else {
+                          logger.log("__CONFIG__ File name not updated. No change");
+                        }
+                        _initialPassword = _passwordEditingController.text;
+                        _passwordEditingController.text = "";
+                        _loadDataState();
+                      },
+                      (action) {
+                        // Create Local File
+                        if (action == SimpleButtonActions.ok) {
+                          _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
+                        }
+                      },
+                      () {
+                        // On Close - Refocus to Search or Password fields
+                        _setFocus("showLocalFilesDialog");
+                      },
+                    );
                   }
-                  _initialPassword = _passwordEditingController.text;
-                  _passwordEditingController.text = "";
-                  _loadDataState();
-                },
-                (action) {
-                  // Create Local File
-                  if (action == SimpleButtonActions.ok) {
-                    _handleAction(DetailAction(ActionType.createFile, false, Path.empty()));
-                  }
-                },
-                () {
-                  // On Close - Refocus to Search or Password fields
-                  _setFocus("showLocalFilesDialog");
                 },
               );
+
               break;
             }
           case ActionType.about:
@@ -615,11 +645,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 context,
                 _configData.getAppThemeData(),
                 screenSize,
-                "",
-                false,
-                true,
-                false,
-                _loadedData.hasPassword,
+                "", // current value
+                false, // isRename
+                true, // isPassword
+                !_loadedData.hasPassword, // isPasswordConfirm
+                _loadedData.hasPassword, // allowAnyPw
                 (button, pw, type) async {
                   if (button == SimpleButtonActions.ok) {
                     var usePw = pw;
@@ -1247,8 +1277,6 @@ class _MyHomePageState extends State<MyHomePage> {
     _pathPropertiesList.clear();
     _globalSuccessState = SuccessState(true, message: reason);
     _currentSelectedGroupsPrefix = "";
-    _serverFileList = List.empty();
-    _remoteServerAvailable = false;
     _treeNodeDataRoot = MyTreeNode.empty();
     _filteredNodeDataRoot = MyTreeNode.empty();
     logger.log("__DATA_CLEARED__ $reason");
@@ -1298,7 +1326,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   String _checkRenameOk(DetailAction detailActionData, String newNameNoSuffix, FunctionalTypeData newType) {
     return _loadedData.rename(detailActionData.path, newNameNoSuffix, extension: newType.suffix, dryRun: true, validate: (node, n, e) {
-      return detailActionData.validateChange(newNameNoSuffix, newType);
+      final content = _loadedData.getNodeFromJson(detailActionData.path);
+      return detailActionData.validateChange(newNameNoSuffix, content, newType);
     });
   }
 
@@ -1308,7 +1337,8 @@ class _MyHomePageState extends State<MyHomePage> {
     if (oldName != newName) {
       setState(() {
         final msg = _loadedData.rename(detailActionData.path, newNameNoSuffix, extension: newType.suffix, dryRun: false, validate: (node, n, e) {
-          return detailActionData.validateChange(newNameNoSuffix, newType);
+          final content = _loadedData.getNodeFromJson(detailActionData.path);
+          return detailActionData.validateChange(newNameNoSuffix, content, newType);
         });
         if (msg.isNotEmpty) {
           _globalSuccessState = SuccessState(false, message: "__RENAME__ $msg");
@@ -1599,39 +1629,14 @@ class _MyHomePageState extends State<MyHomePage> {
         _handleAction(DetailAction.actionOnly(ActionType.showLog));
       },
       getState: (c, widget) {
-        if ((c % 20) == 0 && c > 0 || c == 2) {
-          DataContainer.testHttpGet(_configData.getRemoteTestFileUrl(), (response) {
-            if (response.isEmpty) {
-              logger.log("__REMOTE__ Test file loaded OK");
-              widget.setVisible(false);
-              if (!_remoteServerAvailable) {
-                setState(() {
-                  debugPrint("STATE:Connected to server");
-                  _serverFileList = List.empty(growable: true);
-                  _remoteServerAvailable = true;
-                  _configData.remoteDir(
-                    fileExtensionDataList,
-                    (message) {
-                      debugPrint("ERROR: $message");
-                    },
-                    (file) {
-                      _serverFileList.add(FileListEntry.remote(file));
-                    },
-                  );
-                });
-              }
-            } else {
-              logger.log("__REMOTE__ $response");
-              widget.setVisible(true);
-              if (_remoteServerAvailable) {
-                debugPrint("STATE:Dis-Connected from server");
-                setState(() {
-                  _serverFileList = List.empty();
-                  _remoteServerAvailable = false;
-                });
-              }
-            }
-          }, prefix: "TestFile: '${_configData.getRemoteTestFileName}'  ");
+        final vis = widget.getVisible();
+        if (vis && _remoteServerAvailable) {
+          logger.log("__STATE:__ Connected to server");
+          widget.setVisible(false);
+        }
+        if (!vis && !_remoteServerAvailable) {
+          logger.log("__STATE:__ Dis-connected from server");
+          widget.setVisible(true);
         }
         return c + 1;
       },

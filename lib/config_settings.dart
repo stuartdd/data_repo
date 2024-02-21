@@ -186,6 +186,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
     if (countdownTimer != null) {
       countdownTimer!.cancel();
     }
+
     countdownTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
       SettingValidation svTest = SettingValidation.ok();
       SettingValidation svGet = SettingValidation.ok();
@@ -215,7 +216,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
       final pathTest = widget.settingsControlList.substituteForUrl(scTestGet!.stringValue);
       final pathGet = widget.settingsControlList.substituteForUrl(scGet!.stringValue);
 
-      await DataContainer.testHttpGet(pathTest, maxContentLen: 100, prefix: "Remote Test File: '$defaultRemoteTestFileName'  ", (resp) {
+      await DataContainer.testHttpGet(pathTest, prefix: "Remote Test File: '$defaultRemoteTestFileName'  ", (resp) {
         if (resp.isNotEmpty) {
           if (testErrorNotLogged) {
             widget.log("__VALIDATE SETTINGS__ 'Test url' $resp");
@@ -224,12 +225,13 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
           svTest = SettingValidation.warning(resp);
         }
       });
+
       if (scTestGet.validationState.isNotEqual(svTest)) {
         scTestGet.validationState = svTest;
         updateState();
       }
 
-      await DataContainer.testHttpGet(pathGet, prefix: "Remote File: '${scFileName!.stringValue}'  ", (resp) {
+      await DataContainer.testHttpGet(pathGet, prefix: "Remote Test File: '${scFileName!.stringValue}'  ", (resp) {
         if (resp.isNotEmpty) {
           if (getErrorNotLogged) {
             widget.log("__VALIDATE SETTINGS__ 'Get url' $resp");
@@ -238,6 +240,7 @@ class _ConfigInputPageState extends State<ConfigInputPage> {
           svGet = SettingValidation.warning(resp);
         }
       });
+
       if (scGet.validationState.isNotEqual(svGet)) {
         scGet.validationState = svGet;
         updateState();

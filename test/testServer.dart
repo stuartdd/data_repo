@@ -18,26 +18,51 @@ import 'dart:convert';
 import 'dart:io';
 
 //
-// Run from project root:
+// Run from project root (data_repo):
 //     dart run test/testServer.dart
 //
 // Config Data Linux
-//             "postDataUrl": "http://localhost:3000/file",
-//             "getDataUrl": "http://localhost:3000/file",
+//             "postDataUrl": "http://localhost:3000/files/?/?/filename",
+//             "getDataUrl": "http://localhost:3000/files/?/?/filename",
 //             "datafile": "data.json",
 //             "datafilePath": "test/data"
 // Config Data Android Emulator
-//             "postDataUrl": "http://10.0.2.2:3000/file",
-//             "getDataUrl": "http://10.0.2.2:3000/file",
+//             "postDataUrl": "http://10.0.2.2:3000/files/?/?/filename",
+//             "getDataUrl": "http://10.0.2.2:3000/files/?/?/filename",
 //             "datafile": "data.json"
 //
+// First element of path must be 'files' last element is the file name. Don't care what is in between.
+//
+// If First element of path is 'files' and last element is the fileListKey then a list of files as json is returned.
+//   Ref: String getFileList(String fp)
+//
+const String fileListKey = "mydb";
+/*
+ Dir structure as follows:
+
+├── data_repo
+│   └── Project files from git (Run from here)
+└── data_repo_server
+    ├── local
+    │   ├── encrypted.data
+    │   ├── stuff.json
+    │   └── test.json
+    └── remote
+        ├── Fred.data
+        ├── Alice.json
+        └── remoteTestFile.rtf
+
+Note: remoteTestFile.rtf must be at least 10 chars long and less than 100.
+
+ */
+
 const String remoteDataDirectory = "../data_repo_server/remote";
 const String remoteLocalDirectory = "../data_repo_server/local";
 const port = 3000;
 
 Future<void> main() async {
   final server = await createServer();
-  print('Server started: ${server.address} port ${server.port}');
+  stdout.writeln('Server started: ${server.address} port ${server.port}');
   if (!_ensureExists(remoteDataDirectory)) {
     exit(1);
   }
@@ -52,14 +77,14 @@ bool _ensureExists(String dir) {
   if (!d.existsSync()) {
     d.createSync(recursive: true);
     if (!d.existsSync()) {
-      print('Server dir could not be created:${d.absolute}');
+      stdout.writeln('Server dir could not be created:${d.absolute}');
       return false;
     } else {
-      print('Server dir created:${d.absolute}');
+      stdout.writeln('Server dir created:${d.absolute}');
       return true;
     }
   }
-  print('Server dir found:${d.absolute}');
+  stdout.writeln('Server dir found:${d.absolute}');
   return true;
 }
 
@@ -84,12 +109,11 @@ Future<void> handleRequests(HttpServer server) async {
 }
 
 /// GET requests
-
 void handleGet(HttpRequest request) {
   final urlParts = request.uri.pathSegments;
-  print("GET:Parts:$urlParts");
+  stdout.writeln("GET:Parts:$urlParts");
   switch (urlParts[0]) {
-    case 'file':
+    case 'files':
       handleGetFile(request, remoteDataDirectory, urlParts);
       break;
     case 'local':
@@ -100,10 +124,39 @@ void handleGet(HttpRequest request) {
   }
 }
 
+/*
+Return a list of files from the remote dir as a json structure.
+ */
+String getFileList(String fp) {
+  StringBuffer sb = StringBuffer();
+  sb.write('{"files":{');
+  final dir = Directory(fp);
+  final dirList = dir.listSync(recursive: false);
+  for (var i = 0; i < dirList.length; i++) {
+    if (dirList[i] is File) {
+      final fileName = File(dirList[i].path).uri.pathSegments.last;
+      sb.write('"mdb $i": {"name": {"name":"$fileName"}}');
+      if (i < (dirList.length-1)) {
+        sb.write(',');
+      }
+    }
+  }
+  sb.writeln('}}');
+  return sb.toString();
+}
+
 void handleGetFile(HttpRequest request, String filePath, List<String> urlParts) {
-  final fn = urlParts[1];
+  final last = urlParts.length - 1;
+  final fn = urlParts[last];
   final fp = "$filePath/$fn";
-  print("GET:File:$fn FilePath:$fp");
+  if (fn == fileListKey) {
+    request.response
+      ..statusCode = HttpStatus.ok
+      ..write(getFileList(filePath))
+      ..close();
+    return;
+  }
+  stdout.writeln("GET:File:$fn FilePath:$fp");
   final String jsonString;
   try {
     jsonString = File(fp).readAsStringSync();
@@ -125,12 +178,14 @@ void handleGetFile(HttpRequest request, String filePath, List<String> urlParts) 
 Future<void> handlePost(HttpRequest request) async {
   final urlParts = request.uri.pathSegments;
   final body = await utf8.decoder.bind(request).join();
-  print("POST:Parts:$urlParts");
+  stdout.writeln("POST:Parts:$urlParts");
   switch (urlParts[0]) {
-    case 'file':
+    case 'files':
+      stdout.writeln("POST:files:$urlParts");
       handlePostFile(request, remoteDataDirectory, urlParts, body);
       break;
     case 'config':
+      stdout.writeln("POST:config:$urlParts");
       handlePostFile(request, remoteLocalDirectory, urlParts, body);
       break;
     default:
@@ -139,9 +194,10 @@ Future<void> handlePost(HttpRequest request) async {
 }
 
 Future<void> handlePostFile(HttpRequest request, String filePath, List<String> urlParts, String content) async {
-  final fn = urlParts[1];
+  final last = urlParts.length - 1;
+  final fn = urlParts[last];
   final fp = "$filePath/$fn";
-  print("POST:File:$fn FilePath:$fp \n$content\n");
+  stdout.writeln("POST:File:$fn FilePath:$fp \n$content\n");
   try {
     File(fp).writeAsStringSync(content);
     request.response

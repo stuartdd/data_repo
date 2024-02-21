@@ -109,18 +109,52 @@ final appColoursSecondaryPathC = Path.fromList([defaultThemeRootName, Path.subst
 final appColoursHiLightPathC = Path.fromList([defaultThemeRootName, Path.substituteElement, "colours", "hilight"]);
 final appColoursErrorPathC = Path.fromList([defaultThemeRootName, Path.substituteElement, "colours", "error"]);
 
-class FileListEntry {
-  final String name;
-  final bool _remote;
-  bool _local;
-  FileListEntry._(this.name, this._local, this._remote);
-
-  factory FileListEntry.local(final String name) {
-    return FileListEntry._(name, true, false);
+class FileDataEntryList {
+  late final List<FileDateEntry> _list;
+  FileDataEntryList._() {
+    _list = List.empty(growable: true);
   }
 
-  factory FileListEntry.remote(final String name) {
-    return FileListEntry._(name, false, true);
+  factory FileDataEntryList.empty() {
+    return FileDataEntryList._();
+  }
+
+  int get length {
+    return _list.length;
+  }
+
+  FileDateEntry at(int i) {
+    return _list[i];
+  }
+
+  add(FileDateEntry fde) {
+    for (var e in _list) {
+      if (e.name == fde.name) {
+        if (fde.isLocal) {
+          e.setLocal();
+        }
+        if (fde.isRemote) {
+          e.setRemote();
+        }
+        return;
+      }
+    }
+    _list.add(fde);
+  }
+}
+
+class FileDateEntry {
+  final String name;
+  bool _remote;
+  bool _local;
+  FileDateEntry._(this.name, this._local, this._remote);
+
+  factory FileDateEntry.local(final String name) {
+    return FileDateEntry._(name, true, false);
+  }
+
+  factory FileDateEntry.remote(final String name) {
+    return FileDateEntry._(name, false, true);
   }
 
   bool equals(String toName) {
@@ -131,9 +165,21 @@ class FileListEntry {
     _local = true;
   }
 
+  bool get isLocal {
+    return _local;
+  }
+
+  void setRemote() {
+    _remote = true;
+  }
+
+  bool get isRemote {
+    return _remote;
+  }
+
   @override
   String toString() {
-    return "${_local ? 'L' : '-'}${_remote ? 'R' : '-'} : $name";
+    return "${isLocal ? 'L' : '-'}${isRemote ? 'R' : '-'} : $name";
   }
 
   static IconData get localIcon {
@@ -149,10 +195,10 @@ class FileListEntry {
   }
 
   IconData get locationIcon {
-    if (_local && _remote) {
+    if (isLocal && isRemote) {
       return syncedIcon;
     }
-    if (_local) {
+    if (isLocal) {
       return localIcon;
     }
     return remoteIcon;
@@ -811,7 +857,7 @@ class ConfigData {
   String removeLocalFile() {
     try {
       (File(getDataFileLocalPath())).deleteSync();
-    } catch(e) {
+    } catch (e) {
       return "$e";
     }
     if (localDataFileExists()) {
@@ -873,32 +919,37 @@ class ConfigData {
     return "MO: $_title";
   }
 
-  Future<void> remoteDir(final List<String> extension, final Function(String) onFail, final Function(String) onFound) async {
-    final getUrl = getListDataUrl();
-    final res = await DataContainer.listHttpGet(
-      getUrl,
-      timeoutMillis: 2000,
-      log: log,
-      onFind: (value) {
-        final vlc = value.toLowerCase();
-        for (int i = 0; i < extension.length; i++) {
-          if (vlc.endsWith(extension[i]) && !vlc.contains("config") && !vlc.startsWith(".")) {
-            onFound(value);
+  Future<void> remoteDir(final List<String> extension, final bool remoteServerAvailable, final int Function(FileDateEntry) onFound, final Function(String) onDone) async {
+    if (remoteServerAvailable) {
+      final getUrl = getListDataUrl();
+      final res = await DataContainer.listHttpGet(
+        getUrl,
+        timeoutMillis: 2000,
+        log: log,
+        onFind: (fileName) {
+          final fileNameLc = fileName.toLowerCase();
+          for (int i = 0; i < extension.length; i++) {
+            if (fileNameLc.endsWith(extension[i]) && !fileNameLc.contains("config") && !fileNameLc.startsWith(".")) {
+              return onFound(FileDateEntry.remote(fileName));
+            }
           }
-        }
-      },
-    );
-    if (res.isFail) {
-      onFail("__LIST_REMOTE__ ${res.message}");
+          return 0;
+        },
+      );
+      if (res.isFail) {
+        onDone("__LIST_REMOTE__ ${res.message}");
+        return;
+      }
     }
+    onDone("");
   }
 
-  List<FileListEntry> dir(final List<String> extensions, final List<String> hidden, final List<FileListEntry> remote, final Function(List<String>, bool) onFail) {
+  FileDataEntryList dir(final List<String> extensions, final List<String> hidden, final Function(List<String>, bool) onFail) {
+    final theList = FileDataEntryList.empty();
     final dir = Directory(getDataFileDir());
-    final List<FileListEntry> finalList = List.from(remote, growable: true);
     if (!dir.existsSync()) {
       onFail(["Config Data Error:", "Element '$dataFileLocalDirPath'", "", "Path not found:", getDataFileDir()], true);
-      return [];
+      return FileDataEntryList.empty();
     }
     final dirList = dir.listSync(recursive: false);
     for (var element in dirList) {
@@ -906,29 +957,19 @@ class ConfigData {
         final fileName = File(element.path).uri.pathSegments.last;
         if (!fileName.startsWith('.') && !hidden.contains(fileName)) {
           if (extensions.isEmpty) {
-            _mergeFileList(finalList, fileName);
+            theList.add(FileDateEntry.local(fileName));
           } else {
             final ext = fileName.split('.').last.toLowerCase();
             if (ext.isNotEmpty) {
               if (extensions.contains(".$ext")) {
-                _mergeFileList(finalList, fileName);
+                theList.add(FileDateEntry.local(fileName));
               }
             }
           }
         }
       }
     }
-    return finalList;
-  }
-
-  void _mergeFileList(final List<FileListEntry> into, String localName) {
-    for (var fle in into) {
-      if (fle.equals(localName)) {
-        fle.setLocal();
-        return;
-      }
-    }
-    into.add(FileListEntry.local(localName));
+    return theList;
   }
 
   @override

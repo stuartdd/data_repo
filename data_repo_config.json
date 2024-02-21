@@ -8,12 +8,12 @@
     "shouldIsolate": false
   },
   "file": {
-    "serverPath": "http://192.168.1.243:8080",
+    "serverPath": "http://localhost:3000",
     "getDataUrl": "files/user/stuart/loc/mydb/name/%dataFileName%",
     "postDataUrl": "files/user/stuart/loc/mydb/name/%dataFileName%",
     "getTestFileUrl": "files/user/stuart/loc/mydb/name/%testFileName%",
     "getListDataUrl": "files/user/stuart/loc/mydb",
-    "datafileName": "test.json",
+    "datafileName": "Fred.json",
     "datafilePath": "../data_repo_server/local"
   },
   "theme": {

@@ -299,7 +299,23 @@ class DetailAction {
     return DetailAction(action, false, Path.empty(), additional: additional);
   }
 
-  String validateChange(String nameNoSuffix, final FunctionalTypeData newType) {
+  String validateChange(String nameNoSuffix, dynamic content, final FunctionalTypeData newType) {
+    if (newType != currentValueType) {
+      if (currentValueType.functionalType == FunctionalType.markdownType) {
+        if (content == null) {
+          return "Value is null";
+        }
+        if (content is! String) {
+          return "Value is not text";
+        }
+        for (var c in content.runes) {
+          debugPrint("Char $c ${String.fromCharCode(c)}");
+          if (c < 32) {
+            return "Value has multiple lines";
+          }
+        }
+      }
+    }
     return "";
   }
 
