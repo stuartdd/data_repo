@@ -356,7 +356,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (groupCopy) {
       return GroupCopyMoveSummary(from, _loadedData.copyInto(to, from, isValue, dryRun: true), isValue);
     }
-    return GroupCopyMoveSummary(from, _loadedData.remove(from, dryRun: true), isValue);
+    return GroupCopyMoveSummary(from, _loadedData.removeNode(from, dryRun: true), isValue);
   }
 
   GroupCopyMoveSummaryList _summariseGroupSelection(final PathPropertiesList pathPropertiesList, final bool groupCopy) {
@@ -717,7 +717,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                         if (action == SimpleButtonActions.move || action == SimpleButtonActions.delete) {
                           for (var k in groupMap.keys) {
-                            final resp = _loadedData.remove(Path.fromDotPath(k), dryRun: false);
+                            final resp = _loadedData.removeNode(Path.fromDotPath(k), dryRun: false);
                             if (resp.isEmpty) {
                               groupMap[k]!.done = true;
                               _dataWasUpdated = true;
@@ -788,9 +788,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 () {
                   _setFocus("renameItem");
                 },
-                options: detailActionData.isValueData ? optionForRenameDataElement : [],
+                options: detailActionData.currentValueType.cannotChangeNativeType ? optionForRenameDataElement : [],
                 currentOption: detailActionData.currentValueType,
-                title: "Change $title '${detailActionData.path.last}'",
+                title: "Update $title",
               );
               break;
             }
@@ -864,9 +864,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 () {
                   _setFocus("editItemData");
                 },
-                options: detailActionData.currentValueType.dataValueTypeFixed ? [] : optionForUpdateDataElement,
+                options: (detailActionData.currentValueType.cannotChangeNativeType) ? [] : optionForUpdateDataElement,
                 currentOption: detailActionData.currentValueType,
-                title: "Update Value '${detailActionData.path.last}'",
+                title: "Update Value: '${detailActionData.getDisplayValue(true)}'",
               );
               break;
             }
@@ -1297,7 +1297,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   String _checkAddOk(final Path path, final String newNameNoSuffix, final ActionType addType) {
-    return _loadedData.add(path, newNameNoSuffix, null, dryRun: true);
+    return _loadedData.addNode(path, newNameNoSuffix, null, dryRun: true);
   }
 
   void _handleAddState(final Path path, final String newNameNoSuffix, final ActionType addType) async {
@@ -1305,9 +1305,9 @@ class _MyHomePageState extends State<MyHomePage> {
       final String msg;
       if (addType == ActionType.addGroup) {
         final Map<String, dynamic> map = {};
-        msg = _loadedData.add(path, newNameNoSuffix, map, dryRun: false);
+        msg = _loadedData.addNode(path, newNameNoSuffix, map, dryRun: false);
       } else {
-        msg = _loadedData.add(path, newNameNoSuffix, "", dryRun: false);
+        msg = _loadedData.addNode(path, newNameNoSuffix, "", dryRun: false);
       }
       if (msg.isNotEmpty) {
         _globalSuccessState = SuccessState(false, message: "__ADD__ $msg");
@@ -1327,7 +1327,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _checkRenameOk(DetailAction detailActionData, String newNameNoSuffix, FunctionalTypeData newType) {
     return _loadedData.rename(detailActionData.path, newNameNoSuffix, extension: newType.suffix, dryRun: true, validate: (node, n, e) {
       final content = _loadedData.getNodeFromJson(detailActionData.path);
-      return detailActionData.validateChange(newNameNoSuffix, content, newType);
+      return detailActionData.validateTypeChange(newNameNoSuffix, content, detailActionData.currentValueType, newType);
     });
   }
 
@@ -1338,7 +1338,7 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         final msg = _loadedData.rename(detailActionData.path, newNameNoSuffix, extension: newType.suffix, dryRun: false, validate: (node, n, e) {
           final content = _loadedData.getNodeFromJson(detailActionData.path);
-          return detailActionData.validateChange(newNameNoSuffix, content, newType);
+          return detailActionData.validateTypeChange(newNameNoSuffix, content, detailActionData.currentValueType, newType);
         });
         if (msg.isNotEmpty) {
           _globalSuccessState = SuccessState(false, message: "__RENAME__ $msg");
@@ -1360,7 +1360,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void _handleDeleteState(final Path path, final String response) async {
     if (response == "OK") {
       setState(() {
-        final msg = _loadedData.remove(path, dryRun: false);
+        final msg = _loadedData.removeNode(path, dryRun: false);
         if (msg.isNotEmpty) {
           _globalSuccessState = SuccessState(false, message: "__REMOVE__ $msg");
           return;
@@ -1903,7 +1903,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     MenuOptionDetails("Sync Data", "Save '%{4}' to Local and Remote Storage %{0}", ActionType.save, () {
                       return Icons.cloud_sync;
                     }),
-                    MenuOptionDetails("Save %{1}", "Save '%{5}' to Local Storage only %{1}", ActionType.saveAlt, () {
+                    MenuOptionDetails("Save %{1}", "Save '%{5}' to Local Storage %{1}", ActionType.saveAlt, () {
                       return _loadedData.hasPassword ? Icons.lock_open : Icons.lock;
                     }, enabled: _loadedData.canSaveAltFile()),
                     MenuOptionDetails("Change Password", "Change Password '%{4}', Save and Restart'", ActionType.changePassword, enabled: !_dataWasUpdated && _loadedData.hasPassword, () {

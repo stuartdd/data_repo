@@ -661,7 +661,7 @@ class ConfigData {
 
   String clearThemeForFile(final String fileName) {
     final tn = _fileNameToThemeName(fileName);
-    final resp = _data.remove(Path.fromList([defaultThemeRootName, tn]), dryRun: false);
+    final resp = _data.removeNode(Path.fromList([defaultThemeRootName, tn]), dryRun: false);
     if (resp.isEmpty) {
       update();
     }

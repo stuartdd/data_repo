@@ -73,7 +73,7 @@ void main() {
     final appAdd3 = Path.fromDotPath("application.added2.add3");
     final data = DataContainer(DataContainer.loadFromFile("test/data/config.json").value, FileDataPrefix.empty(), "", "", "", null, "");
 
-    expect(data.replace(Path.empty(), "abc", dryRun: false), "Path is empty");
+    expect(data.replaceNode(Path.empty(), "abc", dryRun: false), "Replace: Path is empty");
     expect(data.getStringFromJson(appTitle), "Data Repository");
     expect(data.setValueForJsonPath(appTitle, "title"), "");
     expect(data.getStringFromJson(appTitle), "title");

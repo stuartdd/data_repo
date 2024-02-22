@@ -814,11 +814,12 @@ class _MarkDownInputField extends State<MarkDownInputField> {
 }
 
 class ValidatedInputField extends StatefulWidget {
-  ValidatedInputField({super.key, this.initialValue = "", this.isPassword = false, this.isPasswordConfirm = false, this.isRename = false, this.autoFocus = true, required this.onSubmit, required this.onValidate, required this.prompt, this.options = const [], this.initialOption = functionalTypeDataUndefined, required this.appThemeData});
+  ValidatedInputField({super.key, this.initialValue = "", this.isPassword = false, this.isPasswordConfirm = false, this.isRename = false, this.autoFocus = true, required this.onSubmit, required this.onValidate, required this.prompt1, this.prompt2 = "", this.options = const [], this.initialOption = functionalTypeDataUndefined, required this.appThemeData});
   final String initialValue;
   final List<FunctionalTypeData> options;
   final FunctionalTypeData initialOption;
-  final String prompt;
+  final String prompt1;
+  final String prompt2;
   final bool isPassword;
   final bool isPasswordConfirm;
   final bool isRename;
@@ -896,7 +897,13 @@ class _ValidatedInputFieldState extends State<ValidatedInputField> {
             : Container(
                 alignment: Alignment.topLeft,
                 child: Column(
-                  children: [Text(widget.prompt.replaceAll("[type]", currentOption.typeHint), style: widget.appThemeData.tsMediumBold), widget.appThemeData.verticalGapBox(2)],
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    widget.prompt2.isNotEmpty ? Text(widget.prompt2.replaceAll("[type]", currentOption.typeHint), style: widget.appThemeData.tsMedium) : const SizedBox(height: 0),
+                    widget.prompt2.isNotEmpty ? widget.appThemeData.verticalGapBox(1) : const SizedBox(height: 0),
+                    Text(widget.prompt1.replaceAll("[type]", currentOption.typeHint), style: widget.appThemeData.tsMediumBold),
+                    widget.appThemeData.verticalGapBox(2),
+                  ],
                 )),
         (widget.isPassword)
             ? Row(

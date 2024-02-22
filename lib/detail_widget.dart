@@ -70,16 +70,22 @@ class DataValueDisplayRow {
     return _stringValue;
   }
 
-  bool get isLink {
+  bool get isRef {
     if (_isValue) {
-      return isLinkString(_stringValue);
+      return type.isRefType;
     }
     return false;
   }
 
-  bool get isRef {
+  bool isLink(String resolvedValue) {
     if (_isValue) {
-      return type.isRefType;
+      if (type.isLinkType) {
+        return true;
+      }
+      var t = resolvedValue.toLowerCase();
+      if (t.startsWith("http://") || t.startsWith("https://")) {
+        return true;
+      }
     }
     return false;
   }
@@ -231,7 +237,7 @@ class _DetailWidgetState extends State<DetailWidget> {
       if (v.isSuccess) {
         refIsResolved = true;
         resolvedValue = v.value;
-        resolvedValueIsLink = isLinkString(resolvedValue);
+        resolvedValueIsLink = widget.dataValueRow.isLink(resolvedValue);
       } else {
         refIsResolved = false;
         resolvedValue = widget.dataValueRow.value;
@@ -240,7 +246,7 @@ class _DetailWidgetState extends State<DetailWidget> {
     } else {
       refIsResolved = true;
       resolvedValue = widget.dataValueRow.value;
-      resolvedValueIsLink = isLinkString(resolvedValue);
+      resolvedValueIsLink = widget.dataValueRow.isLink(resolvedValue);;
     }
     return Card(
       shape: appThemeData.rectangleBorderShape,
@@ -414,12 +420,4 @@ Widget groupButton(final PathProperties plp, final bool value, final bool isEdit
     );
   }
   return const SizedBox(width: 0);
-}
-
-bool isLinkString(String test) {
-  var t = test.toLowerCase();
-  if (t.startsWith("http://") || t.startsWith("https://")) {
-    return true;
-  }
-  return false;
 }

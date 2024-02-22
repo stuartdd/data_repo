@@ -105,7 +105,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
   );
 
   final fileNameInput = ValidatedInputField(
-    prompt: "File Name",
+    prompt1: "File Name",
     appThemeData: appThemeData,
     onSubmit: (vx, vt) {},
     onValidate: (ix, vx, it, vt, confirm) {
@@ -130,7 +130,7 @@ Future<void> showFileNamePasswordDialog(final BuildContext context, final AppThe
   final passwordInput = ValidatedInputField(
     isPassword: true,
     isPasswordConfirm: true,
-    prompt: "Password",
+    prompt1: "Password",
     appThemeData: appThemeData,
     onSubmit: (vx, vt) {},
     onValidate: (ix, vx, it, vt, confirm) {
@@ -664,7 +664,8 @@ Future<void> showModalInputDialog(final BuildContext context, final AppThemeData
                 isRename: isRename,
                 initialOption: currentOption,
                 initialValue: currentValue,
-                prompt: "Input: ${isRename ? "New Name" : "[type]"}",
+                prompt2: isRename ? "Current Name: '$currentValue'": "",
+                prompt1: "Input: ${isRename ? "New Name" : "[type]"}",
                 appThemeData: appThemeData,
                 onSubmit: (text, type) {
                   if (okButtonManager.getEnabled()) {

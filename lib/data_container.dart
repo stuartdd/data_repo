@@ -19,6 +19,7 @@ import 'package:flutter/cupertino.dart';
 import "path.dart";
 import 'package:http/http.dart' as http;
 import 'package:http_status_code/http_status_code.dart';
+import 'package:intl/intl.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'encrypt.dart';
@@ -185,7 +186,7 @@ class DataContainer {
     return "";
   }
 
-  String replace(final Path path, final dynamic value, {required bool dryRun}) {
+  String replaceNode(final Path path, final dynamic value, {required bool dryRun}) {
     final msg = _validatePath(path, "replace", allowRoot: true);
     if (msg.isNotEmpty) {
       return "Replace: $msg";
@@ -199,6 +200,7 @@ class DataContainer {
     if (nodeList.error) {
       return "Replace: Node not found";
     }
+
     final Map<String, dynamic>? parentNode;
     if (nodeList.length == 1) {
       parentNode = _dataMap;
@@ -213,44 +215,6 @@ class DataContainer {
       parentNode.remove(path.last);
       parentNode[path.last] = value;
     }
-    return "";
-  }
-
-  String add(final Path parentPath, final String name, final dynamic value, {final String extension = noExtension, required bool dryRun, final String Function(Map<String, dynamic>, String, String, dynamic)? validate}) {
-    final msg1 = _validateNodeName(name);
-    if (msg1.isNotEmpty) {
-      return "Add: $msg1";
-    }
-
-    final msg2 = _checkNodeAlreadyExist(parentPath, name, extension, true);
-    if (msg2.isNotEmpty) {
-      return "Add: $msg2";
-    }
-    final Map<String, dynamic>? parentNode;
-    if (parentPath.isEmpty) {
-      parentNode = _dataMap;
-    } else {
-      final nodeList = PathNodes.from(_dataMap, parentPath);
-      if (nodeList.error) {
-        return "Add: Node not found";
-      }
-      parentNode = nodeList.lastNodeAsMap;
-      if (parentNode == null) {
-        return "Add: Parent is not map";
-      }
-    }
-
-    if (validate != null) {
-      final msg = validate(parentNode, name, extension, value);
-      if (msg.isNotEmpty) {
-        return "Add: $msg";
-      }
-    }
-
-    if (!dryRun) {
-      parentNode["$name$extension"] = value;
-    }
-
     return "";
   }
 
@@ -298,7 +262,38 @@ class DataContainer {
     return "";
   }
 
-  String remove(Path path, {required bool dryRun}) {
+  String addNode(final Path parentPath, final String name, final dynamic value, {required bool dryRun}) {
+    final msg1 = _validateNodeName(name);
+    if (msg1.isNotEmpty) {
+      return "Add: $msg1";
+    }
+
+    final msg2 = _checkNodeAlreadyExist(parentPath, name, noExtension, true);
+    if (msg2.isNotEmpty) {
+      return "Add: $msg2";
+    }
+
+    final Map<String, dynamic>? parentNode;
+    if (parentPath.isEmpty) {
+      parentNode = _dataMap;
+    } else {
+      final nodeList = PathNodes.from(_dataMap, parentPath);
+      if (nodeList.error) {
+        return "Add: Node not found";
+      }
+      parentNode = nodeList.lastNodeAsMap;
+      if (parentNode == null) {
+        return "Add: Parent is not map";
+      }
+    }
+    if (!dryRun) {
+      parentNode[name] = value;
+    }
+
+    return "";
+  }
+
+  String removeNode(Path path, {required bool dryRun}) {
     final msg0 = _validatePath(path, "remove", allowRoot: true);
     if (msg0.isNotEmpty) {
       return "Remove: $msg0";
@@ -684,7 +679,7 @@ class DataContainer {
       }
 
       if (body.startsWith('{') || body.startsWith('[')) {
-        var count  = 0;
+        var count = 0;
         final data = DataContainer.fromJson(body, log: log);
         data.visitEachSubNode((name, path, node) {
           if (path.length == 4 && path.peek(0) == "files" && path.toString().endsWith("name.name") && node is String) {
@@ -910,5 +905,7 @@ String staticTimeStampString(final int ts) {
   if (ts <= 0) {
     return "None";
   }
-  return DateTime.fromMillisecondsSinceEpoch(ts).toString();
+  final t = DateTime.fromMillisecondsSinceEpoch(ts);
+  final DateFormat formatter = DateFormat('yyyy/MM/dd HH:mm:ss');
+  return formatter.format(t);
 }
