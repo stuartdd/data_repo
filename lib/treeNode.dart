@@ -41,10 +41,25 @@ class MyTreeNode {
     return "Label:$label PathKey:$pathKey Leaf:$leaf Children:${children.length} Req:$required Exp:$expanded";
   }
 
-  static MyTreeNode fromMap(final Map<String, dynamic> mapNode, {int sorted = 0}) {
+  factory MyTreeNode.fromMap(final Map<String, dynamic> mapNode, {int sorted = 0}) {
     final treeNode = MyTreeNode.empty();
     _fromMapR(mapNode, treeNode, sorted);
     return treeNode;
+  }
+
+
+  factory MyTreeNode.fromMapCopyingFlags(final Map<String, dynamic> mapNode, final MyTreeNode rootTreeNodeWithFlags, {int sorted = 0}) {
+    final temp = MyTreeNode.fromMap(mapNode, sorted:sorted);
+    temp.visitEachSubNode((node) {
+      final refNode = rootTreeNodeWithFlags.findByPath(node.path);
+      if (refNode != null) {
+        node.setRequired(refNode.isRequired);
+        if (node.canExpand) {
+          node.expanded = refNode.expanded;
+        }
+      }
+    });
+    return temp;
   }
 
   static void _insertInOrder(List<MyTreeNode> list, MyTreeNode node, int order) {

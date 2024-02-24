@@ -735,8 +735,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             return (_loadedData.getNodeFromJson(path) != null);
                           },
                         );
-
-                        _reloadTreeFromMapAndCopyFlags();
+                        _treeNodeDataRoot = MyTreeNode.fromMapCopyingFlags(_loadedData.dataMap, _treeNodeDataRoot, sorted: _applicationState.isDataSorted);
                       }
                       if (action == SimpleButtonActions.listRemove) {
                         _pathPropertiesList.setGroupSelect(intoPath, false);
@@ -1064,7 +1063,7 @@ class _MyHomePageState extends State<MyHomePage> {
         {
           setState(() {
             _applicationState.flipDataSorted;
-            _reloadTreeFromMapAndCopyFlags();
+            _treeNodeDataRoot = MyTreeNode.fromMapCopyingFlags(_loadedData.dataMap, _treeNodeDataRoot, sorted: _applicationState.isDataSorted);
             _selectNode(_selectedPath);
           });
           break;
@@ -1282,20 +1281,6 @@ class _MyHomePageState extends State<MyHomePage> {
     logger.log("__DATA_CLEARED__ $reason");
   }
 
-  void _reloadTreeFromMapAndCopyFlags() {
-    final temp = MyTreeNode.fromMap(_loadedData.dataMap, sorted: _applicationState.isDataSorted);
-    temp.visitEachSubNode((node) {
-      final refNode = _treeNodeDataRoot.findByPath(node.path);
-      if (refNode != null) {
-        node.setRequired(refNode.isRequired);
-        if (node.canExpand) {
-          node.expanded = refNode.expanded;
-        }
-      }
-    });
-    _treeNodeDataRoot = temp;
-  }
-
   String _checkAddOk(final Path path, final String newNameNoSuffix, final ActionType addType) {
     return _loadedData.addNode(path, newNameNoSuffix, null, dryRun: true);
   }
@@ -1318,7 +1303,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _pathPropertiesList.setUpdated(path, shouldLog: false);
       _pathPropertiesList.setRenamed(path.cloneAppend(newNameNoSuffix), shouldLog: false);
       _pathPropertiesList.setUpdated(path.cloneAppend(newNameNoSuffix), shouldLog: true);
-      _reloadTreeFromMapAndCopyFlags();
+      _treeNodeDataRoot = MyTreeNode.fromMapCopyingFlags(_loadedData.dataMap, _treeNodeDataRoot, sorted: _applicationState.isDataSorted);;
       _selectNode(path);
       _globalSuccessState = SuccessState(true, message: "Data node '$newNameNoSuffix' added", log: logger.log);
     });
@@ -1350,9 +1335,9 @@ class _MyHomePageState extends State<MyHomePage> {
         final parentPath = detailActionData.path.cloneParentPath();
         _pathPropertiesList.setRenamed(newPath);
         _pathPropertiesList.setRenamed(parentPath, shouldLog: false);
-        _reloadTreeFromMapAndCopyFlags();
-        _selectNode(parentPath);
+        _treeNodeDataRoot = MyTreeNode.fromMapCopyingFlags(_loadedData.dataMap, _treeNodeDataRoot, sorted: _applicationState.isDataSorted);
         _globalSuccessState = SuccessState(true, message: "Node '$oldName' renamed $newName", log: logger.log);
+        _selectNode(parentPath);
       });
     }
   }
@@ -1369,9 +1354,9 @@ class _MyHomePageState extends State<MyHomePage> {
         _checkReferences = true;
         final parentPath = path.cloneParentPath();
         _pathPropertiesList.setUpdated(parentPath);
-        _reloadTreeFromMapAndCopyFlags();
-        _selectNode(parentPath);
+        _treeNodeDataRoot = MyTreeNode.fromMapCopyingFlags(_loadedData.dataMap, _treeNodeDataRoot, sorted: _applicationState.isDataSorted);
         _globalSuccessState = SuccessState(true, message: "Removed: '${path.last}'");
+        _selectNode(parentPath);
       });
     }
   }
@@ -1426,7 +1411,7 @@ class _MyHomePageState extends State<MyHomePage> {
           }
           _pathPropertiesList.setUpdated(detailActionData.path);
           _pathPropertiesList.setUpdated(detailActionData.path.cloneParentPath(), shouldLog: false);
-          _reloadTreeFromMapAndCopyFlags();
+          _treeNodeDataRoot = MyTreeNode.fromMapCopyingFlags(_loadedData.dataMap, _treeNodeDataRoot, sorted: _applicationState.isDataSorted);
           _selectNode(detailActionData.path.cloneParentPath());
           _globalSuccessState = SuccessState(true, message: "Item ${detailActionData.path.last} updated");
         } catch (e, s) {
