@@ -149,7 +149,7 @@ class LogContentManager implements ScrollAble {
       return null;
     }
     if (cs is ScrollAble) {
-      return (cs as ScrollAble);
+      return cs as ScrollAble;
     }
     return null;
   }

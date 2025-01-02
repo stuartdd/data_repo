@@ -252,9 +252,9 @@ void main() {
     pm = p.lastNodeAsMap;
     expect(p.lastNodeIsRoot, false);
     Map<String, dynamic>? parent = p.parentOfLastNode;
-    expect(parent?.containsKey("B"), true);
-    expect(parent?.containsKey("A1"), true);
     expect(parent == null, false);
+    expect(parent!.containsKey("B"), true);
+    expect(parent.containsKey("A1"), true);
     expect(pm == null, false);
     expect(pm!.length, 2);
 
@@ -268,9 +268,9 @@ void main() {
     expect(p.lastNodeIsRoot, false);
     parent = p.parentOfLastNode;
     expect(parent == null, false);
-    expect(parent?.containsKey("A111"), true);
-    expect(parent?.containsKey("A112"), true);
-    expect(parent?["A111"], "A111V");
+    expect(parent!.containsKey("A111"), true);
+    expect(parent.containsKey("A112"), true);
+    expect(parent["A111"], "A111V");
     final ps = p.lastNodeAsData;
     expect(ps == null, false);
     expect(ps is String, true);

@@ -311,9 +311,6 @@ class DataContainer {
       parentNode = dataMap;
     } else {
       parentNode = getNodeFromJson(parentPath);
-      if (parentNode == null) {
-        return "Remove: cannot find parent node";
-      }
     }
 
     if (!dryRun) {

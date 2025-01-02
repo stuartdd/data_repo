@@ -83,7 +83,7 @@ class IndicatorIconManager implements ManageAble {
       return null;
     }
     if (cs is ManageAble) {
-      return (cs as ManageAble);
+      return cs as ManageAble;
     }
     return null;
   }
@@ -266,7 +266,7 @@ class DetailIconButtonManager implements ManageAble {
       return null;
     }
     if (cs is ManageAble) {
-      return (cs as ManageAble);
+      return cs as ManageAble;
     }
     return null;
   }
@@ -413,7 +413,7 @@ class DetailTextButtonManager implements ManageAble {
       return null;
     }
     if (cs is ManageAble) {
-      return (cs as ManageAble);
+      return cs as ManageAble;
     }
     return null;
   }
